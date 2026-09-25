@@ -1,0 +1,6 @@
+{
+  "name": "Báo cáo",
+  "description": "Báo cáo giao ban sản xuất hàng ngày, tự động đồng bộ 2 DC (DCBG & DCRO), phân tích quá khứ - dự báo tương lai, cảnh báo biến động và xuất PDF.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
