@@ -1698,7 +1698,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                   <div className="space-y-1 text-slate-600">
                     <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: <Lock className="w-2.5 h-2.5 text-amber-600" /></span>
+                      <span className="flex items-center gap-1">Tuần 35: </span>
                       <span className="font-mono font-bold text-slate-700">{slideData.pxlr.weekly.find(w => w.id === 'pxlr-w35')?.value}%</span>
                     </div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
@@ -1716,7 +1716,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                       <span className="font-mono">131.6% | 135.5% | 133.6%</span>
                     </div>
                     <div className="flex justify-between py-0.5 font-bold text-purple-900 bg-purple-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">Tháng 9 (Tự động): <Zap className="w-2.5 h-2.5 text-purple-600" /></span>
+                      <span className="flex items-center gap-1">Tháng 9: </span>
                       <span className="font-mono text-purple-700 font-extrabold">{slideData.pxlr.monthly.find(m => m.id === 'pxlr-m09')?.value}%</span>
                     </div>
                   </div>
@@ -1731,7 +1731,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                   <div className="space-y-1 text-slate-600">
                     <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: <Lock className="w-2.5 h-2.5 text-amber-600" /></span>
+                      <span className="flex items-center gap-1">Tuần 35: </span>
                       <span className="font-mono font-bold text-slate-700">{slideData.ro.weekly.find(w => w.id === 'ro-w35')?.value}%</span>
                     </div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
@@ -1764,7 +1764,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                   <div className="space-y-1 text-slate-600">
                     <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: <Lock className="w-2.5 h-2.5 text-amber-600" /></span>
+                      <span className="flex items-center gap-1">Tuần 35: </span>
                       <span className="font-mono font-bold text-slate-700">{slideData.bg.weekly.find(w => w.id === 'bg-w35')?.value}%</span>
                     </div>
                     <div className="flex justify-between py-0.5 border-b border-slate-200/60">
@@ -2063,15 +2063,9 @@ export const TabPowerPointPresentation: React.FC = () => {
                           <label className="text-xs font-semibold text-slate-800">
                             {item.label}
                           </label>
-                          {isOld ? (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Dữ liệu cũ
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                              <Zap className="w-2.5 h-2.5" /> Tự động
-                            </span>
-                          )}
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                            <Zap className="w-2.5 h-2.5" /> Dữ liệu số
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <input
@@ -2103,9 +2097,6 @@ export const TabPowerPointPresentation: React.FC = () => {
                     <Layers className="w-3.5 h-3.5 text-teal-600" />
                     Số Liệu Theo Tháng (Biểu đồ dưới)
                   </h4>
-                  <span className="text-[11px] text-slate-400">
-                    Tháng 6, 7, 8: Dữ liệu cũ • Tháng 9: Dữ liệu mới (Tự động chạy)
-                  </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {editingData[activeEditSection].monthly.map(item => {
@@ -2123,15 +2114,9 @@ export const TabPowerPointPresentation: React.FC = () => {
                           <label className="text-xs font-semibold text-slate-800">
                             {item.label}
                           </label>
-                          {isOld ? (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                              <Lock className="w-2.5 h-2.5" /> Dữ liệu cũ
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                              <Zap className="w-2.5 h-2.5" /> Tự động
-                            </span>
-                          )}
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                            <Zap className="w-2.5 h-2.5" /> Dữ liệu số
+                          </span>
                         </div>
                         <div className="flex items-center gap-1">
                           <input

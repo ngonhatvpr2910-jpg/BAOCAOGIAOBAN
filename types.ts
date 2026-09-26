@@ -205,6 +205,7 @@ export interface ExcelMatrixROColumn {
   tongNhanSuLine: number;
   nhanSuNghi: number;
   tiLeDiLam: number; // %
+  tiLeLoiThaoTac?: number; // %
 }
 
 // Exact BG Daily & Weekly Matrix Column Record from Image 2
@@ -228,6 +229,7 @@ export interface ExcelMatrixBGColumn {
   tongNhanSuLine: number;
   nhanSuNghi: number;
   tiLeDiLam: number; // %
+  tiLeLoiThaoTac?: number; // %
 }
 
 // PowerPoint Slide 1: So Sánh NSLĐ Tháng

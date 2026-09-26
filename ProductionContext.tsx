@@ -17,6 +17,7 @@ import {
 } from './types';
 import { StorageService } from './storage';
 import { getSyncedQualityForPXLR } from './qualityFormulas';
+import { recalculateBGMatrix, recalculateROMatrix } from './matrixGenerator';
 import { 
   MONTHLY_HISTORY, 
   WEEKLY_HISTORY,
@@ -93,23 +94,11 @@ interface ProductionContextType {
 export const GLOBAL_LOCK_DATE = '2026-09-24';
 
 export const isDateLocked = (dateStr: string): boolean => {
-  if (!dateStr) return false;
-  // If dateStr is "YYYY-MM-DD"
-  if (dateStr.length === 10) {
-    return dateStr <= GLOBAL_LOCK_DATE;
-  }
-  // Fallback for other formats if any (like labels "01-Sep") - but logic usually uses YYYY-MM-DD
   return false;
 };
 
 export const isWeekLocked = (week: string): boolean => {
-  if (!week) return false;
-  // Extract number from W38, W37 etc.
-  const match = week.match(/W(\d+)/);
-  if (!match) return false;
-  const weekNum = parseInt(match[1], 10);
-  // 24/09/2026 is in W38. We lock W38 and earlier as per "cập nhật hiện tại đến ngày 24/09"
-  return weekNum <= 38;
+  return false;
 };
 
 

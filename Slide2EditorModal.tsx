@@ -31,7 +31,7 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
   // Xử lý thay đổi dữ liệu hàng ngày (Daily Records)
   const handleDailyRecordChange = (
     recId: string,
-    fieldPath: 'date' | 'dayLabel' | 'week' | 'ro.dmVatTu' | 'ro.vatTu' | 'ro.totalLoi4M' | 'bg.dmVatTu' | 'bg.vatTu' | 'bg.totalLoi4M' | 'ro.sanLuong' | 'bg.sanLuong',
+    fieldPath: 'date' | 'dayLabel' | 'week' | 'ro.dmVatTu' | 'ro.vatTu' | 'ro.totalLoi4M' | 'bg.dmVatTu' | 'bg.vatTu' | 'bg.totalLoi4M' | 'ro.sanLuong' | 'bg.sanLuong' | 'pxlr.dmVatTu',
     val: string | number
   ) => {
     setFormData(prev => {
@@ -43,18 +43,23 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
       if (fieldPath === 'date') rec.date = String(val);
       else if (fieldPath === 'dayLabel') rec.dayLabel = String(val);
       else if (fieldPath === 'week') rec.week = String(val);
+      else if (fieldPath === 'pxlr.dmVatTu') {
+        rec.pxlr.dmVatTu = parseFloat(String(val)) || 0;
+      }
       else {
         const num = parseFloat(String(val)) || 0;
-        const [sub, prop] = fieldPath.split('.') as ['ro' | 'bg', string];
+        const parts = fieldPath.split('.');
+        const sub = parts[0] as 'ro' | 'bg';
+        const prop = parts[1];
         if (sub === 'ro' || sub === 'bg') {
           (rec[sub] as any)[prop] = num;
         }
       }
 
-      // Tự động tính toán PXLR cho bản ghi ngày này
+      // Tự động tính toán PXLR cho bản ghi ngày này (ngoại trừ dmVatTu nếu vừa sửa pxlr.dmVatTu)
       const pxlrCalc = calculatePXLRQuality(rec.ro, rec.bg);
       rec.pxlr = {
-        dmVatTu: pxlrCalc.dmVatTu,
+        dmVatTu: fieldPath === 'pxlr.dmVatTu' ? rec.pxlr.dmVatTu : pxlrCalc.dmVatTu,
         vatTu: pxlrCalc.vatTu,
         totalLoi4M: pxlrCalc.totalLoi4M,
       };
@@ -358,11 +363,11 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                 </button>
               </div>
 
-              {/* Locked Benchmark Policy Alert */}
-              <div className="flex items-center gap-2 bg-slate-100 border border-slate-300 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700">
-                <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              {/* Unlocked Policy Alert */}
+              <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 px-3 py-2 rounded-lg text-xs font-semibold text-emerald-800">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                 <span>
-                  <strong>Quy định Định Mức:</strong> Các cột <span className="text-rose-700 font-bold">ĐM VT (%)</span> và <span className="text-emerald-700 font-bold">ĐM % Lỗi 4M</span> là tiêu chuẩn cố định của nhà máy (RO: 2.4%, BG: 4.03%) — đã được <strong>khóa cố định, không cho phép chỉnh sửa</strong> để đảm bảo tính chuẩn xác.
+                  <strong>Hệ thống đã được mở khóa:</strong> Bạn có thể tự do chỉnh sửa toàn bộ dữ liệu, bao gồm cả <span className="text-rose-700 font-bold">Định Mức Vật Tư (ĐM VT)</span> để phục vụ việc điều chỉnh báo cáo linh hoạt.
                 </span>
               </div>
 
@@ -378,20 +383,20 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                       <th rowSpan={2} className="p-2">Xóa</th>
                     </tr>
                     <tr className="bg-slate-700 text-[11px]">
-                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600 text-rose-300" title="Định mức cố định đã khóa">
-                        <span className="flex items-center justify-center gap-0.5"><Lock className="w-2.5 h-2.5" /> ĐM VT</span>
+                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600 text-rose-300">
+                        ĐM VT (%)
                       </th>
                       <th className="p-1.5 bg-rose-950/70 border-r border-slate-600">VT (%)</th>
                       <th className="p-1.5 bg-rose-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
                       
-                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600 text-rose-300" title="Định mức cố định đã khóa">
-                        <span className="flex items-center justify-center gap-0.5"><Lock className="w-2.5 h-2.5" /> ĐM VT</span>
+                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600 text-rose-300">
+                        ĐM VT (%)
                       </th>
                       <th className="p-1.5 bg-blue-950/70 border-r border-slate-600">VT (%)</th>
                       <th className="p-1.5 bg-blue-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
                       
-                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600 text-rose-300" title="Định mức cố định đã khóa">
-                        <span className="flex items-center justify-center gap-0.5"><Lock className="w-2.5 h-2.5" /> ĐM VT</span>
+                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600 text-rose-300">
+                        ĐM VT (%)
                       </th>
                       <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600">VT (%)</th>
                       <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
@@ -405,18 +410,16 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           <input
                             type="text"
                             value={rec.dayLabel}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'dayLabel', e.target.value)}
-                            className={`w-14 border rounded px-1.5 py-1 text-center font-bold text-xs ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-white border-slate-300'}`}
+                            className="w-14 border rounded px-1.5 py-1 text-center font-bold text-xs bg-white border-slate-300"
                           />
                         </td>
                         {/* Tuần */}
                         <td className="p-2 text-center font-bold">
                           <select
                             value={rec.week}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'week', e.target.value)}
-                            className={`border rounded px-1 py-1 text-center font-bold text-xs text-teal-700 cursor-pointer ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-white border-slate-300'}`}
+                            className="border rounded px-1 py-1 text-center font-bold text-xs text-teal-700 cursor-pointer bg-white border-slate-300"
                           >
                             <option value="W35">W35 (Tuần 35)</option>
                             <option value="W36">W36 (Tuần 36)</option>
@@ -429,21 +432,23 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           </select>
                         </td>
 
-                        {/* RO Fields: ĐM VT is LOCKED */}
+                        {/* RO Fields: ĐM VT is UNLOCKED */}
                         <td className="p-1.5 text-center bg-rose-50/40">
-                          <div className="inline-flex items-center justify-center gap-1 font-bold text-xs text-rose-700 font-mono px-2 py-1 rounded bg-rose-100/80 border border-rose-200 select-none shadow-2xs" title="Định mức cố định của công ty (Đã khóa, không cho phép chỉnh sửa)">
-                            <Lock className="w-2.5 h-2.5 text-rose-600 shrink-0" />
-                            <span>2.4%</span>
-                          </div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={rec.ro.dmVatTu}
+                            onChange={e => handleDailyRecordChange(rec.id, 'ro.dmVatTu', e.target.value)}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
+                          />
                         </td>
                         <td className="p-1.5 text-center">
                           <input
                             type="number"
                             step="0.01"
                             value={rec.ro.vatTu}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'ro.vatTu', e.target.value)}
-                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-bold ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-700'}`}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-blue-700"
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -451,27 +456,28 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.ro.totalLoi4M}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'ro.totalLoi4M', e.target.value)}
-                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-black ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-rose-800'}`}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-black bg-white border-slate-300 text-rose-800"
                           />
                         </td>
 
-                        {/* BG Fields: ĐM VT is LOCKED */}
+                        {/* BG Fields: ĐM VT is UNLOCKED */}
                         <td className="p-1.5 text-center bg-blue-50/40">
-                          <div className="inline-flex items-center justify-center gap-1 font-bold text-xs text-rose-700 font-mono px-2 py-1 rounded bg-rose-100/80 border border-rose-200 select-none shadow-2xs" title="Định mức cố định của công ty (Đã khóa, không cho phép chỉnh sửa)">
-                            <Lock className="w-2.5 h-2.5 text-rose-600 shrink-0" />
-                            <span>4.03%</span>
-                          </div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={rec.bg.dmVatTu}
+                            onChange={e => handleDailyRecordChange(rec.id, 'bg.dmVatTu', e.target.value)}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
+                          />
                         </td>
                         <td className="p-1.5 text-center">
                           <input
                             type="number"
                             step="0.01"
                             value={rec.bg.vatTu}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'bg.vatTu', e.target.value)}
-                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-bold ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-700'}`}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-blue-700"
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -479,18 +485,20 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.bg.totalLoi4M}
-                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'bg.totalLoi4M', e.target.value)}
-                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-black ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-800'}`}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-black bg-white border-slate-300 text-blue-800"
                           />
                         </td>
 
-                        {/* PXLR (Auto Calculated & Locked Benchmark) */}
+                        {/* PXLR (Auto Calculated & UNLOCKED Benchmark) */}
                         <td className="p-2 text-right font-bold text-rose-700 bg-emerald-50/50">
-                          <div className="inline-flex items-center justify-end gap-1 font-bold font-mono">
-                            <Lock className="w-2.5 h-2.5 text-rose-500 shrink-0" />
-                            <span>{rec.pxlr.dmVatTu}%</span>
-                          </div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={rec.pxlr.dmVatTu}
+                            onChange={e => handleDailyRecordChange(rec.id, 'pxlr.dmVatTu', e.target.value)}
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
+                          />
                         </td>
                         <td className="p-2 text-right font-bold text-blue-700 bg-emerald-50/50">
                           {rec.pxlr.vatTu}%
@@ -501,15 +509,13 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
 
                         {/* Delete button */}
                         <td className="p-2 text-center">
-                          {!isDateLocked(rec.date) && (
-                            <button
-                              onClick={() => handleDeleteDay(rec.id)}
-                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                              title="Xóa ngày này"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteDay(rec.id)}
+                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                            title="Xóa ngày này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -522,13 +528,6 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
           {/* Tab 2: Monthly Data Review */}
           {activeTab === 'monthly' && (
             <div className="space-y-4">
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 font-semibold flex items-center gap-2">
-                <Lock className="w-4 h-4 text-blue-700 shrink-0" />
-                <span>
-                  <strong>Bảo lưu dữ liệu lịch sử:</strong> Toàn bộ dữ liệu <strong>Tháng 6, Tháng 7, Tháng 8</strong> được giữ lại cố định 100%. Riêng <strong>Tháng 9 (T9)</strong> được tự động tổng hợp trực tiếp từ các ngày trong Tháng 9 bạn đã nhập!
-                </span>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* PXLR Monthly */}
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-300">
@@ -611,13 +610,6 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
           {/* Tab 3: Weekly Data Review */}
           {activeTab === 'weekly' && (
             <div className="space-y-4">
-              <div className="p-3 bg-teal-50 border border-teal-200 rounded-xl text-xs text-teal-900 font-semibold flex items-center gap-2">
-                <Lock className="w-4 h-4 text-teal-700 shrink-0" />
-                <span>
-                  <strong>Bảo lưu dữ liệu Tuần thuộc Tháng 8:</strong> <strong>Tuần 35 (W35)</strong> là tuần thuộc Tháng 8 được giữ lại cố định 100% (giống Slide 1). Các tuần của Tháng 9 (<strong>Tuần 36, Tuần 37, Tuần 38</strong>) được tính tự động dựa trên các ngày tương ứng trong tuần!
-                </span>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* PXLR Weekly */}
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-300">

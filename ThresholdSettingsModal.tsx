@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useProduction } from './ProductionContext';
 import { useAuth } from './AuthContext';
 import { StorageService } from './storage';
-import { Sliders, X, Save, RotateCcw, Download, Upload, Check, Bell, Clock } from 'lucide-react';
+import { Sliders, X, Save, RotateCcw, Download, Upload, Check, Bell, Clock, FileDown } from 'lucide-react';
 
 interface ThresholdSettingsModalProps {
   isOpen: boolean;
@@ -196,6 +196,53 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
                 />
               </label>
             </div>
+          </div>
+
+          {/* Section 4: Quản Trị Hệ Thống (Excel) */}
+          <div className="space-y-3 pt-3 border-t border-slate-100">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-teal-600 flex items-center gap-1.5">
+              <FileDown className="w-4 h-4" />
+              4. Quản Trị Hệ Thống Toàn Diện (Excel)
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const { exportSystemExcel } = await import('./systemExcelService');
+                  await exportSystemExcel();
+                }}
+                className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-xs cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Xuất Excel Hệ Thống</span>
+              </button>
+
+              <label className="flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold py-2.5 rounded-xl transition shadow-xs cursor-pointer">
+                <Upload className="w-4 h-4" />
+                <span>Nhập Excel Hệ Thống</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const { importSystemExcel } = await import('./systemExcelService');
+                    const res = await importSystemExcel(file);
+                    if (res.success) {
+                      alert(res.message);
+                      window.location.reload();
+                    } else {
+                      alert(res.message);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+            <p className="text-[10px] text-slate-400 italic">
+              * Lưu ý: File Excel hệ thống bao gồm nhiều sheet (Nhật ký, Chất lượng, Vật tư hỏng...). Vui lòng không thay đổi tên sheet khi nhập lại.
+            </p>
           </div>
 
           {msg && (

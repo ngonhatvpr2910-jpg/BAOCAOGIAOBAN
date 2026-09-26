@@ -240,13 +240,11 @@ export const TabDCRO: React.FC = () => {
         </div>
 
         <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-6">
-          {!effectiveCanEdit && (
-            <div className={`border rounded-xl p-3 text-xs flex items-center gap-2 ${isLocked ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
-              {isLocked ? <ShieldCheck className="w-4 h-4 shrink-0 text-rose-600" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />}
+          {!canEditDCRO && (
+            <div className="border rounded-xl p-3 text-xs flex items-center gap-2 bg-amber-50 border-amber-200 text-amber-800">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
               <span>
-                {isLocked 
-                  ? `Dữ liệu ngày ${selectedDate} đã được KHÓA chốt (trước 25/09/2026). Không thể chỉnh sửa thêm.` 
-                  : `Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản Quản Đốc PXLR hoặc Trưởng Ca DCRO ở góc phải trên để nhập và lưu dữ liệu.`}
+                Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản Quản Đốc PXLR hoặc Trưởng Ca DCRO ở góc phải trên để nhập và lưu dữ liệu.
               </span>
             </div>
           )}
