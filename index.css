@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@layer base {
+  *, ::before, ::after {
+    font-family: "Times New Roman", Times, serif !important;
+  }
+  
+  html, body {
+    font-family: "Times New Roman", Times, serif !important;
+  }
+}
+
+/* Override Tailwind font utilities to use Times New Roman */
+.font-sans {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+.font-serif {
+  font-family: "Times New Roman", Times, serif !important;
+}
+
+/* Keep font-mono for numbers if desired, but user said "TOÀN BỘ" (ENTIRE) */
+.font-mono {
+  font-family: "Times New Roman", Times, serif !important;
+}
