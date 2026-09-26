@@ -495,19 +495,19 @@ export const StorageService = {
           if (m.id === 'pxlr-m06') return { ...m, value: 131.6 };
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
-          if (m.id === 'pxlr-m09' && (!m.value || m.value === 0)) return { ...m, value: 117.0 };
+          if (m.id === 'pxlr-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
           return m;
         });
         parsed.ro.monthly = parsed.ro.monthly.map(m => {
           if (m.id === 'ro-m07') return { ...m, value: 117.1 };
           if (m.id === 'ro-m08') return { ...m, value: 111.2 };
-          if (m.id === 'ro-m09' && (!m.value || m.value === 0)) return { ...m, value: 117.0 };
+          if (m.id === 'ro-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
           return m;
         });
         parsed.bg.monthly = parsed.bg.monthly.map(m => {
           if (m.id === 'bg-m07') return { ...m, value: 87.1 };
           if (m.id === 'bg-m08') return { ...m, value: 108.2 };
-          if (m.id === 'bg-m09' && (!m.value || m.value === 0)) return { ...m, value: 97.0 };
+          if (m.id === 'bg-m09' && (!m.value || m.value <= 0)) return { ...m, value: 97.0 };
           return m;
         });
 
@@ -553,11 +553,16 @@ export const StorageService = {
           }
         }
         if (parsed.monthly) {
-          parsed.monthly.pxlr.title = INITIAL_SLIDE2_QUALITY.monthly.pxlr.title;
-          parsed.monthly.pxlr.items = INITIAL_SLIDE2_QUALITY.monthly.pxlr.items;
-          parsed.monthly.ro.items = INITIAL_SLIDE2_QUALITY.monthly.ro.items;
+          if (!parsed.monthly.pxlr.items || parsed.monthly.pxlr.items.length === 0) {
+            parsed.monthly.pxlr.items = INITIAL_SLIDE2_QUALITY.monthly.pxlr.items;
+          }
+          if (!parsed.monthly.ro.items || parsed.monthly.ro.items.length === 0) {
+            parsed.monthly.ro.items = INITIAL_SLIDE2_QUALITY.monthly.ro.items;
+          }
+          if (!parsed.monthly.bg.items || parsed.monthly.bg.items.length === 0) {
+            parsed.monthly.bg.items = INITIAL_SLIDE2_QUALITY.monthly.bg.items;
+          }
           parsed.monthly.bg.benchmarkDmLoi = 7.74;
-          parsed.monthly.bg.items = INITIAL_SLIDE2_QUALITY.monthly.bg.items;
         }
         if (parsed.weekly) {
           parsed.weekly.pxlr.title = INITIAL_SLIDE2_QUALITY.weekly.pxlr.title;
@@ -575,7 +580,9 @@ export const StorageService = {
           parsed.daily.bg.benchmarkDmLoi = 7.74;
           parsed.daily.bg.items = INITIAL_SLIDE2_QUALITY.daily.bg.items;
         }
-        parsed.dailyRecords = INITIAL_SLIDE2_QUALITY.dailyRecords;
+        if (!parsed.dailyRecords || parsed.dailyRecords.length === 0) {
+          parsed.dailyRecords = INITIAL_SLIDE2_QUALITY.dailyRecords;
+        }
         // If current active is month, make sure parsed.bg, parsed.ro, parsed.pxlr match monthly
         if (parsed.activeTimeFrame === 'month' || !parsed.activeTimeFrame) {
           parsed.bg = parsed.monthly?.bg || INITIAL_SLIDE2_QUALITY.monthly.bg;
@@ -708,11 +715,18 @@ export const StorageService = {
             finalItemsBG = [...finalItemsBG, ...w39BG];
           }
 
+          const preservedMonthlyFinal = preservedMonthly.map((m: any) => {
+            if (m.label === 'Tháng 9' && (!m.value || m.value <= 0)) {
+              return { ...m, value: 5.2, displayLabel: '5.2M' };
+            }
+            return m;
+          });
+
           const result: SlideDefectCostData = {
             ...INITIAL_SLIDE3_DEFECT_COST,
             ...parsed,
             weeklyData: preservedWeekly,
-            monthlyData: preservedMonthly,
+            monthlyData: preservedMonthlyFinal,
             itemsRO: finalItemsRO,
             itemsBG: finalItemsBG,
           };

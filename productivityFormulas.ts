@@ -212,14 +212,14 @@ export function autoComputeSlideDataFromInputs(
   const totalCong_PXLR = Number((totalCong_RO + totalCong_BG).toFixed(1));
 
   // TÍNH NSLĐ THÁNG 9:
-  // Nếu sản lượng hoặc định mức bằng 0 => NSLĐ tuyệt đối bằng 0%
+  // Nếu sản lượng hoặc định mức bằng 0 => Giữ nguyên giá trị cũ (từ initialData hoặc storage)
   const nsldRO_M09 = (totalDM_RO > 0 && totalSL_RO > 0)
     ? Number(((totalSL_RO / totalDM_RO) * 100).toFixed(1))
-    : 0;
+    : (currentSlideData.ro.monthly.find(m => m.id === 'ro-m09')?.value || 117.0);
 
   const nsldBG_M09 = (totalDM_BG > 0 && totalSL_BG > 0)
     ? Number(((totalSL_BG / totalDM_BG) * 100).toFixed(1))
-    : 0;
+    : (currentSlideData.bg.monthly.find(m => m.id === 'bg-m09')?.value || 97.0);
 
   // CÔNG THỨC CHUẨN TOÀN PHÂN XƯỞNG LẮP RÁP (PXLR) THÁNG 9:
   // Công thức chuẩn: Tổng sản lượng quy đổi chia cho tổng định mức theo nhân công toàn xưởng
@@ -228,7 +228,7 @@ export function autoComputeSlideDataFromInputs(
   const totalDM_PXLR = totalDM_RO + totalDM_BG;
   const nsldPXLR_M09 = (totalDM_PXLR > 0 && totalSL_PXLR > 0)
     ? Number(((totalSL_PXLR / totalDM_PXLR) * 100).toFixed(1))
-    : 0;
+    : (currentSlideData.pxlr.monthly.find(m => m.id === 'pxlr-m09')?.value || 117.0);
 
   // Suất hao phí nhân công toàn xưởng = Tổng nhân công / Tổng sản lượng quy đổi (công/SP)
   const suatNhanCong_PXLR = totalSL_PXLR > 0 ? Number((totalCong_PXLR / totalSL_PXLR).toFixed(4)) : 0;
