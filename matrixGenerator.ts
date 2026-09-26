@@ -18,6 +18,7 @@ export function getDaysInMonth(year: number, monthIndex0: number): number {
  * Helper to ensure percentage values are stored as percentage points (e.g., 120 instead of 1.2)
  */
 function sanitizePercentage(val: number): number {
+  if (val === undefined || val === null || isNaN(val)) return 0;
   if (val > 0 && val < 5) { // Productivity can be up to 400-500% but unlikely to be < 5% as a real value
     return Number((val * 100).toFixed(1));
   }
@@ -30,11 +31,14 @@ function sanitizePercentage(val: number): number {
 export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGColumn[] {
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
+      const nsld = Number(c.nsldTheoNgay) || 0;
+      const khsxRate = Number(c.tiLeHoanThanhKhsx) || 0;
+      const attendance = Number(c.tiLeDiLam) || 0;
       return {
         ...c,
-        nsldTheoNgay: sanitizePercentage(c.nsldTheoNgay),
-        tiLeHoanThanhKhsx: sanitizePercentage(c.tiLeHoanThanhKhsx),
-        tiLeDiLam: c.tiLeDiLam < 2 ? sanitizePercentage(c.tiLeDiLam) : Number(c.tiLeDiLam.toFixed(1))
+        nsldTheoNgay: sanitizePercentage(nsld),
+        tiLeHoanThanhKhsx: sanitizePercentage(khsxRate),
+        tiLeDiLam: attendance < 2 ? sanitizePercentage(attendance) : Number(attendance.toFixed(1))
       };
     }
     return { ...c };
@@ -308,11 +312,14 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
 export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROColumn[] {
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
+      const nsld = Number(c.nsldTheoNgay) || 0;
+      const khsxRate = Number(c.tiLeHoanThanhKhsx) || 0;
+      const attendance = Number(c.tiLeDiLam) || 0;
       return {
         ...c,
-        nsldTheoNgay: sanitizePercentage(c.nsldTheoNgay),
-        tiLeHoanThanhKhsx: sanitizePercentage(c.tiLeHoanThanhKhsx),
-        tiLeDiLam: c.tiLeDiLam < 2 ? sanitizePercentage(c.tiLeDiLam) : Number(c.tiLeDiLam.toFixed(1))
+        nsldTheoNgay: sanitizePercentage(nsld),
+        tiLeHoanThanhKhsx: sanitizePercentage(khsxRate),
+        tiLeDiLam: attendance < 2 ? sanitizePercentage(attendance) : Number(attendance.toFixed(1))
       };
     }
     return { ...c };

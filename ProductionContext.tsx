@@ -370,20 +370,54 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.warn(`Attempted to update locked DCBG record for ${selectedDate}`);
       return;
     }
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const monthIndex0 = month - 1;
+
     setDcbgRecords(prev => {
       const existingIndex = prev.findIndex(r => r.date === selectedDate);
+      let updated: DailyDCBGRecord;
+      let next: DailyDCBGRecord[];
+
       if (existingIndex >= 0) {
-        const updated = computeDCBG({ ...prev[existingIndex], ...changes });
-        checkMetricsAlerts(updated, 'DCBG');
-        const next = [...prev];
+        updated = computeDCBG({ ...prev[existingIndex], ...changes });
+        next = [...prev];
         next[existingIndex] = updated;
-        return next;
       } else {
-        const newRec = computeDCBG({ date: selectedDate, ...changes });
-        checkMetricsAlerts(newRec, 'DCBG');
-        return [newRec, ...prev];
+        updated = computeDCBG({ date: selectedDate, ...changes });
+        next = [updated, ...prev];
       }
+      checkMetricsAlerts(updated, 'DCBG');
+      return next;
     });
+
+    // Also update the Matrix for the corresponding month/day
+    const currentMatrix = StorageService.getMatrixBGForMonth(year, monthIndex0);
+    const dayStr = String(day).padStart(2, '0');
+    const targetId = `bg-${year}-${month}-${dayStr}`;
+    
+    const updatedMatrix = currentMatrix.map(col => {
+      if (col.id === targetId || col.dateStr === selectedDate) {
+        // Sync fields from changes
+        return {
+          ...col,
+          congBepGa: changes.congBepGa !== undefined ? Number(changes.congBepGa) : col.congBepGa,
+          congThoiVu: changes.congThoiVu !== undefined ? Number(changes.congThoiVu) : col.congThoiVu,
+          congRma: changes.congRma !== undefined ? Number(changes.congRma) : col.congRma,
+          sanLuongBepGa: changes.sanLuongBepGa !== undefined ? Number(changes.sanLuongBepGa) : col.sanLuongBepGa,
+          sanLuongRma: changes.sanLuongRma !== undefined ? Number(changes.sanLuongRma) : col.sanLuongRma,
+          dinhMucSlTheoNs: changes.dinhMucSlTheoNs !== undefined ? Number(changes.dinhMucSlTheoNs) : col.dinhMucSlTheoNs,
+          khsxNgay: changes.khsxNgay !== undefined ? Number(changes.khsxNgay) : col.khsxNgay,
+          tongNhanSuLine: changes.tongNhanSuLine !== undefined ? Number(changes.tongNhanSuLine) : col.tongNhanSuLine,
+          nhanSuNghi: changes.nhanSuNghi !== undefined ? Number(changes.nhanSuNghi) : col.nhanSuNghi,
+          tiLeDiLam: changes.tiLeDiLam !== undefined ? Number(changes.tiLeDiLam) : col.tiLeDiLam,
+          tiLeLoiThaoTac: changes.tiLeLoiThaoTac !== undefined ? Number(changes.tiLeLoiThaoTac) : col.tiLeLoiThaoTac,
+        };
+      }
+      return col;
+    });
+
+    const recalculated = recalculateBGMatrix(updatedMatrix);
+    updateMatrixBGForMonth(year, monthIndex0, recalculated);
   };
 
   // Update existing DCRO record
@@ -392,20 +426,51 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       console.warn(`Attempted to update locked DCRO record for ${selectedDate}`);
       return;
     }
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const monthIndex0 = month - 1;
+
     setDcroRecords(prev => {
       const existingIndex = prev.findIndex(r => r.date === selectedDate);
+      let updated: DailyDCRORecord;
+      let next: DailyDCRORecord[];
+
       if (existingIndex >= 0) {
-        const updated = computeDCRO({ ...prev[existingIndex], ...changes });
-        checkMetricsAlerts(updated, 'DCRO');
-        const next = [...prev];
+        updated = computeDCRO({ ...prev[existingIndex], ...changes });
+        next = [...prev];
         next[existingIndex] = updated;
-        return next;
       } else {
-        const newRec = computeDCRO({ date: selectedDate, ...changes });
-        checkMetricsAlerts(newRec, 'DCRO');
-        return [newRec, ...prev];
+        updated = computeDCRO({ date: selectedDate, ...changes });
+        next = [updated, ...prev];
       }
+      checkMetricsAlerts(updated, 'DCRO');
+      return next;
     });
+
+    // Also update the Matrix for the corresponding month/day
+    const currentMatrix = StorageService.getMatrixROForMonth(year, monthIndex0);
+    const dayStr = String(day).padStart(2, '0');
+    const targetId = `ro-${year}-${month}-${dayStr}`;
+    
+    const updatedMatrix = currentMatrix.map(col => {
+      if (col.id === targetId || col.dateStr === selectedDate) {
+        return {
+          ...col,
+          congChinhThuc: changes.congChinhThuc !== undefined ? Number(changes.congChinhThuc) : col.congChinhThuc,
+          congThoiVu: changes.congThoiVu !== undefined ? Number(changes.congThoiVu) : col.congThoiVu,
+          sanLuongLineChinh: changes.sanLuongLineChinh !== undefined ? Number(changes.sanLuongLineChinh) : col.sanLuongLineChinh,
+          dinhMucSlTheoNs: changes.dinhMucSlTheoNs !== undefined ? Number(changes.dinhMucSlTheoNs) : col.dinhMucSlTheoNs,
+          khsxNgay: changes.khsxNgay !== undefined ? Number(changes.khsxNgay) : col.khsxNgay,
+          tongNhanSuLine: changes.tongNhanSuLine !== undefined ? Number(changes.tongNhanSuLine) : col.tongNhanSuLine,
+          nhanSuNghi: changes.nhanSuNghi !== undefined ? Number(changes.nhanSuNghi) : col.nhanSuNghi,
+          tiLeDiLam: changes.tiLeDiLam !== undefined ? Number(changes.tiLeDiLam) : col.tiLeDiLam,
+          tiLeLoiThaoTac: changes.tiLeLoiThaoTac !== undefined ? Number(changes.tiLeLoiThaoTac) : col.tiLeLoiThaoTac,
+        };
+      }
+      return col;
+    });
+
+    const recalculated = recalculateROMatrix(updatedMatrix);
+    updateMatrixROForMonth(year, monthIndex0, recalculated);
   };
 
   const saveNewDCBGRecord = (rec: Omit<DailyDCBGRecord, 'id'>) => {
@@ -428,19 +493,78 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setDcroRecords(prev => [computed, ...prev.filter(r => r.date !== computed.date)]);
   };
 
-  // Active records for selected date
+  // Active records for selected date - DERIVE FROM MATRIX IF POSSIBLE for sync
   const activeDCBGRecord: DailyDCBGRecord = useMemo(() => {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const monthIndex0 = month - 1;
+    const currentMatrix = StorageService.getMatrixBGForMonth(year, monthIndex0);
+    const dayStr = String(day).padStart(2, '0');
+    const targetId = `bg-${year}-${month}-${dayStr}`;
+    const matrixCol = currentMatrix.find(c => c.id === targetId || c.dateStr === selectedDate);
+
+    if (matrixCol && !matrixCol.isWeeklyTotal && !matrixCol.isMonthlyTotal) {
+      return {
+        id: matrixCol.id,
+        date: selectedDate,
+        congBepGa: matrixCol.congBepGa || 0,
+        congThoiVu: matrixCol.congThoiVu || 0,
+        congRma: matrixCol.congRma || 0,
+        sanLuongBepGa: matrixCol.sanLuongBepGa || 0,
+        sanLuongRma: matrixCol.sanLuongRma || 0,
+        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs || 480,
+        tongNhanSuLine: matrixCol.tongNhanSuLine || 55,
+        nhanSuNghi: matrixCol.nhanSuNghi || 0,
+        chiPhiHangHong: 0, // Not in matrix
+        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac || 0,
+        ghiChu: '',
+        tongCong: (matrixCol.congBepGa || 0) + (matrixCol.congThoiVu || 0) + (matrixCol.congRma || 0),
+        tongSanLuongQuyDoi: (matrixCol.sanLuongBepGa || 0) + (matrixCol.sanLuongRma || 0),
+        nsldTheoNgay: matrixCol.nsldTheoNgay || 0,
+        tiLeDiLam: matrixCol.tiLeDiLam || 100,
+        khsxNgay: matrixCol.khsxNgay || 720,
+        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx || 0,
+      };
+    }
+
     const found = dcbgRecords.find(r => r.date === selectedDate);
     if (found) return found;
-    // Default empty record for selected date
     return computeDCBG({ date: selectedDate, tongNhanSuLine: 55, dinhMucSlTheoNs: 480 });
-  }, [dcbgRecords, selectedDate]);
+  }, [dcbgRecords, selectedDate, matrixBG]);
 
   const activeDCRORecord: DailyDCRORecord = useMemo(() => {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const monthIndex0 = month - 1;
+    const currentMatrix = StorageService.getMatrixROForMonth(year, monthIndex0);
+    const dayStr = String(day).padStart(2, '0');
+    const targetId = `ro-${year}-${month}-${dayStr}`;
+    const matrixCol = currentMatrix.find(c => c.id === targetId || c.dateStr === selectedDate);
+
+    if (matrixCol && !matrixCol.isWeeklyTotal && !matrixCol.isMonthlyTotal) {
+      return {
+        id: matrixCol.id,
+        date: selectedDate,
+        congChinhThuc: matrixCol.congChinhThuc || 0,
+        congThoiVu: matrixCol.congThoiVu || 0,
+        sanLuongLineChinh: matrixCol.sanLuongLineChinh || 0,
+        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs || 540,
+        tongNhanSuLine: matrixCol.tongNhanSuLine || 62,
+        nhanSuNghi: matrixCol.nhanSuNghi || 0,
+        chiPhiHangHong: 0,
+        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac || 0,
+        ghiChu: '',
+        tongCong: (matrixCol.congChinhThuc || 0) + (matrixCol.congThoiVu || 0),
+        tongSanLuongQuyDoi: matrixCol.sanLuongLineChinh || 0,
+        nsldTheoNgay: matrixCol.nsldTheoNgay || 0,
+        tiLeDiLam: matrixCol.tiLeDiLam || 100,
+        khsxNgay: matrixCol.khsxNgay || 0,
+        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx || 0,
+      };
+    }
+
     const found = dcroRecords.find(r => r.date === selectedDate);
     if (found) return found;
     return computeDCRO({ date: selectedDate, tongNhanSuLine: 62, dinhMucSlTheoNs: 540 });
-  }, [dcroRecords, selectedDate]);
+  }, [dcroRecords, selectedDate, matrixRO]);
 
   // Consolidated PXLR Data (Automatically synchronized)
   const consolidatedPXLR: DailyPXLRConsolidated = useMemo(() => {

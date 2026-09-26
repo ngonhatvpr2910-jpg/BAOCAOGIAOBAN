@@ -30,7 +30,8 @@ import {
   Flag,
   Plus,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock
 } from 'lucide-react';
 import { 
   recalculateROMatrix, 
