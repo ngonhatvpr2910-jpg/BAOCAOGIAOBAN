@@ -62,11 +62,18 @@ export const DCBGExcelDashboard: React.FC = () => {
     updateDailyNSLDRMA,
     resetDailyNSLDRMA,
     updateMatrixBGForMonth,
-    updateMatrixROForMonth
+    updateMatrixROForMonth,
+    isDateLocked
   } = useProduction();
 
   const { canEditDCBG } = useAuth();
   const [importing, setImporting] = useState(false);
+
+  const canEditCell = (col: ExcelMatrixBGColumn) => {
+    if (!canEditDCBG) return false;
+    if (col.dateStr && isDateLocked(col.dateStr)) return false;
+    return true;
+  };
 
   // ... (rest of imports and component setup)
 
@@ -697,9 +704,14 @@ export const DCBGExcelDashboard: React.FC = () => {
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center group/day">
-                            <span className={`font-bold text-xs ${isSun ? 'font-black text-amber-950' : ''}`}>
-                              {col.label}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              {col.dateStr && isDateLocked(col.dateStr) && (
+                                <Lock className="w-2.5 h-2.5 text-amber-600" />
+                              )}
+                              <span className={`font-bold text-xs ${isSun ? 'font-black text-amber-950' : ''}`}>
+                                {col.label}
+                              </span>
+                            </div>
                             {isSun && (
                               <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-amber-400/90 text-amber-950 mt-0.5 border border-amber-500/40 shadow-2xs">
                                 Chủ nhật
@@ -766,7 +778,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.congBepGa}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'congBepGa', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -792,7 +804,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.congThoiVu}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'congThoiVu', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -818,7 +830,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.congRma}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'congRma', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -843,7 +855,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.sanLuongBepGa}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'sanLuongBepGa', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -868,7 +880,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.sanLuongRma}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'sanLuongRma', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -899,7 +911,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.dinhMucSlTheoNs}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'dinhMucSlTheoNs', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -969,7 +981,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                           <input
                             type="number"
                             step="1"
-                            disabled={!canEditDCBG}
+                            disabled={!canEditCell(col)}
                             value={col.khsxNgay ?? ''}
                             onChange={(e) => handleMatrixCellChange(col.id, 'khsxNgay', e.target.value)}
                             className="w-full text-center bg-transparent focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-blue-500 rounded py-0.5 text-xs font-semibold text-slate-900"
@@ -1048,7 +1060,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.tongNhanSuLine}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'tongNhanSuLine', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -1073,7 +1085,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.nhanSuNghi}
-                          disabled={!canEditDCBG}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'nhanSuNghi', e.target.value)}
                           className={getInputClass(col)}
                         />

@@ -14,7 +14,8 @@ import {
   Flame, 
   Droplets, 
   Clock, 
-  Tv
+  Tv,
+  ShieldCheck
 } from 'lucide-react';
 
 function MainAppContent() {
@@ -24,7 +25,8 @@ function MainAppContent() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const { thresholds, sendManualPushNotification } = useProduction();
+  const { thresholds, sendManualPushNotification, selectedDate, isDateLocked } = useProduction();
+  const isLocked = isDateLocked(selectedDate);
 
   // Automatic end-of-day trigger check (Runs every minute)
   useEffect(() => {
@@ -57,6 +59,14 @@ function MainAppContent() {
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
       />
+
+      {/* Global Data Lock Alert */}
+      {isLocked && activeTab !== 'presentation' && (
+        <div className="bg-amber-500 text-white px-4 py-2 flex items-center justify-center gap-2 text-sm font-bold shadow-md animate-slide-down">
+          <ShieldCheck className="w-5 h-5" />
+          <span>Dữ liệu ngày {selectedDate} đã được KHÓA chốt (trước ngày 25/09/2026). Chỉ có thể xem, không thể thay đổi.</span>
+        </div>
+      )}
 
       {/* Main Container */}
       <main className="max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-6 flex-1">

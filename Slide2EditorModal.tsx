@@ -3,6 +3,7 @@ import { Slide2QualityData, Slide2QualityItem, QualityDailyRecord } from './type
 import { X, Check, RotateCcw, Edit3, ShieldAlert, Sparkles, Plus, Trash2, Calendar, Layers, Activity, Lock } from 'lucide-react';
 import { INITIAL_SLIDE2_QUALITY } from './initialData';
 import { calculatePXLRQuality, rollupDailyToQualityCharts, getNextQualityDateInfo } from './qualityFormulas';
+import { isDateLocked } from './ProductionContext';
 
 interface Slide2EditorModalProps {
   isOpen: boolean;
@@ -404,16 +405,18 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           <input
                             type="text"
                             value={rec.dayLabel}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'dayLabel', e.target.value)}
-                            className="w-14 bg-white border border-slate-300 rounded px-1.5 py-1 text-center font-bold text-xs"
+                            className={`w-14 border rounded px-1.5 py-1 text-center font-bold text-xs ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-white border-slate-300'}`}
                           />
                         </td>
                         {/* Tuần */}
                         <td className="p-2 text-center font-bold">
                           <select
                             value={rec.week}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'week', e.target.value)}
-                            className="bg-white border border-slate-300 rounded px-1 py-1 text-center font-bold text-xs text-teal-700 cursor-pointer"
+                            className={`border rounded px-1 py-1 text-center font-bold text-xs text-teal-700 cursor-pointer ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-500' : 'bg-white border-slate-300'}`}
                           >
                             <option value="W35">W35 (Tuần 35)</option>
                             <option value="W36">W36 (Tuần 36)</option>
@@ -438,8 +441,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.ro.vatTu}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'ro.vatTu', e.target.value)}
-                            className="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs font-bold text-blue-700"
+                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-bold ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-700'}`}
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -447,8 +451,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.ro.totalLoi4M}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'ro.totalLoi4M', e.target.value)}
-                            className="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs font-black text-rose-800"
+                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-black ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-rose-800'}`}
                           />
                         </td>
 
@@ -464,8 +469,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.bg.vatTu}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'bg.vatTu', e.target.value)}
-                            className="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs font-bold text-blue-700"
+                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-bold ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-700'}`}
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -473,8 +479,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             type="number"
                             step="0.01"
                             value={rec.bg.totalLoi4M}
+                            disabled={isDateLocked(rec.date)}
                             onChange={e => handleDailyRecordChange(rec.id, 'bg.totalLoi4M', e.target.value)}
-                            className="w-16 bg-white border border-slate-300 rounded px-1.5 py-1 text-right text-xs font-black text-blue-800"
+                            className={`w-16 border rounded px-1.5 py-1 text-right text-xs font-black ${isDateLocked(rec.date) ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-blue-800'}`}
                           />
                         </td>
 
@@ -494,13 +501,15 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
 
                         {/* Delete button */}
                         <td className="p-2 text-center">
-                          <button
-                            onClick={() => handleDeleteDay(rec.id)}
-                            className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
-                            title="Xóa ngày này"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {!isDateLocked(rec.date) && (
+                            <button
+                              onClick={() => handleDeleteDay(rec.id)}
+                              className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                              title="Xóa ngày này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

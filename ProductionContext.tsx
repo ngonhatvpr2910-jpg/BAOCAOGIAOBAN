@@ -84,7 +84,33 @@ interface ProductionContextType {
   qualityTimeFrame: 'day' | 'week' | 'month';
   setQualityTimeFrame: (tf: 'day' | 'week' | 'month') => void;
   qualityMetrics: QualityMetricsSnapshot;
+  // Global Lock
+  GLOBAL_LOCK_DATE: string;
+  isDateLocked: (date: string) => boolean;
+  isWeekLocked: (week: string) => boolean;
 }
+
+export const GLOBAL_LOCK_DATE = '2026-09-24';
+
+export const isDateLocked = (dateStr: string): boolean => {
+  if (!dateStr) return false;
+  // If dateStr is "YYYY-MM-DD"
+  if (dateStr.length === 10) {
+    return dateStr <= GLOBAL_LOCK_DATE;
+  }
+  // Fallback for other formats if any (like labels "01-Sep") - but logic usually uses YYYY-MM-DD
+  return false;
+};
+
+export const isWeekLocked = (week: string): boolean => {
+  if (!week) return false;
+  // Extract number from W38, W37 etc.
+  const match = week.match(/W(\d+)/);
+  if (!match) return false;
+  const weekNum = parseInt(match[1], 10);
+  // 24/09/2026 is in W38. We lock W38 and earlier as per "cập nhật hiện tại đến ngày 24/09"
+  return weekNum <= 38;
+};
 
 
 const ProductionContext = createContext<ProductionContextType | undefined>(undefined);
@@ -340,6 +366,10 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Update existing DCBG record
   const updateDCBGRecord = (changes: Partial<DailyDCBGRecord>) => {
+    if (isDateLocked(selectedDate)) {
+      console.warn(`Attempted to update locked DCBG record for ${selectedDate}`);
+      return;
+    }
     setDcbgRecords(prev => {
       const existingIndex = prev.findIndex(r => r.date === selectedDate);
       if (existingIndex >= 0) {
@@ -358,6 +388,10 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   // Update existing DCRO record
   const updateDCRORecord = (changes: Partial<DailyDCRORecord>) => {
+    if (isDateLocked(selectedDate)) {
+      console.warn(`Attempted to update locked DCRO record for ${selectedDate}`);
+      return;
+    }
     setDcroRecords(prev => {
       const existingIndex = prev.findIndex(r => r.date === selectedDate);
       if (existingIndex >= 0) {
@@ -375,12 +409,20 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const saveNewDCBGRecord = (rec: Omit<DailyDCBGRecord, 'id'>) => {
+    if (isDateLocked(rec.date)) {
+      console.warn(`Attempted to save locked DCBG record for ${rec.date}`);
+      return;
+    }
     const computed = computeDCBG(rec);
     checkMetricsAlerts(computed, 'DCBG');
     setDcbgRecords(prev => [computed, ...prev.filter(r => r.date !== computed.date)]);
   };
 
   const saveNewDCRORecord = (rec: Omit<DailyDCRORecord, 'id'>) => {
+    if (isDateLocked(rec.date)) {
+      console.warn(`Attempted to save locked DCRO record for ${rec.date}`);
+      return;
+    }
     const computed = computeDCRO(rec);
     checkMetricsAlerts(computed, 'DCRO');
     setDcroRecords(prev => [computed, ...prev.filter(r => r.date !== computed.date)]);
@@ -658,6 +700,9 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         qualityTimeFrame,
         setQualityTimeFrame,
         qualityMetrics,
+        GLOBAL_LOCK_DATE,
+        isDateLocked,
+        isWeekLocked,
       }}
     >
       {children}

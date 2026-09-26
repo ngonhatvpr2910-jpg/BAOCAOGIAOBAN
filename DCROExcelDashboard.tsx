@@ -50,8 +50,14 @@ import { WeekCutoffModal } from './WeekCutoffModal';
 import { exportProductionTemplate, importProductionExcel } from './excelProductionService';
 
 export const DCROExcelDashboard: React.FC = () => {
-  const { updateMatrixBGForMonth, updateMatrixROForMonth } = useProduction();
+  const { updateMatrixBGForMonth, updateMatrixROForMonth, isDateLocked } = useProduction();
   const { canEditDCRO } = useAuth();
+
+  const canEditCell = (col: ExcelMatrixROColumn) => {
+    if (!canEditDCRO) return false;
+    if (col.dateStr && isDateLocked(col.dateStr)) return false;
+    return true;
+  };
 
   // Current system month/year (September 2026 in environment, monthIndex0 = 8)
   const now = new Date();
@@ -630,9 +636,14 @@ export const DCROExcelDashboard: React.FC = () => {
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center group/day">
-                            <span className={`font-bold text-xs ${isSun ? 'font-black text-yellow-950' : ''}`}>
-                              {col.label}
-                            </span>
+                            <div className="flex items-center gap-1">
+                              {col.dateStr && isDateLocked(col.dateStr) && (
+                                <Lock className="w-2.5 h-2.5 text-purple-600" />
+                              )}
+                              <span className={`font-bold text-xs ${isSun ? 'font-black text-yellow-950' : ''}`}>
+                                {col.label}
+                              </span>
+                            </div>
                             {isSun && (
                               <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.2 rounded bg-yellow-400 text-yellow-950 mt-0.5 border border-yellow-500/40 shadow-2xs">
                                 Chủ nhật
@@ -699,7 +710,7 @@ export const DCROExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.congChinhThuc}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'congChinhThuc', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -725,7 +736,7 @@ export const DCROExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.congThoiVu}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'congThoiVu', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -750,7 +761,7 @@ export const DCROExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.sanLuongLineChinh}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'sanLuongLineChinh', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -783,7 +794,7 @@ export const DCROExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.1"
                           value={col.dinhMucSlTheoNs}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'dinhMucSlTheoNs', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -839,7 +850,7 @@ export const DCROExcelDashboard: React.FC = () => {
                           type="number"
                           step="0.5"
                           value={col.khsxNgay}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'khsxNgay', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -901,7 +912,7 @@ export const DCROExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.tongNhanSuLine}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'tongNhanSuLine', e.target.value)}
                           className={getInputClass(col)}
                         />
@@ -926,7 +937,7 @@ export const DCROExcelDashboard: React.FC = () => {
                         <input
                           type="number"
                           value={col.nhanSuNghi}
-                          disabled={!canEditDCRO}
+                          disabled={!canEditCell(col)}
                           onChange={(e) => handleMatrixCellChange(col.id, 'nhanSuNghi', e.target.value)}
                           className={getInputClass(col)}
                         />

@@ -5,8 +5,11 @@ import { Droplets, Check, AlertTriangle, Users, TrendingUp, Save, Clock, ShieldC
 import { DCROExcelDashboard } from './DCROExcelDashboard';
 
 export const TabDCRO: React.FC = () => {
-  const { activeDCRORecord, updateDCRORecord, dcroRecords, setSelectedDate, selectedDate } = useProduction();
+  const { activeDCRORecord, updateDCRORecord, dcroRecords, setSelectedDate, selectedDate, isDateLocked } = useProduction();
   const { canEditDCRO, currentUser } = useAuth();
+
+  const isLocked = isDateLocked(selectedDate);
+  const effectiveCanEdit = canEditDCRO && !isLocked;
 
   const [activeSubView, setActiveSubView] = useState<'excel' | 'form'>('excel');
 
@@ -57,7 +60,7 @@ export const TabDCRO: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEditDCRO) return;
+    if (!effectiveCanEdit) return;
     updateDCRORecord(formData);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
@@ -97,7 +100,12 @@ export const TabDCRO: React.FC = () => {
             <div className="bg-purple-950/60 backdrop-blur border border-purple-500/30 rounded-xl px-4 py-2 text-right">
               <div className="text-xs text-purple-200">Trạng thái quyền hạn</div>
               <div className="text-sm font-semibold flex items-center justify-end gap-1.5 mt-0.5">
-                {canEditDCRO ? (
+                {isLocked ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                    <span className="text-amber-300">Dữ liệu đã khóa (trước 25/09)</span>
+                  </>
+                ) : effectiveCanEdit ? (
                   <>
                     <ShieldCheck className="w-4 h-4 text-purple-300" />
                     <span>Có quyền nhập liệu</span>
@@ -232,10 +240,14 @@ export const TabDCRO: React.FC = () => {
         </div>
 
         <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-6">
-          {!canEditDCRO && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản <b>Quản Đốc PXLR</b> hoặc <b>Trưởng Ca DCRO</b> ở góc phải trên để nhập và lưu dữ liệu.</span>
+          {!effectiveCanEdit && (
+            <div className={`border rounded-xl p-3 text-xs flex items-center gap-2 ${isLocked ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              {isLocked ? <ShieldCheck className="w-4 h-4 shrink-0 text-rose-600" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />}
+              <span>
+                {isLocked 
+                  ? `Dữ liệu ngày ${selectedDate} đã được KHÓA chốt (trước 25/09/2026). Không thể chỉnh sửa thêm.` 
+                  : `Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản Quản Đốc PXLR hoặc Trưởng Ca DCRO ở góc phải trên để nhập và lưu dữ liệu.`}
+              </span>
             </div>
           )}
 
@@ -254,7 +266,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.5"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.congChinhThuc}
                   onChange={(e) => handleChange('congChinhThuc', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-hidden transition"
@@ -269,7 +281,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.5"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.congThoiVu}
                   onChange={(e) => handleChange('congThoiVu', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-hidden transition"
@@ -292,7 +304,7 @@ export const TabDCRO: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.sanLuongLineChinh}
                   onChange={(e) => handleChange('sanLuongLineChinh', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-purple-700 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-hidden transition"
@@ -312,7 +324,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   step="0.001"
                   min="0"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.dinhMucSlTheoNs}
                   onChange={(e) => handleChange('dinhMucSlTheoNs', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-purple-900 focus:bg-white focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-hidden transition"
@@ -321,7 +333,7 @@ export const TabDCRO: React.FC = () => {
                   <span>
                     Chuẩn: ({formData.congChinhThuc} + {formData.congThoiVu}) × 9.03 = <strong className="text-purple-700 font-mono">{((Number(formData.congChinhThuc || 0) + Number(formData.congThoiVu || 0)) * 9.03).toFixed(3)}</strong>
                   </span>
-                  {canEditDCRO && (
+                  {effectiveCanEdit && (
                     <button
                       type="button"
                       onClick={() => {
@@ -349,7 +361,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   step="0.5"
                   min="0"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.khsxNgay}
                   onChange={(e) => handleChange('khsxNgay', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-blue-900 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-hidden transition"
@@ -378,7 +390,7 @@ export const TabDCRO: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.tongNhanSuLine}
                   onChange={(e) => handleChange('tongNhanSuLine', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-purple-500 outline-hidden transition"
@@ -392,7 +404,7 @@ export const TabDCRO: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.nhanSuNghi}
                   onChange={(e) => handleChange('nhanSuNghi', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 focus:bg-white focus:border-purple-500 outline-hidden transition"
@@ -407,7 +419,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   min="0"
                   step="50000"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.chiPhiHangHong}
                   onChange={(e) => handleChange('chiPhiHangHong', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 focus:bg-white focus:border-purple-500 outline-hidden transition"
@@ -422,7 +434,7 @@ export const TabDCRO: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.05"
-                  disabled={!canEditDCRO}
+                  disabled={!effectiveCanEdit}
                   value={formData.tiLeLoiThaoTac}
                   onChange={(e) => handleChange('tiLeLoiThaoTac', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-purple-500 outline-hidden transition"
@@ -438,7 +450,7 @@ export const TabDCRO: React.FC = () => {
             </label>
             <textarea
               rows={2}
-              disabled={!canEditDCRO}
+              disabled={!effectiveCanEdit}
               value={formData.ghiChu}
               onChange={(e) => handleChange('ghiChu', e.target.value)}
               placeholder="Ghi nhận hiện trạng vận hành chuyền RO..."
@@ -447,7 +459,7 @@ export const TabDCRO: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          {canEditDCRO && (
+          {effectiveCanEdit && (
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
               <button
                 type="submit"

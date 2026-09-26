@@ -5,8 +5,11 @@ import { Flame, Check, AlertTriangle, Users, TrendingUp, Save, Clock, HelpCircle
 import { DCBGExcelDashboard } from './DCBGExcelDashboard';
 
 export const TabDCBG: React.FC = () => {
-  const { activeDCBGRecord, updateDCBGRecord, dcbgRecords, setSelectedDate, selectedDate } = useProduction();
+  const { activeDCBGRecord, updateDCBGRecord, dcbgRecords, setSelectedDate, selectedDate, isDateLocked } = useProduction();
   const { canEditDCBG, currentUser } = useAuth();
+
+  const isLocked = isDateLocked(selectedDate);
+  const effectiveCanEdit = canEditDCBG && !isLocked;
 
   const [activeSubView, setActiveSubView] = useState<'excel' | 'form'>('excel');
 
@@ -52,7 +55,7 @@ export const TabDCBG: React.FC = () => {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canEditDCBG) return;
+    if (!effectiveCanEdit) return;
     updateDCBGRecord(formData);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
@@ -90,7 +93,12 @@ export const TabDCBG: React.FC = () => {
             <div className="bg-emerald-900/50 backdrop-blur border border-emerald-500/30 rounded-xl px-4 py-2 text-right">
               <div className="text-xs text-emerald-200">Trạng thái quyền hạn</div>
               <div className="text-sm font-semibold flex items-center justify-end gap-1.5 mt-0.5">
-                {canEditDCBG ? (
+                {isLocked ? (
+                  <>
+                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                    <span className="text-amber-300">Dữ liệu đã khóa (trước 25/09)</span>
+                  </>
+                ) : effectiveCanEdit ? (
                   <>
                     <ShieldCheck className="w-4 h-4 text-emerald-300" />
                     <span>Có quyền nhập liệu</span>
@@ -209,10 +217,14 @@ export const TabDCBG: React.FC = () => {
         </div>
 
         <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-6">
-          {!canEditDCBG && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản <b>Quản Đốc PXLR</b> hoặc <b>Trưởng Ca DCBG</b> ở góc phải trên để nhập và lưu dữ liệu.</span>
+          {!effectiveCanEdit && (
+            <div className={`border rounded-xl p-3 text-xs flex items-center gap-2 ${isLocked ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+              {isLocked ? <ShieldCheck className="w-4 h-4 shrink-0 text-rose-600" /> : <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />}
+              <span>
+                {isLocked 
+                  ? `Dữ liệu ngày ${selectedDate} đã được KHÓA chốt (trước 25/09/2026). Không thể chỉnh sửa thêm.` 
+                  : `Tài khoản hiện tại chỉ có quyền xem. Hãy chuyển sang tài khoản Quản Đốc PXLR hoặc Trưởng Ca DCBG ở góc phải trên để nhập và lưu dữ liệu.`}
+              </span>
             </div>
           )}
 
@@ -231,7 +243,7 @@ export const TabDCBG: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.5"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.congBepGa}
                   onChange={(e) => handleChange('congBepGa', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -246,7 +258,7 @@ export const TabDCBG: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.5"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.congThoiVu}
                   onChange={(e) => handleChange('congThoiVu', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -261,7 +273,7 @@ export const TabDCBG: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.5"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.congRma}
                   onChange={(e) => handleChange('congRma', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -284,7 +296,7 @@ export const TabDCBG: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.sanLuongBepGa}
                   onChange={(e) => handleChange('sanLuongBepGa', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-emerald-700 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -298,7 +310,7 @@ export const TabDCBG: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.sanLuongRma}
                   onChange={(e) => handleChange('sanLuongRma', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -312,7 +324,7 @@ export const TabDCBG: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.dinhMucSlTheoNs}
                   onChange={(e) => handleChange('dinhMucSlTheoNs', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-blue-700 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-hidden transition"
@@ -335,7 +347,7 @@ export const TabDCBG: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.tongNhanSuLine}
                   onChange={(e) => handleChange('tongNhanSuLine', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 outline-hidden transition"
@@ -349,7 +361,7 @@ export const TabDCBG: React.FC = () => {
                 <input
                   type="number"
                   min="0"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.nhanSuNghi}
                   onChange={(e) => handleChange('nhanSuNghi', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 focus:bg-white focus:border-emerald-500 outline-hidden transition"
@@ -364,7 +376,7 @@ export const TabDCBG: React.FC = () => {
                   type="number"
                   min="0"
                   step="50000"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.chiPhiHangHong}
                   onChange={(e) => handleChange('chiPhiHangHong', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-rose-700 focus:bg-white focus:border-emerald-500 outline-hidden transition"
@@ -379,7 +391,7 @@ export const TabDCBG: React.FC = () => {
                   type="number"
                   min="0"
                   step="0.05"
-                  disabled={!canEditDCBG}
+                  disabled={!effectiveCanEdit}
                   value={formData.tiLeLoiThaoTac}
                   onChange={(e) => handleChange('tiLeLoiThaoTac', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:bg-white focus:border-emerald-500 outline-hidden transition"
@@ -395,7 +407,7 @@ export const TabDCBG: React.FC = () => {
             </label>
             <textarea
               rows={2}
-              disabled={!canEditDCBG}
+              disabled={!effectiveCanEdit}
               value={formData.ghiChu}
               onChange={(e) => handleChange('ghiChu', e.target.value)}
               placeholder="Nhập diễn biến sản xuất, sự cố thiết bị hoặc đề xuất điều phối..."
@@ -404,7 +416,7 @@ export const TabDCBG: React.FC = () => {
           </div>
 
           {/* Save Button */}
-          {canEditDCBG && (
+          {effectiveCanEdit && (
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
               <button
                 type="submit"

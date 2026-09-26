@@ -3,6 +3,7 @@ import { SlideDefectCostData, DamagedItemRecord, DefectCostBarItem } from './typ
 import { INITIAL_SLIDE3_DEFECT_COST } from './initialData';
 import { exportDefectCostTemplate, parseDefectCostExcelFile } from './excelDefectService';
 import { synchronizeSlide3Data } from './defectCostSyncService';
+import { isWeekLocked } from './ProductionContext';
 import { 
   X, 
   Save, 
@@ -437,7 +438,7 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                       {formData.itemsRO.map((item, idx) => (
                         <tr 
                           key={item.id || idx} 
-                          className={`transition-colors ${item.isHighlighted ? 'bg-yellow-100 hover:bg-yellow-200' : 'hover:bg-blue-50/40'}`}
+                          className={`transition-colors ${isWeekLocked(item.week || '') ? 'bg-slate-50 opacity-80' : item.isHighlighted ? 'bg-yellow-100 hover:bg-yellow-200' : 'hover:bg-blue-50/40'}`}
                         >
                           <td className="p-2 text-center text-slate-400 font-sans">{idx + 1}</td>
                           <td className="p-1.5 text-center">
@@ -445,25 +446,28 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               type="text"
                               placeholder="W39"
                               value={item.week || ''}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'week', e.target.value.toUpperCase())}
-                              className="w-16 px-1.5 py-1 border border-slate-300 rounded text-xs text-center bg-white focus:ring-1 focus:ring-blue-500 font-bold text-indigo-700"
-                              title="Gán mã tuần cho linh kiện (Ví dụ: W39, W38)"
+                              className={`w-16 px-1.5 py-1 border rounded text-xs text-center focus:ring-1 focus:ring-blue-500 font-bold ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-indigo-700'}`}
+                              title={isWeekLocked(item.week || '') ? "Tuần đã khóa (<= W38)" : "Gán mã tuần cho linh kiện (Ví dụ: W39, W38)"}
                             />
                           </td>
                           <td className="p-1.5">
                             <input
                               type="text"
                               value={item.itemCode}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'itemCode', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white focus:ring-1 focus:ring-blue-500 font-mono"
+                              className={`w-full px-2 py-1 border rounded text-xs focus:ring-1 focus:ring-blue-500 font-mono ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 font-sans">
                             <input
                               type="text"
                               value={item.itemName}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'itemName', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white focus:ring-1 focus:ring-blue-500"
+                              className={`w-full px-2 py-1 border rounded text-xs focus:ring-1 focus:ring-blue-500 ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 text-right">
@@ -471,8 +475,9 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               type="number"
                               min="0"
                               value={item.quantity}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'quantity', Number(e.target.value))}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-right bg-white focus:ring-1 focus:ring-blue-500 font-bold"
+                              className={`w-full px-2 py-1 border rounded text-xs text-right focus:ring-1 focus:ring-blue-500 font-bold ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 text-right">
@@ -481,8 +486,9 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               min="0"
                               step="100"
                               value={item.unitPrice}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'unitPrice', Number(e.target.value))}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-right bg-white focus:ring-1 focus:ring-blue-500"
+                              className={`w-full px-2 py-1 border rounded text-xs text-right focus:ring-1 focus:ring-blue-500 ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-2 text-right font-bold text-slate-900">
@@ -492,19 +498,22 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                             <input
                               type="checkbox"
                               checked={!!item.isHighlighted}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleROChange(idx, 'isHighlighted', e.target.checked)}
-                              className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-400 cursor-pointer"
+                              className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-400 cursor-pointer disabled:cursor-not-allowed"
                               title="Đánh dấu màu nổi bật"
                             />
                           </td>
                           <td className="p-1.5 text-center">
-                            <button
-                              onClick={() => handleRemoveROItem(idx)}
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                              title="Xóa dòng"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {!isWeekLocked(item.week || '') && (
+                              <button
+                                onClick={() => handleRemoveROItem(idx)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                title="Xóa dòng"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -557,7 +566,7 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                       {formData.itemsBG.map((item, idx) => (
                         <tr 
                           key={item.id || idx} 
-                          className={`transition-colors ${item.isHighlighted ? 'bg-yellow-100 hover:bg-yellow-200' : 'hover:bg-amber-50/40'}`}
+                          className={`transition-colors ${isWeekLocked(item.week || '') ? 'bg-slate-50 opacity-80' : item.isHighlighted ? 'bg-yellow-100 hover:bg-yellow-200' : 'hover:bg-amber-50/40'}`}
                         >
                           <td className="p-2 text-center text-slate-400 font-sans">{idx + 1}</td>
                           <td className="p-1.5 text-center">
@@ -565,25 +574,28 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               type="text"
                               placeholder="W39"
                               value={item.week || ''}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'week', e.target.value.toUpperCase())}
-                              className="w-16 px-1.5 py-1 border border-slate-300 rounded text-xs text-center bg-white focus:ring-1 focus:ring-amber-500 font-bold text-indigo-700"
-                              title="Gán mã tuần cho linh kiện (Ví dụ: W39, W38)"
+                              className={`w-16 px-1.5 py-1 border rounded text-xs text-center focus:ring-1 focus:ring-amber-500 font-bold ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300 text-indigo-700'}`}
+                              title={isWeekLocked(item.week || '') ? "Tuần đã khóa (<= W38)" : "Gán mã tuần cho linh kiện (Ví dụ: W39, W38)"}
                             />
                           </td>
                           <td className="p-1.5">
                             <input
                               type="text"
                               value={item.itemCode}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'itemCode', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white focus:ring-1 focus:ring-amber-500 font-mono"
+                              className={`w-full px-2 py-1 border rounded text-xs focus:ring-1 focus:ring-amber-500 font-mono ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 font-sans">
                             <input
                               type="text"
                               value={item.itemName}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'itemName', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white focus:ring-1 focus:ring-amber-500"
+                              className={`w-full px-2 py-1 border rounded text-xs focus:ring-1 focus:ring-amber-500 ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 text-right">
@@ -591,8 +603,9 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               type="number"
                               min="0"
                               value={item.quantity}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'quantity', Number(e.target.value))}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-right bg-white focus:ring-1 focus:ring-amber-500 font-bold"
+                              className={`w-full px-2 py-1 border rounded text-xs text-right focus:ring-1 focus:ring-amber-500 font-bold ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-1.5 text-right">
@@ -601,8 +614,9 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                               min="0"
                               step="100"
                               value={item.unitPrice}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'unitPrice', Number(e.target.value))}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-right bg-white focus:ring-1 focus:ring-amber-500"
+                              className={`w-full px-2 py-1 border rounded text-xs text-right focus:ring-1 focus:ring-amber-500 ${isWeekLocked(item.week || '') ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-300'}`}
                             />
                           </td>
                           <td className="p-2 text-right font-bold text-slate-900">
@@ -612,19 +626,22 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
                             <input
                               type="checkbox"
                               checked={!!item.isHighlighted}
+                              disabled={isWeekLocked(item.week || '')}
                               onChange={(e) => handleBGChange(idx, 'isHighlighted', e.target.checked)}
-                              className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-400 cursor-pointer"
+                              className="w-4 h-4 text-amber-500 rounded border-slate-300 focus:ring-amber-400 cursor-pointer disabled:cursor-not-allowed"
                               title="Đánh dấu màu nổi bật"
                             />
                           </td>
                           <td className="p-1.5 text-center">
-                            <button
-                              onClick={() => handleRemoveBGItem(idx)}
-                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
-                              title="Xóa dòng"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            {!isWeekLocked(item.week || '') && (
+                              <button
+                                onClick={() => handleRemoveBGItem(idx)}
+                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                                title="Xóa dòng"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
