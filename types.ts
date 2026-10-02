@@ -29,7 +29,7 @@ export interface DailyDCBGRecord {
   nsldTheoNgay: number;    // NSLĐ THEO NGÀY (%)
   tiLeDiLam: number;       // TỈ LỆ ĐI LÀM (%)
   khsxNgay?: number;       // KHSX NGÀY
-  tiLeHoanThanhKhsx?: number; // TỈ LỆ HOÀN THÀNH KHSX (%)
+  tiLeHoanThanhKhsx?: number; // TỈ LỆ HOÀN THÀNH KHSX (%) = (SL BẾP GA + SL RMA) / KHSX NGÀY
 }
 
 export interface DailyDCRORecord {

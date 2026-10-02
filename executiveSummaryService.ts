@@ -976,7 +976,8 @@ export function getExecutiveSummaryData(
           }
           if (u.unitKey === 'BG' && weekColBG) {
             const kh = dynKhsxBG > 0 ? dynKhsxBG : parseVNNumber(u.khsxLabel);
-            const sl = dynSlBG > 0 ? dynSlBG : (u.actualOutput || 0);
+            const totalBgSl = dynSlBG + dynSlRMA;
+            const sl = totalBgSl > 0 ? totalBgSl : (u.actualOutput || 0);
             const rate = kh > 0 ? (sl / kh) * 100 : 100;
             return {
               ...u,

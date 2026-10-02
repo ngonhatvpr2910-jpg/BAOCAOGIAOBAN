@@ -331,11 +331,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                         </span>
                       ) : isCompletionPass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
-                          ✓ Đạt 100%
+                          ✓ Đạt {item.completionRate ? `${item.completionRate}%` : '100%'}
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 flex items-center gap-0.5">
-                          ⚠ Chưa Đạt
+                          ⚠ Đạt {item.completionRate ? `${item.completionRate}%` : 'Chưa Đạt'}
                         </span>
                       )}
                     </div>

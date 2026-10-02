@@ -315,13 +315,17 @@ export const DailyBriefingReportModal: React.FC<DailyBriefingReportModalProps> =
                   <tr className="bg-blue-50/50 font-bold text-blue-950">
                     <td className="border border-slate-300 p-1.5">
                       <div>TỈ LỆ HOÀN THÀNH KHSX (%)</div>
-                      <div className="text-[9px] font-normal text-blue-700">= SL Quy Đổi / KHSX Ngày</div>
+                      <div className="text-[9px] font-normal text-blue-700">= (SL Bếp Ga + RMA) / KHSX Ngày</div>
                     </td>
                     <td className="border border-slate-300 p-1.5 text-center text-emerald-800">
-                      {((dcbg.tongSanLuongQuyDoi / (dcbg.dinhMucSlTheoNs || 500)) * 100).toFixed(1)}%
+                      {dcbg.khsxNgay && dcbg.khsxNgay > 0 
+                        ? (((dcbg.sanLuongBepGa + (dcbg.sanLuongRma || 0)) / dcbg.khsxNgay) * 100).toFixed(1) 
+                        : (dcbg.tiLeHoanThanhKhsx || 0).toFixed(1)}%
                     </td>
                     <td className="border border-slate-300 p-1.5 text-center text-blue-700">
-                      {dcro.tiLeHoanThanhKhsx || 101.8}%
+                      {dcro.khsxNgay && dcro.khsxNgay > 0 
+                        ? ((dcro.sanLuongLineChinh / dcro.khsxNgay) * 100).toFixed(1) 
+                        : (dcro.tiLeHoanThanhKhsx || 0).toFixed(1)}%
                     </td>
                     <td className="border border-slate-300 p-1.5 text-center text-blue-900 bg-blue-100/50">
                       {tiLeHoanThanhKH}%

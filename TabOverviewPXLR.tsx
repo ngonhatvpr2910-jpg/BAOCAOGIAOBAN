@@ -320,16 +320,28 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                 <td className="py-2.5 px-4 font-bold text-blue-950">
                   <div className="flex flex-col">
                     <span className="font-extrabold text-blue-950">TỈ LỆ HOÀN THÀNH KHSX</span>
-                    <span className="text-[10px] text-blue-700 font-mono font-semibold">= SL Quy Đổi / KHSX Ngày</span>
+                    <span className="text-[10px] text-blue-700 font-mono font-semibold">= (SL Bếp Ga + RMA) / KHSX</span>
                   </div>
                 </td>
                 <td className="py-2.5 px-4">
-                  <div className="font-bold text-emerald-700">{((dcbg.tongSanLuongQuyDoi / (dcbg.dinhMucSlTheoNs || 500)) * 100).toFixed(1)}%</div>
-                  <div className="text-[10px] text-slate-500 font-mono">KHSX: {dcbg.dinhMucSlTheoNs || 500} sp</div>
+                  <div className="font-bold text-emerald-700">
+                    {dcbg.khsxNgay && dcbg.khsxNgay > 0 
+                      ? (((dcbg.sanLuongBepGa + (dcbg.sanLuongRma || 0)) / dcbg.khsxNgay) * 100).toFixed(1) 
+                      : (dcbg.tiLeHoanThanhKhsx || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    KHSX: {dcbg.khsxNgay ? dcbg.khsxNgay.toLocaleString('vi-VN') : 0} sp
+                  </div>
                 </td>
                 <td className="py-2.5 px-4">
-                  <div className="font-black text-blue-700">{(dcro.tiLeHoanThanhKhsx || 101.8).toFixed(1)}%</div>
-                  <div className="text-[10px] text-purple-800 font-semibold font-mono tracking-tight">=SL Line Chính/KHSX ({dcro.khsxNgay || 550} sp)</div>
+                  <div className="font-black text-blue-700">
+                    {dcro.khsxNgay && dcro.khsxNgay > 0 
+                      ? ((dcro.sanLuongLineChinh / dcro.khsxNgay) * 100).toFixed(1) 
+                      : (dcro.tiLeHoanThanhKhsx || 0).toFixed(1)}%
+                  </div>
+                  <div className="text-[10px] text-purple-800 font-semibold font-mono tracking-tight">
+                    = SL Line Chính/KHSX ({dcro.khsxNgay ? dcro.khsxNgay.toLocaleString('vi-VN') : 0} sp)
+                  </div>
                 </td>
                 <td className="py-2.5 px-4 bg-blue-100/70">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-black ${

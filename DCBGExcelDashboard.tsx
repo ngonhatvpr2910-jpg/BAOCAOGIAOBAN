@@ -194,13 +194,11 @@ export const DCBGExcelDashboard: React.FC = () => {
             const nghi = Number(updated.nhanSuNghi) || 0;
             updated.tiLeDiLam = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : 100;
           }
-          // If editing khsxNgay, update rate if rate was 0 or recalculating
-          if (field === 'khsxNgay') {
+          // If editing sanLuongBepGa, sanLuongRma, or khsxNgay, auto update Tỉ Lệ Hoàn Thành KHSX: = (SL Bếp Ga + SL RMA) / KHSX Ngày
+          if (field === 'sanLuongBepGa' || field === 'sanLuongRma' || field === 'khsxNgay') {
             const khsx = Number(updated.khsxNgay) || 0;
             const totalSL = (Number(updated.sanLuongBepGa) || 0) + (Number(updated.sanLuongRma) || 0);
-            if (khsx > 0 && (!updated.tiLeHoanThanhKhsx || updated.tiLeHoanThanhKhsx === 0)) {
-              updated.tiLeHoanThanhKhsx = Number(((totalSL / khsx) * 100).toFixed(1));
-            }
+            updated.tiLeHoanThanhKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
           }
           return updated;
         }
@@ -1001,7 +999,7 @@ export const DCBGExcelDashboard: React.FC = () => {
                         <span className="text-blue-950 font-black tracking-tight">TỈ LỆ HOÀN THÀNH KHSX</span>
                       </div>
                       <span className="text-[10px] font-bold text-blue-800 font-mono tracking-tight">
-                        = SL Line Chính / KHSX Ngày
+                        = (SL Bếp Ga + SL RMA) / KHSX Ngày
                       </span>
                     </div>
                   </td>

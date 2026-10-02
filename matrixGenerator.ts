@@ -32,7 +32,12 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
       const nsld = Number(c.nsldTheoNgay) || 0;
-      const khsxRate = Number(c.tiLeHoanThanhKhsx) || 0;
+      const slGa = Number(c.sanLuongBepGa) || 0;
+      const slRma = Number(c.sanLuongRma) || 0;
+      const totalSl = slGa + slRma;
+      const khsx = Number(c.khsxNgay) || 0;
+      // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
+      const khsxRate = khsx > 0 ? Number(((totalSl / khsx) * 100).toFixed(1)) : (Number(c.tiLeHoanThanhKhsx) || 0);
       const attendance = Number(c.tiLeDiLam) || 0;
       return {
         ...c,
@@ -67,12 +72,8 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
       const totalSL = slGa + slRma;
       const nsld = dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0;
       const khsx = currentWeekDays.reduce((s, d) => s + (Number(d.khsxNgay) || 0), 0);
-      const sumSLWeighted = currentWeekDays.reduce((s, d) => {
-        const dKhsx = Number(d.khsxNgay) || 0;
-        const dRate = Number(d.tiLeHoanThanhKhsx) || 0;
-        return s + (dKhsx * dRate / 100);
-      }, 0);
-      const tiLeKhsx = khsx > 0 ? Number(((sumSLWeighted / khsx) * 100).toFixed(1)) : 0;
+      // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
+      const tiLeKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
       const nsLine = currentWeekDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
       const nsNghi = currentWeekDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
       const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
@@ -119,12 +120,8 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
     const totalSL = slGa + slRma;
     const nsld = dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0;
     const khsx = allWorkingDays.reduce((s, d) => s + (Number(d.khsxNgay) || 0), 0);
-    const sumSLWeighted = allWorkingDays.reduce((s, d) => {
-      const dKhsx = Number(d.khsxNgay) || 0;
-      const dRate = Number(d.tiLeHoanThanhKhsx) || 0;
-      return s + (dKhsx * dRate / 100);
-    }, 0);
-    const tiLeKhsx = khsx > 0 ? Number(((sumSLWeighted / khsx) * 100).toFixed(1)) : 0;
+    // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
+    const tiLeKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
     const nsLine = allWorkingDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
     const nsNghi = allWorkingDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
     const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
@@ -327,7 +324,9 @@ export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROC
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
       const nsld = Number(c.nsldTheoNgay) || 0;
-      const khsxRate = Number(c.tiLeHoanThanhKhsx) || 0;
+      const sl = Number(c.sanLuongLineChinh) || 0;
+      const khsx = Number(c.khsxNgay) || 0;
+      const khsxRate = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : (Number(c.tiLeHoanThanhKhsx) || 0);
       const attendance = Number(c.tiLeDiLam) || 0;
       return {
         ...c,

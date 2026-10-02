@@ -66,6 +66,9 @@ export const TabDCBG: React.FC = () => {
   const previewTongSanLuong = (Number(formData.sanLuongBepGa) || 0) + (Number(formData.sanLuongRma) || 0);
   const previewNsld = formData.dinhMucSlTheoNs > 0 ? ((previewTongSanLuong / formData.dinhMucSlTheoNs) * 100).toFixed(2) : '0';
   const previewDiLam = formData.tongNhanSuLine > 0 ? (((formData.tongNhanSuLine - formData.nhanSuNghi) / formData.tongNhanSuLine) * 100).toFixed(2) : '0';
+  const previewKhsx = Number(formData.khsxNgay) || 0;
+  // CÔNG THỨC: TỈ LỆ HOÀN THÀNH KHSX = (SL BẾP GA + SL RMA) / KHSX NGÀY
+  const previewTiLeKhsx = previewKhsx > 0 ? (((Number(formData.sanLuongBepGa) + Number(formData.sanLuongRma)) / previewKhsx) * 100).toFixed(1) : '0';
 
   return (
     <div className="space-y-6">
@@ -149,7 +152,7 @@ export const TabDCBG: React.FC = () => {
       ) : (
         <>
           {/* Quick Summary Metric Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
           <span className="text-xs font-medium text-slate-500">TỔNG CÔNG NGÀY</span>
           <div className="text-2xl font-bold text-slate-900 mt-1">
@@ -172,6 +175,23 @@ export const TabDCBG: React.FC = () => {
             <span className={Number(previewNsld) >= 100 ? 'text-emerald-600 font-semibold' : 'text-amber-600'}>
               Đạt {previewNsld}%
             </span>
+          </div>
+        </div>
+
+        {/* User Card: TỈ LỆ HOÀN THÀNH KHSX */}
+        <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200/80 shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black text-blue-950 uppercase tracking-tight">TỈ LỆ HOÀN THÀNH KHSX</span>
+            <span className="text-[9px] font-bold text-blue-700 bg-blue-100 px-1 py-0.5 rounded border border-blue-200">
+              SL / KHSX
+            </span>
+          </div>
+          <div className="text-2xl font-black text-blue-600 mt-1">
+            {previewTiLeKhsx}%
+          </div>
+          <div className="text-[11px] text-blue-800 mt-1 flex justify-between">
+            <span>KHSX ngày: <strong>{previewKhsx} sp</strong></span>
+            <span className="font-semibold text-blue-700">= ({formData.sanLuongBepGa || 0} + {formData.sanLuongRma || 0})/{previewKhsx}</span>
           </div>
         </div>
 

@@ -41,9 +41,9 @@ export async function exportProductionTemplate(year: number, monthIndex0: number
     { label: 'SẢN LƯỢNG QUY ĐỔI Bếp Ga', key: 'sanLuongBepGa', isInput: true },
     { label: 'SẢN LƯỢNG QUY ĐỔI RMA', key: 'sanLuongRma', isInput: true },
     { label: 'ĐỊNH MỨC SL THEO NS', key: 'dinhMucSlTheoNs', isInput: false, formula: (c: string) => `(${c}2+${c}3+${c}4)*9.03` }, // Rows 2,3,4 are actual Excel rows 3,4,5
-    { label: 'NSLĐ THEO NGÀY', key: 'nslđTheoNgay', isInput: false, formula: (c: string) => `IFERROR(${c}5/${c}7, 0)` }, // Row 5 is SL, Row 7 is DinhMuc
+    { label: 'NSLĐ THEO NGÀY', key: 'nsldTheoNgay', isInput: false, formula: (c: string) => `IFERROR((${c}5+${c}6)/${c}7, 0)` }, // Row 5 is SL BG, Row 6 is SL RMA, Row 7 is DinhMuc
     { label: 'KHSX NGÀY', key: 'khsxNgay', isInput: true },
-    { label: 'TỈ LỆ HOÀN THÀNH KHSX', key: 'tiLeHoanThanhKhsx', isInput: false, formula: (c: string) => `IFERROR(${c}5/${c}9, 0)` }, // Row 5 is SL, Row 9 is KHSX
+    { label: 'TỈ LỆ HOÀN THÀNH KHSX', key: 'tiLeHoanThanhKhsx', isInput: false, formula: (c: string) => `IFERROR((${c}5+${c}6)/${c}9, 0)` }, // Row 5 is SL BG, Row 6 is SL RMA, Row 9 is KHSX
     { label: 'Tổng nhân sự Line', key: 'tongNhanSuLine', isInput: true },
     { label: 'Nhân sự nghỉ', key: 'nhanSuNghi', isInput: true },
     { label: 'TỈ LỆ ĐI LÀM', key: 'tiLeDiLam', isInput: false, formula: (c: string) => `IFERROR((${c}11-${c}12)/${c}11, 0)` },

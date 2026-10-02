@@ -305,8 +305,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const nsldTheoNgay = dinhMucSlTheoNs > 0 ? Number(((tongSanLuongQuyDoi / dinhMucSlTheoNs) * 100).toFixed(2)) : 0;
     const tiLeDiLam = tongNhanSuLine > 0 ? Number((((tongNhanSuLine - nhanSuNghi) / tongNhanSuLine) * 100).toFixed(2)) : 0;
     
-    // KHSX Ngày & Tỉ lệ hoàn thành KHSX = Sản lượng quy đổi / KHSX Ngày
-    const khsxNgay = Number(r.khsxNgay) || 520;
+    // KHSX Ngày & Tỉ lệ hoàn thành KHSX = (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
+    const khsxNgay = Number(r.khsxNgay) || 0;
     const tiLeHoanThanhKhsx = khsxNgay > 0 ? Number(((tongSanLuongQuyDoi / khsxNgay) * 100).toFixed(1)) : 0;
 
     return {
@@ -632,8 +632,10 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // Yêu cầu: "PXLR Tổng hợp tỉ lệ lỗi sẽ lấy từ data silde Chất Lượng"
     // Tỉ lệ lỗi thao tác / 4M của PXLR được đồng bộ chuẩn xác từ Slide 2 Chất Lượng
     const tiLeLoiThaoTacTB = qualityMetrics.pxlr.totalLoi4M;
-    const keHoachSanXuat = tongDinhMucSl;
-    const tiLeHoanThanhKH = keHoachSanXuat > 0 ? Number(((tongSanLuongQuyDoi / keHoachSanXuat) * 100).toFixed(2)) : 0;
+    // CÔNG THỨC: KHSX PXLR = KHSX DCBG + KHSX DCRO; Thực Hiện = (SL Bếp Ga + SL RMA) + SL Line Chính RO
+    const keHoachSanXuat = (Number(activeDCBGRecord.khsxNgay) || 0) + (Number(activeDCRORecord.khsxNgay) || 0);
+    const thucHienSanXuat = activeDCBGRecord.tongSanLuongQuyDoi + (Number(activeDCRORecord.sanLuongLineChinh) || 0);
+    const tiLeHoanThanhKH = keHoachSanXuat > 0 ? Number(((thucHienSanXuat / keHoachSanXuat) * 100).toFixed(1)) : 0;
 
     // Đảm bảo thông số lỗi thao tác của DCBG và DCRO cũng liên kết với data Slide Chất Lượng
     const effectiveDcbg = {
