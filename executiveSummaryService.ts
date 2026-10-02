@@ -1,5 +1,6 @@
 import { UnitExecutiveSummary, MonthlyHistoryRecord, SlideDefectCostData, Slide1NSLDData, Slide2QualityData } from './types';
 import { StorageService } from './storage';
+import { synchronizeSlide3Data, isSameWeek, isItemInMonth } from './defectCostSyncService';
 
 export interface ExecutiveSummaryPeriodResult {
   periodLabel: string;
@@ -846,45 +847,45 @@ export function getExecutiveSummaryData(
     }
   }
 
-  // 3. ĐỒNG BỘ DỮ LIỆU TỪ SLIDE 3: CHI PHÍ HƯ HỎNG & TỔN THẤT LINH KIỆN
+  // 3. ĐỒNG BỘ DỮ LIỆU TỪ SLIDE 3 (SLIDE 4 TRONG PPT): CHI PHÍ HƯ HỎNG & TỔN THẤT LINH KIỆN
   if (activeSlide3) {
+    // Sử dụng chung logic tính toán từ Slide 3 để đảm bảo khớp 100%
+    const { weeklyTotals, monthlyTotals } = synchronizeSlide3Data(activeSlide3);
+
     if (timeFrame === 'week') {
-      const foundWeek = (activeSlide3.weeklyData || []).find(w => isMatchingWeekKey(w.label, periodKey));
-      const rawDefectItemsRO = (activeSlide3.itemsRO || []).filter(i => isMatchingWeekKey(i.week, periodKey));
-      const rawDefectItemsBG = (activeSlide3.itemsBG || []).filter(i => isMatchingWeekKey(i.week, periodKey));
+      // Tìm nhãn tuần khớp chuẩn
+      const weekKey = Object.keys(weeklyTotals).find(w => isSameWeek(w, periodKey)) || periodKey;
+      const breakdown = weeklyTotals[weekKey];
 
-      const calcRO = rawDefectItemsRO.reduce((s, i) => s + (i.amount || (i.quantity * i.unitPrice) || 0), 0);
-      const calcBG = rawDefectItemsBG.reduce((s, i) => s + (i.amount || (i.quantity * i.unitPrice) || 0), 0);
-
-      const isW39 = isMatchingWeekKey(periodKey, 'W39');
-
-      result.units = result.units.map(u => {
-        if (u.unitKey === 'RO') {
-          const cost = isW39 ? 0 : (calcRO > 0 ? calcRO : u.defectCostActual);
-          return {
-            ...u,
-            defectCostActual: cost,
-            actionItem: isW39 ? 'ZERO DEFECT: Toàn bộ quá trình sản xuất tuần 39 Line RO đạt 0 lỗi, 0 đ tổn thất.' : u.actionItem
-          };
-        }
-        if (u.unitKey === 'BG') {
-          const cost = calcBG > 0 ? calcBG : (isW39 ? 878011.38 : u.defectCostActual);
-          return { ...u, defectCostActual: cost };
-        }
-        if (u.unitKey === 'PXLR') {
-          const totalCost = (isW39 ? (calcRO + calcBG > 0 ? calcRO + calcBG : 878011.38) : (calcRO + calcBG > 0 ? calcRO + calcBG : (foundWeek && foundWeek.value > 0 ? Math.round(foundWeek.value * 1000000) : u.defectCostActual)));
-          return { ...u, defectCostActual: totalCost };
-        }
-        return u;
-      });
+      if (breakdown) {
+        result.units = result.units.map(u => {
+          if (u.unitKey === 'RO') {
+            return { ...u, defectCostActual: breakdown.ro };
+          }
+          if (u.unitKey === 'BG') {
+            return { ...u, defectCostActual: breakdown.bg };
+          }
+          if (u.unitKey === 'PXLR') {
+            return { ...u, defectCostActual: breakdown.total };
+          }
+          return u;
+        });
+      }
     } else {
       // Theo tháng
-      const foundMonth = (activeSlide3.monthlyData || []).find(m => isMatchingMonthKey(m.label, periodKey));
-      if (foundMonth && foundMonth.value > 0) {
-        const monthVal = Math.round(foundMonth.value * 1000000);
+      const monthKey = Object.keys(monthlyTotals).find(m => m.toLowerCase().includes(periodKey.toLowerCase())) || periodKey;
+      const breakdown = monthlyTotals[monthKey];
+      
+      if (breakdown) {
         result.units = result.units.map(u => {
+          if (u.unitKey === 'RO') {
+            return { ...u, defectCostActual: breakdown.ro };
+          }
+          if (u.unitKey === 'BG') {
+            return { ...u, defectCostActual: breakdown.bg };
+          }
           if (u.unitKey === 'PXLR') {
-            return { ...u, defectCostActual: monthVal };
+            return { ...u, defectCostActual: breakdown.total };
           }
           return u;
         });
@@ -902,8 +903,8 @@ export function getExecutiveSummaryData(
       const wMatch = periodKey.match(/\d+/);
       if (wMatch) {
         const wNum = parseInt(wMatch[0], 10);
-        // Map weeks to months: W36-39 -> Sep (8), W40-44 -> Oct (9)
-        if (wNum >= 40) targetMonthIdx = 9;
+        // Map weeks to months: W36-40 -> Sep (8), W41-44 -> Oct (9)
+        if (wNum > 40) targetMonthIdx = 9;
         else targetMonthIdx = 8;
       }
     }
@@ -912,109 +913,88 @@ export function getExecutiveSummaryData(
     const matrixBG = StorageService.getMatrixBGForMonth(2026, targetMonthIdx) || [];
 
     if (timeFrame === 'week') {
-      const weekNumMatch = periodKey.match(/\d+/);
-      const weekNum = weekNumMatch ? parseInt(weekNumMatch[0], 10) : 39;
+      // Find the weekly total column in the matrix that matches the periodKey (e.g., "W39")
+      const weekColRO = matrixRO.find(c => c.isWeeklyTotal && (c.label === periodKey || c.label.startsWith(periodKey + ' ')));
+      const weekColBG = matrixBG.find(c => c.isWeeklyTotal && (c.label === periodKey || c.label.startsWith(periodKey + ' ')));
 
-      let startDay = 0;
-      let endDay = 0;
-      if (weekNum === 36) { startDay = 1; endDay = 3; }
-      else if (weekNum === 37) { startDay = 4; endDay = 10; }
-      else if (weekNum === 38) { startDay = 11; endDay = 17; }
-      else if (weekNum === 39) { startDay = 18; endDay = 24; }
-      else if (weekNum === 40) { startDay = 25; endDay = 30; }
+      if (weekColRO || weekColBG) {
+        const dynKhsxRO = weekColRO ? (Number(weekColRO.khsxNgay) || 0) : 0;
+        const dynSlRO = weekColRO ? (Number(weekColRO.sanLuongLineChinh) || 0) : 0;
 
-      if (startDay > 0 && endDay > 0) {
-        const workingDaysRO = matrixRO.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal && !c.isOff);
-        const workingDaysBG = matrixBG.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal && !c.isOff);
+        const dynKhsxBG = weekColBG ? (Number(weekColBG.khsxNgay) || 0) : 0;
+        const dynSlBG = weekColBG ? (Number(weekColBG.sanLuongBepGa) || 0) : 0;
+        const dynSlRMA = weekColBG ? (Number(weekColBG.sanLuongRma) || 0) : 0;
 
-        const daysRO = workingDaysRO.filter(c => {
-          const d = parseInt(c.dateStr?.split('-')[2] || c.label.split('-')[0] || '0', 10);
-          return d >= startDay && d <= endDay;
+        // Chỉ ghi đè nếu dữ liệu nhập thực tế > 0 hoặc chúng ta tìm thấy cột tuần
+        result.units = result.units.map(u => {
+          if (u.unitKey === 'RO' && weekColRO) {
+            const kh = dynKhsxRO > 0 ? dynKhsxRO : parseVNNumber(u.khsxLabel);
+            const sl = dynSlRO > 0 ? dynSlRO : (u.actualOutput || 0);
+            const rate = kh > 0 ? (sl / kh) * 100 : 100;
+            return {
+              ...u,
+              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+              actualOutput: sl,
+              completionRate: Number(rate.toFixed(1)),
+              completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`
+            };
+          }
+          if (u.unitKey === 'BG' && weekColBG) {
+            const kh = dynKhsxBG > 0 ? dynKhsxBG : parseVNNumber(u.khsxLabel);
+            const sl = dynSlBG > 0 ? dynSlBG : (u.actualOutput || 0);
+            const rate = kh > 0 ? (sl / kh) * 100 : 100;
+            return {
+              ...u,
+              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+              actualOutput: sl,
+              completionRate: Number(rate.toFixed(1)),
+              completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`
+            };
+          }
+          if (u.unitKey === 'RMA' && weekColBG) {
+            const sl = dynSlRMA > 0 ? dynSlRMA : (u.actualOutput || 0);
+            return {
+              ...u,
+              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+              actualOutput: sl,
+              completionNote: `SL Quy đổi RMA: ${sl.toLocaleString('vi-VN')} SP`
+            };
+          }
+          return u;
         });
 
-        const daysBG = workingDaysBG.filter(c => {
-          const d = parseInt(c.dateStr?.split('-')[2] || c.label.split('-')[0] || '0', 10);
-          return d >= startDay && d <= endDay;
+        // Đồng bộ Toàn Phân Xưởng PXLR
+        const roUnit = result.units.find(u => u.unitKey === 'RO');
+        const bgUnit = result.units.find(u => u.unitKey === 'BG');
+        const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
+
+        const roKh = parseVNNumber(roUnit?.khsxLabel);
+        const bgKh = parseVNNumber(bgUnit?.khsxLabel);
+        const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
+        
+        const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
+        const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
+        const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
+
+        const totalKh = roKh + bgKh + rmaKh;
+        const totalAct = roAct + bgAct + rmaAct;
+        const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
+
+        result.units = result.units.map(u => {
+          if (u.unitKey === 'PXLR') {
+            return {
+              ...u,
+              khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
+              actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
+              actualOutput: totalAct,
+              completionRate: totalRate,
+              completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`
+            };
+          }
+          return u;
         });
-
-        const dynKhsxRO = daysRO.reduce((s, c) => s + (Number(c.khsxNgay) || 0), 0);
-        const dynSlRO = daysRO.reduce((s, c) => s + (Number(c.sanLuongLineChinh) || 0), 0);
-
-        const dynKhsxBG = daysBG.reduce((s, c) => s + (Number(c.khsxNgay) || 0), 0);
-        const dynSlBG = daysBG.reduce((s, c) => s + (Number(c.sanLuongBepGa) || 0), 0);
-        const dynSlRMA = daysBG.reduce((s, c) => s + (Number(c.sanLuongRma) || 0), 0);
-
-        // Chỉ ghi đè nếu dữ liệu nhập thực tế > 0
-        if (dynKhsxRO > 0 || dynSlRO > 0 || dynKhsxBG > 0 || dynSlBG > 0 || dynSlRMA > 0) {
-          result.units = result.units.map(u => {
-            if (u.unitKey === 'RO' && (dynKhsxRO > 0 || dynSlRO > 0)) {
-              const kh = dynKhsxRO > 0 ? dynKhsxRO : (u.khsxLabel ? parseFloat(u.khsxLabel.replace(/[^\d.]/g, '')) * 1000 : 5600);
-              const sl = dynSlRO > 0 ? dynSlRO : (u.actualOutput || 5008.4);
-              const rate = kh > 0 ? (sl / kh) * 100 : 100;
-              return {
-                ...u,
-                khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-                actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-                actualOutput: sl,
-                completionRate: Number(rate.toFixed(1)),
-                completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`
-              };
-            }
-            if (u.unitKey === 'BG' && (dynKhsxBG > 0 || dynSlBG > 0)) {
-              const kh = dynKhsxBG > 0 ? dynKhsxBG : (u.khsxLabel ? parseFloat(u.khsxLabel.replace(/[^\d.]/g, '')) * 1000 : 4340);
-              const sl = dynSlBG > 0 ? dynSlBG : (u.actualOutput || 4340);
-              const rate = kh > 0 ? (sl / kh) * 100 : 100;
-              return {
-                ...u,
-                khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-                actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-                actualOutput: sl,
-                completionRate: Number(rate.toFixed(1)),
-                completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`
-              };
-            }
-            if (u.unitKey === 'RMA' && dynSlRMA > 0) {
-              return {
-                ...u,
-                actualOutputLabel: `${dynSlRMA.toLocaleString('vi-VN')} SP`,
-                actualOutput: dynSlRMA,
-                completionNote: `SL Quy đổi RMA: ${dynSlRMA.toLocaleString('vi-VN')} SP`
-              };
-            }
-            return u;
-          });
-
-          // Đồng bộ Toàn Phân Xưởng PXLR
-          const roUnit = result.units.find(u => u.unitKey === 'RO');
-          const bgUnit = result.units.find(u => u.unitKey === 'BG');
-          const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
-
-          const roKh = parseVNNumber(roUnit?.khsxLabel);
-          const bgKh = parseVNNumber(bgUnit?.khsxLabel);
-          const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
-          
-          const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
-          const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
-          const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
-
-          const totalKh = roKh + bgKh + rmaKh;
-          const totalAct = roAct + bgAct + rmaAct;
-          const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
-
-          result.units = result.units.map(u => {
-            if (u.unitKey === 'PXLR') {
-              return {
-                ...u,
-                khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
-                actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
-                actualOutput: totalAct > 0 ? totalAct : u.actualOutput,
-                completionRate: totalRate > 0 ? totalRate : u.completionRate,
-                completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`
-              };
-            }
-            return u;
-          });
-        }
       }
     }
   } catch {

@@ -538,28 +538,6 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               );
             })}
           </div>
-
-          {/* 3. Action Items / Countermeasures Banner from Executive slide */}
-          <div className="mt-3 bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 bg-amber-200 text-amber-900 rounded-lg font-bold">
-                <AlertTriangle className="w-4 h-4" />
-              </span>
-              <div>
-                <span className="font-bold text-slate-900">{summaryData.actionItemTitle}: </span>
-                <span className="text-slate-700">
-                  {summaryData.actionItemContent}
-                </span>
-              </div>
-            </div>
-            <span className={`font-extrabold shrink-0 px-2.5 py-1 rounded-md border text-xs ${
-              summaryData.isUrgentAction 
-                ? 'text-rose-800 bg-rose-100 border-rose-300' 
-                : 'text-amber-800 bg-amber-100 border-amber-300'
-            }`}>
-              {summaryData.isUrgentAction ? 'Hành động khẩn' : 'Kế hoạch trọng điểm'}
-            </span>
-          </div>
         </div>
       ) : (
         /* View 2: Structured Benchmark and Target Reference Table */

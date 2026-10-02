@@ -1764,25 +1764,6 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
               <div className="absolute top-0 left-0 w-1 h-full bg-red-600" />
               
               <div className="flex items-center gap-6 flex-wrap z-10">
-                {/* Legend */}
-                <div className="flex flex-col border-r border-slate-700 pr-6 mr-2">
-                  <span className="font-black text-slate-400 text-[10px] uppercase tracking-widest mb-1">Legend / Chú thích</span>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 group cursor-help">
-                      <div className="w-3.5 h-3.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                      <span className="text-[12px] font-black text-slate-200">
-                        Phát sinh trọng điểm
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 group cursor-help">
-                      <div className="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]" />
-                      <span className="text-[12px] font-black text-slate-200">
-                        Vật tư giá trị cao
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Weekly/Monthly Breakdown for each Line */}
                 {filterByPeriod && (selectionMode === 'week' ? selectedWeekLabel : selectedMonthLabel) && (
                   <div className="flex items-center gap-5">

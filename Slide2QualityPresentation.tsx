@@ -329,39 +329,6 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
           </div>
         </div>
 
-        {/* 4. Bottom Commentary Cards: Các lỗi trọng điểm & Đối sách tháng 9 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mt-1">
-          {/* Left Card: Các lỗi Trọng điểm (Red border & text) */}
-          <div className="bg-white border-2 border-[#C00000] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-start">
-            <h4 className="text-[#C00000] font-black text-base sm:text-lg md:text-[20px] mb-3 leading-snug">
-              {data.keyDefects?.title || 'Các lỗi Trọng điểm :'}
-            </h4>
-            <ol className="space-y-3 text-[#C00000] font-bold text-sm sm:text-base md:text-[16px] leading-relaxed list-none pl-0">
-              {(data.keyDefects?.items || []).map((item, idx) => (
-                <li key={idx} className="flex items-start gap-1.5">
-                  <span className="shrink-0 font-black">{idx + 1}.</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          {/* Right Card: Các đối sách giảm tỉ lệ lỗi (Green text) */}
-          <div className="bg-white border-2 border-[#C00000] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-start">
-            <h4 className="text-[#008000] font-black text-base sm:text-lg md:text-[20px] mb-3 leading-snug">
-              {data.countermeasures?.title || 'Các đối sách giảm tỉ lệ lỗi hiện tại:'}
-            </h4>
-            <ol className="space-y-3 text-[#008000] font-bold text-sm sm:text-base md:text-[16px] leading-relaxed list-none pl-0">
-              {(data.countermeasures?.items || []).map((item, idx) => (
-                <li key={idx} className="flex items-start gap-1.5">
-                  <span className="shrink-0 font-black">{idx + 1}.</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-
         {/* 5. SLIDE FOOTER */}
         <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs sm:text-sm text-slate-500 select-none">
           <span className="font-sans font-medium">

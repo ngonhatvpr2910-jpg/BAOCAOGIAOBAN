@@ -76,6 +76,7 @@ export const TabPowerPointPresentation: React.FC = () => {
     slide2Quality,
     updateSlide2Quality
   } = useProduction();
+  const showNotes = false; // Luôn ẩn các ghi chú theo yêu cầu
   const [activeSlide, setActiveSlide] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
   const [slideData, setSlideData] = useState<Slide1NSLDData>(() => StorageService.getSlide1NSLD());
   const [slide2Data, setSlide2Data] = useState<Slide2QualityData>(() => slide2Quality || StorageService.getSlide2Quality());
@@ -127,7 +128,6 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [isAutoSyncActive, setIsAutoSyncActive] = useState(true);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const [showSyncDetail, setShowSyncDetail] = useState(false);
-  const [showNotes, setShowNotes] = useState(true);
   const [showExecutiveSummary, setShowExecutiveSummary] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [syncVersion, setSyncVersion] = useState(0);
@@ -720,25 +720,6 @@ export const TabPowerPointPresentation: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Mouse Scroll Hint Badge */}
-                {showNotes && (
-                  <button
-                    onClick={() => {
-                      const next = activeSlide === 1 ? 2 : activeSlide === 2 ? 3 : activeSlide === 3 ? 4 : 1;
-                      scrollToSlide(next as 1 | 2 | 3 | 4);
-                    }}
-                    className="hidden lg:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 transition-colors cursor-pointer"
-                    title="Dùng chuột lăn từ trên xuống hoặc bấm vào đây để chuyển slide"
-                  >
-                    <Mouse className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
-                    <span>Lăn chuột từ trên xuống để chuyển slide</span>
-                    {activeSlide < 4 ? (
-                      <ChevronDown className="w-3 h-3 text-amber-700" />
-                    ) : (
-                      <ChevronUp className="w-3 h-3 text-amber-700" />
-                    )}
-                  </button>
-                )}
 
                 {/* Auto Sync Active Pill (for Slide 1) */}
                 <button
@@ -754,11 +735,6 @@ export const TabPowerPointPresentation: React.FC = () => {
                   <span>{isAutoSyncActive ? 'Tự Động Chạy: BẬT' : 'Tự Động Chạy: TẮT'}</span>
                 </button>
               </div>
-              {showNotes && (
-                <p className="text-xs text-slate-500 mt-0.5">
-                  Định dạng chuẩn trình chiếu 16:9 giống PowerPoint • Cuộn chuột dọc để xem liên tục 3 slide
-                </p>
-              )}
             </div>
           </div>
 
@@ -834,20 +810,6 @@ export const TabPowerPointPresentation: React.FC = () => {
               <span>Sửa Slide 2</span>
             </button>
 
-            {/* Toggle Ghi Chú */}
-            <button
-              onClick={() => setShowNotes(prev => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition-all cursor-pointer shadow-2xs ${
-                showNotes 
-                  ? 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200' 
-                  : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
-              }`}
-              title={showNotes ? 'Ẩn các ghi chú & thông tin hướng dẫn' : 'Hiện các ghi chú & thông tin hướng dẫn'}
-            >
-              {showNotes ? <X className="w-3.5 h-3.5" /> : <Info className="w-3.5 h-3.5" />}
-              <span>{showNotes ? 'Ẩn Ghi Chú' : 'Hiện Ghi Chú'}</span>
-            </button>
-
             <button
               onClick={() => setIsFullscreen(prev => !prev)}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white rounded-lg shadow-xs transition-all cursor-pointer ${
@@ -871,96 +833,6 @@ export const TabPowerPointPresentation: React.FC = () => {
         </div>
       )}
 
-      {/* Logic & Data Governance Info Banner */}
-      {!isPresentationMode && showNotes && (
-        <>
-          {activeSlide === 1 ? (
-            <div className="bg-gradient-to-r from-slate-50 via-blue-50/40 to-indigo-50/40 border border-slate-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-900 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Mục 1: <strong>Báo Cáo Tổng Thể Toàn Xưởng (Executive Summary)</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Tổng hợp 6 chỉ số: <strong>KHSX • THỰC HIỆN • NSLĐ • ĐI LÀM • TỈ LỆ LỖI • HƯ HỎNG</strong></span>
-                </span>
-              </div>
-              <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Highlight chuẩn hóa: Đạt ≥ 100% (Xanh), Chưa đạt (Đỏ), Zero Defect (Xanh ngọc)</span>
-              </div>
-            </div>
-          ) : activeSlide === 2 ? (
-            <div className="bg-gradient-to-r from-slate-50 via-teal-50/40 to-blue-50/40 border border-slate-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 font-medium">
-                  <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Dữ liệu cũ (Bảo lưu): <strong>Tháng 6-8 & Các tuần lịch sử</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium">
-                  <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Dữ liệu hiện hành: <strong>Tự động chạy cho {currentMonthLabel} & các tuần mới</strong></span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 border border-purple-200 text-purple-900 font-medium">
-                  <Calculator className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span>PXLR: <strong>CÔNG THỨC TUYỆT ĐỐI THEO TỶ TRỌNG ĐỊNH MỨC</strong></span>
-                </span>
-              </div>
-              {liveSyncSummary.monthStats[currentMonthLabel] && (
-                <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Thực tế {currentMonthLabel}: RO {liveSyncSummary.monthStats[currentMonthLabel].nsldRO}% | BG {liveSyncSummary.monthStats[currentMonthLabel].nsldBG}% ⇒ PXLR: <strong className="text-purple-700 font-bold">{liveSyncSummary.monthStats[currentMonthLabel].nsldPXLR}%</strong>
-                </div>
-              )}
-            </div>
-          ) : activeSlide === 3 ? (
-            <div className="bg-gradient-to-r from-slate-50 via-blue-50/40 to-emerald-50/40 border border-slate-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-900 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Mục 3: <strong>Chất Lượng</strong> - Báo Cáo Sản Xuất DCLR (PXLR, Line RO, Line BG)</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Định mức 4M: <strong>PXLR (7.38%) | Line RO (5.20%) | Line BG (7.74%)</strong></span>
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-600 flex items-center gap-2 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                <span className="font-semibold text-slate-700">Khảo sát & Đối sách trọng điểm {currentMonthLabel}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-r from-slate-50 via-amber-50/40 to-rose-50/40 border border-slate-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-2.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 font-medium">
-                  <Coins className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Mục 4: <strong>Tỉ Lệ Hàng Hư Hỏng & Tổn Thất</strong> - Báo Cáo Chi Phí Vật Tư & Biểu Đồ Hư Hỏng</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-50 border border-rose-200 text-rose-900 font-medium">
-                  <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                  <span>
-                    Tổng Chi Phí Tổn Thất:{' '}
-                    <strong>
-                      {new Intl.NumberFormat('vi-VN').format(
-                        ((slide3Data?.itemsRO || []).concat(slide3Data?.itemsBG || [])).reduce(
-                          (acc, curr) => acc + (curr.amount || (curr.quantity * curr.unitPrice)),
-                          0
-                        )
-                      )}{' '}
-                      VNĐ
-                    </strong>{' '}
-                    ({(slide3Data?.itemsRO?.length || 0) + (slide3Data?.itemsBG?.length || 0)} danh mục vật tư)
-                  </span>
-                </span>
-              </div>
-              <div className="text-[11px] text-slate-600 flex items-center gap-2 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                <span className="font-semibold text-slate-700">Theo dõi định mức & diễn biến chi phí từng tuần</span>
-              </div>
-            </div>
-          )}
-        </>
-      )}
 
       {/* Presentation Mode Floating Controls */}
       {isPresentationMode && !isFullscreen && (
@@ -1626,7 +1498,7 @@ export const TabPowerPointPresentation: React.FC = () => {
               data={slide4Data} 
               isFullscreen={true} 
               onOpenEditor={() => setIsSlide4EditorOpen(true)}
-              showNotes={showNotes}
+              showNotes={false}
             />
           </div>
 
@@ -1636,7 +1508,7 @@ export const TabPowerPointPresentation: React.FC = () => {
               data={slide5Data} 
               isFullscreen={true} 
               onOpenEditor={() => setIsSlide5EditorOpen(true)}
-              showNotes={showNotes}
+              showNotes={false}
             />
           </div>
 
@@ -1651,276 +1523,6 @@ export const TabPowerPointPresentation: React.FC = () => {
         </div>
       )}
 
-      {/* Quick Summary Reference Card */}
-      {showNotes && (
-        <>
-          {activeSlide === 1 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-                Bảng Tóm Tắt & Hướng Dẫn Điều Hành Slide 1 (Báo Cáo Tổng Thể)
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div className="border border-blue-200 rounded-lg p-3 bg-blue-50/30 space-y-1.5">
-                  <div className="font-bold text-blue-900 text-sm flex items-center gap-1.5">
-                    <Target className="w-4 h-4 text-blue-600" />
-                    <span>1. KHSX & THỰC HIỆN</span>
-                  </div>
-                  <p className="text-slate-600">
-                    Kế hoạch lấy từ KHSX Ngày của từng Line (RO, BG). Thực hiện lấy trực tiếp từ Sản Lượng Quy Đổi Line Chính và Tổ RMA.
-                  </p>
-                </div>
-
-                <div className="border border-teal-200 rounded-lg p-3 bg-teal-50/30 space-y-1.5">
-                  <div className="font-bold text-teal-900 text-sm flex items-center gap-1.5">
-                    <TrendingUp className="w-4 h-4 text-teal-600" />
-                    <span>2. NSLĐ & TỈ LỆ ĐI LÀM</span>
-                  </div>
-                  <p className="text-slate-600">
-                    Mục tiêu NSLĐ ≥ 120% (hoặc ≥ 100%). Tỉ lệ đi làm chuyên cần định mức ≥ 95%. Hệ thống tự động Highlight Đạt / Chưa Đạt trực quan.
-                  </p>
-                </div>
-
-                <div className="border border-amber-200 rounded-lg p-3 bg-amber-50/30 space-y-1.5">
-                  <div className="font-bold text-amber-900 text-sm flex items-center gap-1.5">
-                    <ShieldCheck className="w-4 h-4 text-amber-600" />
-                    <span>3. TỈ LỆ LỖI & HƯ HỎNG</span>
-                  </div>
-                  <p className="text-slate-600">
-                    Định mức 4M (PXLR 7.38%, RO 5.20%, BG 7.74%). Chi phí hư hỏng theo ngân sách định mức hoặc đạt Zero Defect (0 lỗi, 0đ).
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : activeSlide === 2 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-teal-600" />
-                Bảng Tra Cứu Nhanh Dữ Liệu Năng Suất Slide 2
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                {/* PXLR Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>NSLĐ THÁNG PXLR</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 font-mono font-bold">
-                      Công thức tuyệt đối
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: </span>
-                      <span className="font-mono font-bold text-slate-700">{slideData.pxlr.weekly.find(w => w.id === 'pxlr-w35')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 36: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.pxlr.weekly.find(w => w.id === 'pxlr-w36')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 37: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.pxlr.weekly.find(w => w.id === 'pxlr-w37')?.value}%</span>
-                    </div>
-
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mt-2 mb-0.5">Theo Tháng</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60 text-slate-500">
-                      <span>Tháng 6, 7, 8 (Cũ):</span>
-                      <span className="font-mono">131.6% | 135.5% | 133.6%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 font-bold text-purple-900 bg-purple-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">{currentMonthLabel}: </span>
-                      <span className="font-mono text-purple-700 font-extrabold">{slideData.pxlr.monthly.find(m => m.id === 'pxlr-m09')?.value}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* RO Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>NSLĐ THÁNG RO</span>
-                    <span className="text-[11px] text-slate-400">Định mức ~86.99%</span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: </span>
-                      <span className="font-mono font-bold text-slate-700">{slideData.ro.weekly.find(w => w.id === 'ro-w35')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 36: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.ro.weekly.find(w => w.id === 'ro-w36')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 37: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.ro.weekly.find(w => w.id === 'ro-w37')?.value}%</span>
-                    </div>
-
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mt-2 mb-0.5">Theo Tháng</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60 text-slate-500">
-                      <span>Tháng 7, 8 (Cũ):</span>
-                      <span className="font-mono">117.1% | 111.2%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 font-bold text-teal-900 bg-teal-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">{currentMonthLabel} (Tự động): <Zap className="w-2.5 h-2.5 text-teal-600" /></span>
-                      <span className="font-mono text-teal-700 font-extrabold">{slideData.ro.monthly.find(m => m.id === 'ro-m09')?.value}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* BG Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>NSLĐ THÁNG BẾP GA</span>
-                    <span className="text-[11px] text-slate-400">Định mức ~13.01%</span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Theo Tuần</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1">Tuần 35: </span>
-                      <span className="font-mono font-bold text-slate-700">{slideData.bg.weekly.find(w => w.id === 'bg-w35')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 36: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.bg.weekly.find(w => w.id === 'bg-w36')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 37: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.bg.weekly.find(w => w.id === 'bg-w37')?.value}%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60">
-                      <span className="flex items-center gap-1 text-emerald-800 font-medium">Tuần 38: <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono font-bold text-emerald-700">{slideData.bg.weekly.find(w => w.id === 'bg-w38')?.value}%</span>
-                    </div>
-
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mt-2 mb-0.5">Theo Tháng</div>
-                    <div className="flex justify-between py-0.5 border-b border-slate-200/60 text-slate-500">
-                      <span>Tháng 7, 8 (Cũ):</span>
-                      <span className="font-mono">87.1% | 108.2%</span>
-                    </div>
-                    <div className="flex justify-between py-0.5 font-bold text-emerald-900 bg-emerald-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">{currentMonthLabel} (Tự động): <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
-                      <span className="font-mono text-emerald-700 font-extrabold">{slideData.bg.monthly.find(m => m.id === 'bg-m09')?.value}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : activeSlide === 3 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                Bảng Tra Cứu Nhanh Dữ Liệu Chất Lượng Slide 3 (Tỷ Lệ Lỗi 4M & Vật Tư)
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                {/* PXLR Quality Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>CHẤT LƯỢNG PXLR</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-mono font-bold">
-                      ĐM 4M: {slide2Data.pxlr?.benchmarkDmLoi ?? 7.38}%
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Diễn biến theo tháng</div>
-                    {(slide2Data.pxlr?.items || []).map(m => (
-                      <div key={m.id || m.month} className="flex justify-between py-0.5 border-b border-slate-200/60">
-                        <span className="font-medium text-slate-700">Tháng {m.month}:</span>
-                        <span className="font-mono">
-                          VT: <strong className="text-sky-700">{m.vatTu}%</strong> | 4M: <strong className="text-rose-600">{m.totalLoi4M}%</strong>
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-2 text-[11px] text-slate-500">
-                      Định mức vật tư tham chiếu: <span className="font-bold text-slate-700">{slide2Data.pxlr?.items?.[0]?.dmVatTu ?? 3.69}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Line RO Quality Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>LINE RO</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono font-bold">
-                      ĐM 4M: {slide2Data.ro?.benchmarkDmLoi ?? 5.2}%
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Diễn biến theo tháng</div>
-                    {(slide2Data.ro?.items || []).map(m => (
-                      <div key={m.id || m.month} className="flex justify-between py-0.5 border-b border-slate-200/60">
-                        <span className="font-medium text-slate-700">Tháng {m.month}:</span>
-                        <span className="font-mono">
-                          VT: <strong className="text-sky-700">{m.vatTu}%</strong> | 4M: <strong className="text-rose-600">{m.totalLoi4M}%</strong>
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-2 text-[11px] text-slate-500">
-                      Định mức vật tư tham chiếu: <span className="font-bold text-slate-700">{slide2Data.ro?.items?.[0]?.dmVatTu ?? 2.4}%</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Line Bếp Ga Quality Card */}
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/50">
-                  <div className="font-bold text-[#0284c7] text-sm mb-2 flex items-center justify-between">
-                    <span>LINE BẾP GA</span>
-                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-mono font-bold">
-                      ĐM 4M: {slide2Data.bg?.benchmarkDmLoi ?? 7.74}%
-                    </span>
-                  </div>
-                  <div className="space-y-1 text-slate-600">
-                    <div className="font-semibold text-slate-700 text-[11px] uppercase tracking-wider text-slate-400 mb-0.5">Diễn biến theo tháng</div>
-                    {(slide2Data.bg?.items || []).map(m => (
-                      <div key={m.id || m.month} className="flex justify-between py-0.5 border-b border-slate-200/60">
-                        <span className="font-medium text-slate-700">Tháng {m.month}:</span>
-                        <span className="font-mono">
-                          VT: <strong className="text-sky-700">{m.vatTu}%</strong> | 4M: <strong className="text-rose-600">{m.totalLoi4M}%</strong>
-                        </span>
-                      </div>
-                    ))}
-                    <div className="pt-2 text-[11px] text-slate-500">
-                      Định mức vật tư tham chiếu: <span className="font-bold text-slate-700">{slide2Data.bg?.items?.[0]?.dmVatTu ?? 4.03}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Key Defect & Countermeasure list in Quick Card */}
-              <div className="mt-4 pt-3 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-                  <span className="font-bold text-slate-800 block mb-1">
-                    {slide2Data.keyDefects?.title || 'Các lỗi 4M trọng điểm (Tháng 8):'}
-                  </span>
-                  <ul className="space-y-1 text-slate-600">
-                    {(slide2Data.keyDefects?.items || []).map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-1.5">
-                        <span className="text-slate-400 font-bold">•</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-                  <span className="font-bold text-slate-800 block mb-1">
-                    {slide2Data.countermeasures?.title || `Kế hoạch cải tiến & Đối sách (${currentMonthLabel}):`}
-                  </span>
-                  <ul className="space-y-1 text-slate-600">
-                    {(slide2Data.countermeasures?.items || []).map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-1.5">
-                        <span className="text-emerald-500 font-bold">✓</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          ) : null}
-        </>
-      )}
 
       {/* Editor Modal */}
       {isEditorOpen && (

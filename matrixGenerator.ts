@@ -218,7 +218,7 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     const slGa = isNewInputMonth ? 0 : Math.round(baseGa * 14);
     const slRma = isNewInputMonth ? 0 : (baseRma > 0 ? 35 : 0);
     const totalCong = baseGa + baseTv + baseRma;
-    const dm = Number((totalCong * 9.03).toFixed(1));
+    const dm = isSunday ? 0 : Number((totalCong * 9.03).toFixed(1));
     const totalSl = slGa + slRma;
     const nsld = dm > 0 ? Number(((totalSl / dm) * 100).toFixed(1)) : 0;
     const nsLine = 8;
@@ -483,7 +483,7 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     const baseCt = isNewInputMonth ? 0 : (54 + (day % 4));
     const baseTv = isNewInputMonth ? 0 : (15 + (day % 3));
     const totalCong = baseCt + baseTv;
-    const dm = Number((totalCong * 9.03).toFixed(1)); // Công thức chuẩn Excel nhóm RO: = (Công CT + Công TV) * 9.03
+    const dm = isSunday ? 0 : Number((totalCong * 9.03).toFixed(1)); // Công thức chuẩn Excel nhóm RO: = (Công CT + Công TV) * 9.03
     const sl = isNewInputMonth ? 0 : (680 + (day % 7) * 25);
     const nsld = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
     const khsx = isNewInputMonth ? 0 : (700 + (day % 5) * 20);

@@ -398,21 +398,6 @@ export const TabDCBG: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 4: Ghi chú vận hành & tồn đọng */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
-              Ghi Chú Giao Ban DCBG (Sự cố line, thiếu linh kiện, đề xuất nhân lực)
-            </label>
-            <textarea
-              rows={2}
-              disabled={!effectiveCanEdit}
-              value={formData.ghiChu}
-              onChange={(e) => handleChange('ghiChu', e.target.value)}
-              placeholder="Nhập diễn biến sản xuất, sự cố thiết bị hoặc đề xuất điều phối..."
-              className="w-full bg-slate-50 border border-slate-300 rounded-xl p-3 text-sm text-slate-800 focus:bg-white focus:border-emerald-500 outline-hidden transition resize-none"
-            />
-          </div>
-
           {/* Save Button */}
           {effectiveCanEdit && (
             <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">

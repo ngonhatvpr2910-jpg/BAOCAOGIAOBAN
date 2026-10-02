@@ -13,7 +13,7 @@ export const Slide5ProductionPlanPresentation: React.FC<Slide5ProductionPlanPres
   data,
   isFullscreen = false,
   onOpenEditor,
-  showNotes = true,
+  showNotes = false,
 }) => {
   return (
     <div className={`relative bg-white shadow-xl transition-all duration-300 flex flex-col justify-between ${
