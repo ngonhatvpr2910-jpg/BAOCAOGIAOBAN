@@ -250,7 +250,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
                   Chỉ Tiêu / Thời Gian
                 </th>
                 {safeItems.map((item, idx) => {
-                  const isLatest = item.month.includes('39') || item.month.includes('W39');
+                  const isLatest = idx === safeItems.length - 1;
                   return (
                     <th key={idx} className={`py-2 px-1.5 border-r border-slate-300 font-black text-xs whitespace-nowrap ${isLatest ? 'bg-amber-100/70 text-amber-950 font-black' : ''}`}>
                       {item.month}

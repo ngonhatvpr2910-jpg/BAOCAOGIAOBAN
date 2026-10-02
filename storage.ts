@@ -456,19 +456,20 @@ export const StorageService = {
         if (parsed.subTitle === 'So Sánh NSLĐ Tháng' || !parsed.subTitle) {
           parsed.subTitle = 'Năng Suất';
         }
-        // Helper to ensure all weeks from INITIAL are present in stored data
+        // Helper to ensure all weeks from INITIAL are present in stored data, plus new ones
         const ensureAllWeeks = (stored: any[], initial: any[], prefix: string) => {
-          const initialMap = new Map(initial.map(i => [i.id, i]));
-          const storedMap = new Map(stored.map(i => [i.id, i]));
+          const combined = [...stored];
+          const storedIds = new Set(stored.map(i => i.id));
           
-          // Use initial list as the template for order and completeness
-          return initial.map(initItem => {
-            const storedItem = storedMap.get(initItem.id);
-            if (storedItem) {
-              // Preserve value but could update label if needed
-              return { ...initItem, value: storedItem.value };
+          initial.forEach(initItem => {
+            if (!storedIds.has(initItem.id)) {
+              combined.push(initItem);
             }
-            return initItem; // Use initial if missing
+          });
+          
+          return combined.sort((a, b) => {
+            const getNum = (s: string) => parseInt(s.replace(/\D/g, ''), 10) || 0;
+            return getNum(a.label) - getNum(b.label);
           });
         };
 

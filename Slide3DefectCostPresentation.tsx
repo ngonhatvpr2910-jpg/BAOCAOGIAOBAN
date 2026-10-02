@@ -90,8 +90,8 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return computeWeeklyAggregations(data.itemsRO || [], data.itemsBG || [], data.weeklyData);
   }, [data.itemsRO, data.itemsBG, data.weeklyData]);
 
-  // 2. Chạy theo dữ liệu tuần và logic cả dữ liệu tháng theo data ("chay theo dữ liệu tuần và logic cả dữ liệu tháng theo data")
-  // Tháng 9 = Tổng các tuần W36, W37, W38, W39, W40 của Tháng 9
+  // 2. Chạy theo dữ liệu tuần và logic cả dữ liệu tháng theo data
+  // Dữ liệu tháng được tổng hợp từ các tuần thuộc tháng đó
   const { monthlyData, monthlyTotals } = useMemo(() => {
     return computeMonthlyAggregations(weeklyData, weeklyTotals, data.itemsRO || [], data.itemsBG || [], data.monthlyData);
   }, [weeklyData, weeklyTotals, data.itemsRO, data.itemsBG, data.monthlyData]);
@@ -127,7 +127,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
       return `W${Math.max(...chartWeeksWithVal)}`;
     }
 
-    return weeklyData.length > 0 ? weeklyData[weeklyData.length - 1].label : 'W39';
+    return weeklyData.length > 0 ? weeklyData[weeklyData.length - 1].label : '';
   }, [data.itemsRO, data.itemsBG, weeklyData]);
 
   // Vị trí index của tuần mới nhất (ví dụ W39)
@@ -211,10 +211,10 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return weeklyData.slice(weekStartIndex, weekStartIndex + weeksToShow);
   }, [weeklyData, showAllWeeks, weekStartIndex, weeksToShow]);
 
-  // Kiểm tra xem tuần W39 (hoặc tuần mới nhất) có đang nằm trong khung nhìn biểu đồ không
-  const isW39InView = useMemo(() => {
+  // Kiểm tra xem mục mới nhất có đang nằm trong khung nhìn biểu đồ không
+  const isLatestInView = useMemo(() => {
     if (showAllWeeks) return true;
-    return slicedWeeklyData.some(w => isSameWeek(w.label, 'W39') || isSameWeek(w.label, latestWeekWithData));
+    return slicedWeeklyData.some(w => isSameWeek(w.label, latestWeekWithData));
   }, [showAllWeeks, slicedWeeklyData, latestWeekWithData]);
 
   // Kích thước cột biểu đồ tự co giãn mượt mà
@@ -261,7 +261,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
       return m ? parseInt(m[0], 10) : 0;
     };
     list.sort((a, b) => getWeekNum(a) - getWeekNum(b));
-    return list.length > 0 ? list : ['W37', 'W38', 'W39'];
+    return list.length > 0 ? list : [];
   }, [data.itemsRO, data.itemsBG, weeklyData]);
 
   // Filter RO items: Hỗ trợ lọc theo Tuần hoặc Tháng hoặc Xem tất cả
@@ -563,10 +563,10 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
         <div className="flex-1 bg-[#006064] flex items-center justify-between px-4 sm:px-6">
           <div className="flex items-center gap-3">
             <h1 className="text-white font-black text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif]">
-              BÁO CÁO TỔN THẤT & TỈ LỆ HÀNG HƯ HỎNG
+              BÁO CÁO TỔN THẤT & TỈ LỆ HÀNG HƯ HỎNG ({selectionMode === 'week' ? (showAllWeeks ? 'Tất cả tuần' : targetDisplayWeek) : selectedMonthLabel})
             </h1>
             <span className="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-sans font-bold bg-amber-400 text-slate-900 shadow-xs">
-              Mục Tiêu Tháng 9 & 10
+              Mục Tiêu Năm 2026
             </span>
           </div>
           <div className="hidden sm:flex items-center gap-3">
@@ -770,11 +770,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                       <button
                         onClick={jumpToLatest}
                         className={`px-1.5 py-0.5 rounded text-[10px] font-black transition-colors flex items-center gap-0.5 cursor-pointer ${
-                          isW39InView && !showAllWeeks
+                          isLatestInView && !showAllWeeks
                             ? 'bg-rose-100 text-rose-800 hover:bg-rose-200'
                             : 'bg-rose-700 text-white hover:bg-rose-800 animate-pulse'
                         }`}
-                        title="Xem tuần hiện tại / mới nhất (W39)"
+                        title="Xem tuần hiện tại / mới nhất"
                       >
                         <Sparkles className="w-2.5 h-2.5" />
                         <span>Hiện tại ({latestWeekWithData})</span>
@@ -871,7 +871,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     <button
                       onClick={jumpToLatest}
                       className="flex items-center gap-1 font-black text-rose-700 hover:text-rose-900 transition-colors cursor-pointer text-[10px]"
-                      title="Nhấp để nhảy đến tuần mới nhất hiện tại (W39)"
+                      title={`Nhấp để nhảy đến tuần mới nhất hiện tại (${latestWeekWithData})`}
                     >
                       <span>Hiện tại ({latestWeekWithData}) ⏭</span>
                       <span className="w-1.5 h-1.5 rounded-full bg-rose-600 animate-ping" />
@@ -923,19 +923,19 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     </div>
                   )}
 
-                  {/* Cảnh báo / Gợi ý nổi bật nếu Tuần 39 đang nằm ngoài khung nhìn */}
-                  {!showAllWeeks && !isW39InView && (
+                  {/* Cảnh báo / Gợi ý nổi bật nếu mục mới nhất đang nằm ngoài khung nhìn */}
+                  {!showAllWeeks && !isLatestInView && (
                     <div 
                       onClick={jumpToLatest}
                       className="px-2 py-1 rounded-md bg-amber-50 border border-amber-300 text-amber-900 text-[10px] font-bold flex items-center justify-between cursor-pointer hover:bg-amber-100 transition-colors shadow-2xs animate-pulse"
-                      title="Nhấp để kéo thanh trượt xem ngay Tuần 39"
+                      title={`Nhấp để kéo thanh trượt xem ngay ${latestWeekWithData}`}
                     >
                       <span className="flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>Tuần 39 ({latestWeekWithData}) đã có dữ liệu tổn thất ({weeklyTotals[latestWeekWithData]?.total ? `${Number((weeklyTotals[latestWeekWithData].total / 1000000).toFixed(2))}M` : '0.96M'})</span>
+                        <span>{latestWeekWithData} đã có dữ liệu tổn thất ({weeklyTotals[latestWeekWithData]?.total ? `${Number((weeklyTotals[latestWeekWithData].total / 1000000).toFixed(2))}M` : '0M'})</span>
                       </span>
                       <span className="text-amber-800 underline flex items-center gap-0.5 shrink-0">
-                        Kéo xem Tuần 39 ➔
+                        Kéo xem ngay ➔
                       </span>
                     </div>
                   )}
@@ -972,7 +972,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     </div>
                   </div>
                   <span className="text-[10px] text-slate-500 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">
-                    T6 - T9
+                    Lịch sử Năm
                   </span>
                 </div>
 
@@ -1196,7 +1196,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                               <span className={`inline-block px-1 py-0.5 rounded text-[9px] font-sans font-bold ${
                                 item.weekList && item.weekList.length > 1
                                   ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                  : item.week === 'W39'
+                                  : item.week === latestWeekWithData
                                     ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                     : 'bg-slate-100 text-slate-700 border border-slate-200'
                               }`} title={item.weekList ? `Các tuần: ${item.weekList.join(', ')}` : undefined}>
@@ -1247,10 +1247,10 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   Xếp hạng theo thành tiền giảm dần (Pareto 80/20)
                 </span>
                 <div className="flex items-center gap-2">
-                  {(analysisFilterWeek === 'W39' || (analysisScope === 'period' && matchWeek(targetDisplayWeek, 'W39'))) && (
+                  {(analysisFilterWeek === latestWeekWithData || (analysisScope === 'period' && matchWeek(targetDisplayWeek, latestWeekWithData))) && (
                     <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/90 px-1.5 py-0.5 rounded text-[9.5px]">
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      Line RO W39: 0 lỗi
+                      Line RO {latestWeekWithData}: 0 lỗi
                     </span>
                   )}
                   <span className="font-bold font-mono text-slate-800">
@@ -1278,8 +1278,8 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   </span>
                   <span className="text-slate-400 text-[11px]">
                     {filterByPeriod 
-                      ? (matchWeek(targetDisplayWeek, 'W39') 
-                          ? 'Tuần 39: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas' 
+                      ? (matchWeek(targetDisplayWeek, latestWeekWithData) 
+                          ? `${latestWeekWithData}: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas` 
                           : `Dữ liệu tuần ${targetDisplayWeek}: Bảng chỉ hiển thị các linh kiện hư hỏng phát sinh trong kỳ`)
                       : 'Đang xem toàn bộ danh mục linh kiện phát sinh qua các tuần'}
                   </span>
@@ -1371,7 +1371,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   <div className="flex items-center gap-3">
                     <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
                     <span className="uppercase font-['Times_New_Roman',Times,serif] text-sm font-black tracking-tight">
-                      BẢNG PHÂN TÍCH VẬT TƯ LINH KIỆN HƯ HỎNG GIÁ TRỊ CAO {analysisFilterWeek === 'all' && analysisScope === 'all' ? '(TẤT CẢ DATA ĐƯỢC CẬP NHẬT)' : `(TUẦN ${analysisFilterWeek !== 'all' ? analysisFilterWeek : targetDisplayWeek})`}
+                      BẢNG PHÂN TÍCH VẬT TƯ LINH KIỆN HƯ HỎNG GIÁ TRỊ CAO {analysisFilterWeek === 'all' && analysisScope === 'all' ? '(TỔNG HỢP)' : `(${analysisFilterWeek !== 'all' ? analysisFilterWeek : targetDisplayWeek})`}
                     </span>
                     <span className="text-[10px] text-amber-200 font-sans font-black px-2 py-0.5 bg-rose-900/80 rounded-full border border-rose-700">
                       PARETO 80/20 • {topHighValueItems.length} MỤC
@@ -1497,7 +1497,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                                 <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-sans font-bold ${
                                   item.weekList && item.weekList.length > 1
                                     ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                    : item.week === 'W39'
+                                    : item.week === latestWeekWithData
                                       ? 'bg-rose-100 text-rose-800 border border-rose-200'
                                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                                 }`}>

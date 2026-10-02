@@ -318,7 +318,7 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
               }`}
             >
               <Calendar className="w-4 h-4 text-teal-600" />
-              2. Xem Số Liệu Tháng (T6-T9)
+              2. Xem Số Liệu Tháng
             </button>
             <button
               onClick={() => setActiveTab('weekly')}
@@ -329,7 +329,7 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
               }`}
             >
               <Layers className="w-4 h-4 text-teal-600" />
-              3. Xem Số Liệu Tuần (W35-W38)
+              3. Xem Số Liệu Tuần
             </button>
             <button
               onClick={() => setActiveTab('text')}
@@ -421,14 +421,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             onChange={e => handleDailyRecordChange(rec.id, 'week', e.target.value)}
                             className="border rounded px-1 py-1 text-center font-bold text-xs text-teal-700 cursor-pointer bg-white border-slate-300"
                           >
-                            <option value="W35">W35 (Tuần 35)</option>
-                            <option value="W36">W36 (Tuần 36)</option>
-                            <option value="W37">W37 (Tuần 37)</option>
-                            <option value="W38">W38 (Tuần 38)</option>
-                            <option value="W39">W39 (Tuần 39)</option>
-                            <option value="W40">W40 (Tuần 40)</option>
-                            <option value="W41">W41 (Tuần 41)</option>
-                            <option value="W42">W42 (Tuần 42)</option>
+                            {Array.from({ length: 53 }, (_, i) => i + 1).map(num => (
+                              <option key={num} value={`W${num}`}>W{num} (Tuần {num})</option>
+                            ))}
                           </select>
                         </td>
 
@@ -772,7 +767,7 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4 text-emerald-600" />
                     <span className="text-xs font-bold text-emerald-700 uppercase">
-                      Tiêu Đề Hộp Đối Sách Tháng 9
+                      Tiêu Đề Hộp Đối Sách Hiện Tại
                     </span>
                   </div>
                   <button

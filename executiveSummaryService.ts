@@ -10,8 +10,8 @@ export interface ExecutiveSummaryPeriodResult {
   isUrgentAction: boolean;
 }
 
-export const AVAILABLE_WEEKS = ['W37', 'W38', 'W39'];
-export const AVAILABLE_MONTHS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9'];
+export const AVAILABLE_WEEKS = ['W35', 'W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42'];
+export const AVAILABLE_MONTHS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
 
 export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> = {
   'W37': {
@@ -181,8 +181,8 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
   'W39': {
     periodLabel: 'W39',
     timeFrame: 'week',
-    actionItemTitle: 'Việc cần làm - Đối sách tuần W39',
-    actionItemContent: 'Line RO đạt chuẩn tuyệt đối Zero Defect (0 lỗi, 0 đ hư hỏng). Line Bếp Gas tập trung kiểm soát mặt kính đôi chịu lực (435k) và cụm đánh lửa (263k) để giữ vững tổng tổn thất dưới 1M.',
+    actionItemTitle: 'Việc cần làm - Đối sách tuần',
+    actionItemContent: 'Duy trì kiểm soát NSLĐ và chất lượng. Tiếp tục rà soát các công đoạn trọng điểm để đảm bảo mục tiêu.',
     isUrgentAction: false,
     units: [
       {
@@ -317,8 +317,8 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
   'Tháng 9': {
     periodLabel: 'Tháng 9',
     timeFrame: 'month',
-    actionItemTitle: 'Việc cần làm - Đối sách Tháng 9',
-    actionItemContent: 'Toàn xưởng đạt KHSX 17.420,4 SP, thực hiện 16.680,1 SP (đạt 95.8% KHSX), NSLĐ 117.0% và tỷ lệ đi làm 97.7%. Hư hỏng vật tư kiểm soát tốt trong định mức.',
+    actionItemTitle: 'Việc cần làm - Đối sách Tháng',
+    actionItemContent: 'Tổng kết kết quả sản xuất tháng và đề ra mục tiêu cho tháng tiếp theo. Tập trung kiểm soát các chỉ số NSLĐ và Chất Lượng.',
     isUrgentAction: false,
     units: [
       {
@@ -686,11 +686,28 @@ export function getExecutiveSummaryData(
   slide2QualityData?: Slide2QualityData
 ): ExecutiveSummaryPeriodResult {
   // Lấy dữ liệu nền tảng tương ứng
-  let base: ExecutiveSummaryPeriodResult;
+  let base: ExecutiveSummaryPeriodResult | undefined;
+  
   if (timeFrame === 'week') {
-    base = BASE_WEEKLY_SUMMARY[periodKey] || BASE_WEEKLY_SUMMARY['W39'] || BASE_WEEKLY_SUMMARY['W37'];
+    base = BASE_WEEKLY_SUMMARY[periodKey];
   } else {
-    base = BASE_MONTHLY_SUMMARY[periodKey] || BASE_MONTHLY_SUMMARY['Tháng 9'];
+    base = BASE_MONTHLY_SUMMARY[periodKey];
+  }
+
+  // Nếu không có base (tuần/tháng mới), tạo một base mặc định dựa trên W39 hoặc Tháng 9
+  if (!base) {
+    const templateBase = timeFrame === 'week' ? BASE_WEEKLY_SUMMARY['W39'] : BASE_MONTHLY_SUMMARY['Tháng 9'];
+    base = JSON.parse(JSON.stringify(templateBase));
+    base!.periodLabel = periodKey;
+    base!.actionItemTitle = `Việc cần làm - Đối sách ${periodKey}`;
+    base!.actionItemContent = `Đang cập nhật đối sách cho ${periodKey}...`;
+    base!.units = base!.units.map(u => {
+      const genericName = u.unitName.replace(/\s*\(W\d+\)|\s*\(Tháng \d+\)/g, '');
+      return {
+        ...u,
+        unitName: `${genericName} (${periodKey})`
+      };
+    });
   }
 
   // Clone để không biến đổi dữ liệu gốc

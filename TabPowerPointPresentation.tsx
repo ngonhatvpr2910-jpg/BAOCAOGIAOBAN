@@ -22,9 +22,9 @@ import {
   isHistoricalItem, 
   isCurrentItem, 
   calculateAbsolutePXLR, 
-  aggregateMonthlyReportData,
-  syncSlideDataWithGroups,
-  autoComputeSlideDataFromInputs
+  autoComputeSlideDataFromInputs,
+  autoComputeSlide2Quality,
+  getMonthLabelFromDate
 } from './productivityFormulas';
 import { applyTimeFrameToSlide2Data } from './qualityFormulas';
 import { synchronizeSlide3Data } from './defectCostSyncService';
@@ -274,16 +274,29 @@ export const TabPowerPointPresentation: React.FC = () => {
     };
   }, []);
 
-  // TỰ ĐỘNG CHẠY SỐ LIỆU THÁNG 9 & CÁC TUẦN THÁNG 9 TỪ KẾT QUẢ NHẬP LIỆU:
+  // TỰ ĐỘNG CHẠY SỐ LIỆU CHO MỌI THÁNG & TUẦN TỪ KẾT QUẢ NHẬP LIỆU:
   useEffect(() => {
-    if (isAutoSyncActive) {
-      setSlideData(prev => {
-        const { updatedSlideData } = autoComputeSlideDataFromInputs(prev, dcbgRecords, dcroRecords);
-        StorageService.saveSlide1NSLD(updatedSlideData);
-        return updatedSlideData;
-      });
+    if (!isAutoSyncActive) return;
+
+    // 1. Đồng bộ Slide 1 (Năng Suất)
+    const { updatedSlideData } = autoComputeSlideDataFromInputs(slideData, dcbgRecords, dcroRecords);
+    if (JSON.stringify(updatedSlideData) !== JSON.stringify(slideData)) {
+      setSlideData(updatedSlideData);
+      StorageService.saveSlide1NSLD(updatedSlideData);
     }
-  }, [dcbgRecords, dcroRecords, isAutoSyncActive, syncVersion]);
+
+    // 2. Đồng bộ Slide 2 (Chất Lượng)
+    // Sử dụng slide2Quality từ context thay vì slide2Data local để tránh lag đồng bộ
+    const updatedSlide2 = autoComputeSlide2Quality(slide2Quality, slide2Quality.dailyRecords);
+    if (JSON.stringify(updatedSlide2) !== JSON.stringify(slide2Quality)) {
+      // Gọi trực tiếp update context, local slide2Data sẽ tự cập nhật qua useEffect ở dòng 81
+      updateSlide2Quality(updatedSlide2);
+    }
+  }, [dcbgRecords, dcroRecords, isAutoSyncActive, syncVersion, updateSlide2Quality, slideData, slide2Quality]);
+
+  // Xác định tháng hiện tại từ ngày được chọn
+  const { selectedDate } = useProduction();
+  const currentMonthLabel = useMemo(() => getMonthLabelFromDate(selectedDate), [selectedDate]);
 
   // Sync modal editing state when slideData changes
   useEffect(() => {
@@ -486,11 +499,12 @@ export const TabPowerPointPresentation: React.FC = () => {
 
   // Đồng bộ thủ công dữ liệu mới hiện hữu khi cần cưỡng bức làm mới
   const handleManualSyncWithLiveReports = () => {
-    const { updatedSlideData, summary } = autoComputeSlideDataFromInputs(slideData, dcbgRecords, dcroRecords);
-    StorageService.saveSlide1NSLD(updatedSlideData);
-    setSlideData(updatedSlideData);
-    setEditingData(updatedSlideData);
-    showToast(`Đã tự động tính toán từ ${summary.recordCountRO} báo cáo RO & ${summary.recordCountBG} báo cáo BG Tháng 9: RO ${summary.month09.nsldRO}%, BG ${summary.month09.nsldBG}%, PXLR Tuyệt Đối ${summary.month09.nsldPXLR}%!`);
+    const stats = liveSyncSummary.monthStats[currentMonthLabel];
+    if (stats) {
+      showToast(`Đã tự động tính toán từ ${stats.recordCountRO} báo cáo RO & ${stats.recordCountBG} báo cáo BG ${currentMonthLabel}: RO ${stats.nsldRO}%, BG ${stats.nsldBG}%, PXLR Tuyệt Đối ${stats.nsldPXLR}%!`);
+    } else {
+      showToast(`Không tìm thấy dữ liệu nhập liệu cho ${currentMonthLabel} để đồng bộ.`);
+    }
   };
 
   const handleSaveData = () => {
@@ -534,37 +548,28 @@ export const TabPowerPointPresentation: React.FC = () => {
       // Tự động tính toán lại PXLR theo đúng logic tỷ trọng định mức chuẩn:
       // NSLĐ PXLR = [ Σ(SL) / Σ(Định Mức) ] * 100
       if (autoCalculatePXLR && (section === 'ro' || section === 'bg')) {
-        if (id === 'ro-m09' || id === 'bg-m09') {
-          const valRO = id === 'ro-m09' ? newValue : (nextState.ro.monthly.find(m => m.id === 'ro-m09')?.value ?? 0);
-          const valBG = id === 'bg-m09' ? newValue : (nextState.bg.monthly.find(m => m.id === 'bg-m09')?.value ?? 0);
-          const pxlrM09 = calculateAbsolutePXLR(valRO, valBG, 'monthly_09');
+        const itemLabel = prev[section][type].find(i => i.id === id)?.label || '';
+        
+        if (type === 'monthly') {
+          const valRO = section === 'ro' ? newValue : (nextState.ro.monthly.find(m => m.label === itemLabel)?.value ?? 0);
+          const valBG = section === 'bg' ? newValue : (nextState.bg.monthly.find(m => m.label === itemLabel)?.value ?? 0);
+          const pxlrVal = calculateAbsolutePXLR(valRO, valBG, 'monthly_generic');
 
           nextState.pxlr = {
             ...nextState.pxlr,
             monthly: nextState.pxlr.monthly.map(m =>
-              m.id === 'pxlr-m09' ? { ...m, value: pxlrM09 } : m
+              m.label === itemLabel ? { ...m, value: pxlrVal } : m
             ),
           };
-        } else if (id === 'ro-w37' || id === 'bg-w37') {
-          const valRO = id === 'ro-w37' ? newValue : (nextState.ro.weekly.find(w => w.id === 'ro-w37')?.value ?? 0);
-          const valBG = id === 'bg-w37' ? newValue : (nextState.bg.weekly.find(w => w.id === 'bg-w37')?.value ?? 0);
-          const pxlrW37 = calculateAbsolutePXLR(valRO, valBG, 'weekly_37');
+        } else if (type === 'weekly') {
+          const valRO = section === 'ro' ? newValue : (nextState.ro.weekly.find(w => w.label === itemLabel)?.value ?? 0);
+          const valBG = section === 'bg' ? newValue : (nextState.bg.weekly.find(w => w.label === itemLabel)?.value ?? 0);
+          const pxlrVal = calculateAbsolutePXLR(valRO, valBG, 'weekly_generic');
 
           nextState.pxlr = {
             ...nextState.pxlr,
             weekly: nextState.pxlr.weekly.map(w =>
-              w.id === 'pxlr-w37' ? { ...w, value: pxlrW37 } : w
-            ),
-          };
-        } else if (id === 'ro-w36' || id === 'bg-w36') {
-          const valRO = id === 'ro-w36' ? newValue : (nextState.ro.weekly.find(w => w.id === 'ro-w36')?.value ?? 0);
-          const valBG = id === 'bg-w36' ? newValue : (nextState.bg.weekly.find(w => w.id === 'bg-w36')?.value ?? 0);
-          const pxlrW36 = calculateAbsolutePXLR(valRO, valBG, 'weekly_36');
-
-          nextState.pxlr = {
-            ...nextState.pxlr,
-            weekly: nextState.pxlr.weekly.map(w =>
-              w.id === 'pxlr-w36' ? { ...w, value: pxlrW36 } : w
+              w.label === itemLabel ? { ...w, value: pxlrVal } : w
             ),
           };
         }
@@ -768,7 +773,7 @@ export const TabPowerPointPresentation: React.FC = () => {
             <button
               onClick={() => setShowSyncDetail(prev => !prev)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              title="Xem chi tiết nguồn số liệu nhập liệu chạy vào Tháng 9"
+              title={`Xem chi tiết nguồn số liệu nhập liệu chạy vào ${currentMonthLabel}`}
             >
               <Info className="w-3.5 h-3.5 text-indigo-600" />
               <span className="hidden sm:inline">Nguồn Nhập Liệu</span>
@@ -777,7 +782,7 @@ export const TabPowerPointPresentation: React.FC = () => {
             <button
               onClick={handleManualSyncWithLiveReports}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors cursor-pointer shadow-2xs"
-              title="Đồng bộ ngay tức thì toàn bộ số liệu nhập liệu Tháng 9 và tính công thức tuyệt đối"
+              title={`Đồng bộ ngay tức thì toàn bộ số liệu nhập liệu ${currentMonthLabel} và tính công thức tuyệt đối`}
             >
               <RefreshCw className="w-3.5 h-3.5 text-teal-600" />
               <span className="hidden sm:inline">Làm Mới Số Liệu</span>
@@ -891,21 +896,23 @@ export const TabPowerPointPresentation: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200 text-amber-900 font-medium">
                   <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Dữ liệu cũ (Tuần Tháng 8 & Tháng 6-8): <strong>Bảo lưu nguyên vẹn 100%</strong></span>
+                  <span>Dữ liệu cũ (Bảo lưu): <strong>Tháng 6-8 & Các tuần lịch sử</strong></span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-900 font-medium">
                   <Zap className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Tháng 9 & các tuần Tháng 9: <strong>Tự động chạy từ nhập liệu</strong></span>
+                  <span>Dữ liệu hiện hành: <strong>Tự động chạy cho {currentMonthLabel} & các tuần mới</strong></span>
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-purple-50 border border-purple-200 text-purple-900 font-medium">
                   <Calculator className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-                  <span>PXLR: <strong>Công thức chuẩn: NSLĐ = [Σ(SL quy đổi) / Σ(ĐM theo nhân công)] × 100</strong></span>
+                  <span>PXLR: <strong>CÔNG THỨC TUYỆT ĐỐI THEO TỶ TRỌNG ĐỊNH MỨC</strong></span>
                 </span>
               </div>
-              <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Thực tế Tháng 9: RO {liveSyncSummary.month09.nsldRO}% | BG {liveSyncSummary.month09.nsldBG}% ⇒ PXLR: <strong className="text-purple-700 font-bold">{liveSyncSummary.month09.nsldPXLR}%</strong>
-              </div>
+              {liveSyncSummary.monthStats[currentMonthLabel] && (
+                <div className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Thực tế {currentMonthLabel}: RO {liveSyncSummary.monthStats[currentMonthLabel].nsldRO}% | BG {liveSyncSummary.monthStats[currentMonthLabel].nsldBG}% ⇒ PXLR: <strong className="text-purple-700 font-bold">{liveSyncSummary.monthStats[currentMonthLabel].nsldPXLR}%</strong>
+                </div>
+              )}
             </div>
           ) : activeSlide === 3 ? (
             <div className="bg-gradient-to-r from-slate-50 via-blue-50/40 to-emerald-50/40 border border-slate-200 rounded-xl p-3 text-xs flex flex-wrap items-center justify-between gap-2.5">
@@ -920,7 +927,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                 </span>
               </div>
               <div className="text-[11px] text-slate-600 flex items-center gap-2 bg-white/80 px-2.5 py-1 rounded border border-slate-200">
-                <span className="font-semibold text-slate-700">Khảo sát T5 - T8 & Đối sách trọng điểm Tháng 9</span>
+                <span className="font-semibold text-slate-700">Khảo sát & Đối sách trọng điểm {currentMonthLabel}</span>
               </div>
             </div>
           ) : (
@@ -1019,7 +1026,7 @@ export const TabPowerPointPresentation: React.FC = () => {
           <div className="flex items-center justify-between font-bold text-indigo-900">
             <div className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-indigo-600" />
-              <span>Minh Chứng Tự Động Chạy Số Liệu Từ Báo Cáo Nhập Liệu Thực Tế (Tháng 9)</span>
+              <span>Minh Chứng Tự Động Chạy Số Liệu Từ Báo Cáo Nhập Liệu Thực Tế ({currentMonthLabel})</span>
             </div>
             <button 
               onClick={() => setShowSyncDetail(false)}
@@ -1028,44 +1035,51 @@ export const TabPowerPointPresentation: React.FC = () => {
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1">
-              <div className="font-bold text-slate-800">1. Nhóm Lắp Ráp RO (DCRO)</div>
-              <div className="text-slate-600">Số bản ghi Tháng 9: <span className="font-bold text-indigo-700">{liveSyncSummary.recordCountRO} ngày</span></div>
-              <div className="text-slate-600">Tổng công nhân sự: <span className="font-mono font-bold">{liveSyncSummary.month09.totalCong_RO ?? 0} công</span></div>
-              <div className="text-slate-600">Tổng SL quy đổi: <span className="font-mono font-bold">{liveSyncSummary.month09.totalSL_RO.toLocaleString()} SP</span></div>
-              <div className="text-slate-600">Tổng Định mức: <span className="font-mono font-bold">{liveSyncSummary.month09.totalDM_RO.toLocaleString()} SP</span></div>
-              <div className="text-indigo-900 font-bold pt-1 border-t border-slate-100">
-                NSLĐ Tự Động = ({liveSyncSummary.month09.totalSL_RO} / {liveSyncSummary.month09.totalDM_RO}) × 100 = <span className="text-teal-700 font-extrabold">{liveSyncSummary.month09.nsldRO}%</span>
-              </div>
-            </div>
 
-            <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1">
-              <div className="font-bold text-slate-800">2. Nhóm Lắp Ráp Bếp Gas (DCBG)</div>
-              <div className="text-slate-600">Số bản ghi Tháng 9: <span className="font-bold text-indigo-700">{liveSyncSummary.recordCountBG} ngày</span></div>
-              <div className="text-slate-600">Tổng công nhân sự: <span className="font-mono font-bold">{liveSyncSummary.month09.totalCong_BG ?? 0} công</span></div>
-              <div className="text-slate-600">Tổng SL quy đổi: <span className="font-mono font-bold">{liveSyncSummary.month09.totalSL_BG.toLocaleString()} SP</span></div>
-              <div className="text-slate-600">Tổng Định mức: <span className="font-mono font-bold">{liveSyncSummary.month09.totalDM_BG.toLocaleString()} SP</span></div>
-              <div className="text-indigo-900 font-bold pt-1 border-t border-slate-100">
-                NSLĐ Tự Động = ({liveSyncSummary.month09.totalSL_BG} / {liveSyncSummary.month09.totalDM_BG}) × 100 = <span className="text-emerald-700 font-extrabold">{liveSyncSummary.month09.nsldBG}%</span>
+          {liveSyncSummary.monthStats[currentMonthLabel] ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1">
+                <div className="font-bold text-slate-800">1. Nhóm Lắp Ráp RO (DCRO)</div>
+                <div className="text-slate-600">Số bản ghi {currentMonthLabel}: <span className="font-bold text-indigo-700">{liveSyncSummary.monthStats[currentMonthLabel].recordCountRO} ngày</span></div>
+                <div className="text-slate-600">Tổng công nhân sự: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalCong_RO ?? 0} công</span></div>
+                <div className="text-slate-600">Tổng SL quy đổi: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalSL_RO.toLocaleString()} SP</span></div>
+                <div className="text-slate-600">Tổng Định mức: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalDM_RO.toLocaleString()} SP</span></div>
+                <div className="text-indigo-900 font-bold pt-1 border-t border-slate-100">
+                  NSLĐ Tự Động = ({liveSyncSummary.monthStats[currentMonthLabel].totalSL_RO} / {liveSyncSummary.monthStats[currentMonthLabel].totalDM_RO}) × 100 = <span className="text-teal-700 font-extrabold">{liveSyncSummary.monthStats[currentMonthLabel].nsldRO}%</span>
+                </div>
               </div>
-            </div>
 
-            <div className="bg-white p-2.5 rounded-lg border border-purple-200 space-y-1">
-              <div className="font-bold text-purple-900 flex items-center gap-1">
-                <Calculator className="w-3.5 h-3.5 text-purple-600" />
-                <span>3. Toàn Phân Xưởng Lắp Ráp (PXLR)</span>
+              <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1">
+                <div className="font-bold text-slate-800">2. Nhóm Lắp Ráp Bếp Gas (DCBG)</div>
+                <div className="text-slate-600">Số bản ghi {currentMonthLabel}: <span className="font-bold text-indigo-700">{liveSyncSummary.monthStats[currentMonthLabel].recordCountBG} ngày</span></div>
+                <div className="text-slate-600">Tổng công nhân sự: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalCong_BG ?? 0} công</span></div>
+                <div className="text-slate-600">Tổng SL quy đổi: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG.toLocaleString()} SP</span></div>
+                <div className="text-slate-600">Tổng Định mức: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG.toLocaleString()} SP</span></div>
+                <div className="text-indigo-900 font-bold pt-1 border-t border-slate-100">
+                  NSLĐ Tự Động = ({liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG} / {liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG}) × 100 = <span className="text-emerald-700 font-extrabold">{liveSyncSummary.monthStats[currentMonthLabel].nsldBG}%</span>
+                </div>
               </div>
-              <div className="text-slate-600">Tổng nhân công toàn xưởng: <span className="font-mono font-bold">{liveSyncSummary.month09.totalCong_PXLR ?? 0} công</span></div>
-              <div className="text-slate-600">Tổng SL quy đổi toàn xưởng: <span className="font-mono font-bold">{(liveSyncSummary.month09.totalSL_RO + liveSyncSummary.month09.totalSL_BG).toLocaleString()} SP</span></div>
-              <div className="text-slate-600">Tổng ĐM theo nhân công: <span className="font-mono font-bold">{(liveSyncSummary.month09.totalDM_RO + liveSyncSummary.month09.totalDM_BG).toLocaleString()} SP</span></div>
-              <div className="text-slate-600 text-[11px]">Công thức chuẩn: [Σ SL quy đổi / Σ ĐM theo nhân công] × 100</div>
-              <div className="text-purple-950 font-bold pt-1 border-t border-purple-100 flex items-center justify-between">
-                <span>PXLR Tháng 9:</span>
-                <span className="text-purple-700 font-extrabold text-sm">{liveSyncSummary.month09.nsldPXLR}%</span>
+
+              <div className="bg-white p-2.5 rounded-lg border border-purple-200 space-y-1">
+                <div className="font-bold text-purple-900 flex items-center gap-1">
+                  <Calculator className="w-3.5 h-3.5 text-purple-600" />
+                  <span>3. Toàn Phân Xưởng Lắp Ráp (PXLR)</span>
+                </div>
+                <div className="text-slate-600">Tổng nhân công toàn xưởng: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalCong_PXLR ?? 0} công</span></div>
+                <div className="text-slate-600">Tổng SL quy đổi toàn xưởng: <span className="font-mono font-bold">{(liveSyncSummary.monthStats[currentMonthLabel].totalSL_RO + liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG).toLocaleString()} SP</span></div>
+                <div className="text-slate-600">Tổng ĐM theo nhân công: <span className="font-mono font-bold">{(liveSyncSummary.monthStats[currentMonthLabel].totalDM_RO + liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG).toLocaleString()} SP</span></div>
+                <div className="text-slate-600 text-[11px]">Công thức chuẩn: [Σ SL quy đổi / Σ ĐM theo nhân công] × 100</div>
+                <div className="text-purple-950 font-bold pt-1 border-t border-purple-100 flex items-center justify-between">
+                  <span>PXLR {currentMonthLabel}:</span>
+                  <span className="text-purple-700 font-extrabold text-sm">{liveSyncSummary.monthStats[currentMonthLabel].nsldPXLR}%</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 text-center text-slate-500 italic bg-white/50 rounded-lg border border-dashed border-indigo-200">
+              Chưa có dữ liệu nhập liệu cho {currentMonthLabel} để thực hiện tính toán tự động.
+            </div>
+          )}
         </div>
       )}
 
@@ -1716,7 +1730,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                       <span className="font-mono">131.6% | 135.5% | 133.6%</span>
                     </div>
                     <div className="flex justify-between py-0.5 font-bold text-purple-900 bg-purple-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">Tháng 9: </span>
+                      <span className="flex items-center gap-1">{currentMonthLabel}: </span>
                       <span className="font-mono text-purple-700 font-extrabold">{slideData.pxlr.monthly.find(m => m.id === 'pxlr-m09')?.value}%</span>
                     </div>
                   </div>
@@ -1749,7 +1763,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                       <span className="font-mono">117.1% | 111.2%</span>
                     </div>
                     <div className="flex justify-between py-0.5 font-bold text-teal-900 bg-teal-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">Tháng 9 (Tự động): <Zap className="w-2.5 h-2.5 text-teal-600" /></span>
+                      <span className="flex items-center gap-1">{currentMonthLabel} (Tự động): <Zap className="w-2.5 h-2.5 text-teal-600" /></span>
                       <span className="font-mono text-teal-700 font-extrabold">{slideData.ro.monthly.find(m => m.id === 'ro-m09')?.value}%</span>
                     </div>
                   </div>
@@ -1786,7 +1800,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                       <span className="font-mono">87.1% | 108.2%</span>
                     </div>
                     <div className="flex justify-between py-0.5 font-bold text-emerald-900 bg-emerald-50/80 px-1 rounded">
-                      <span className="flex items-center gap-1">Tháng 9 (Tự động): <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
+                      <span className="flex items-center gap-1">{currentMonthLabel} (Tự động): <Zap className="w-2.5 h-2.5 text-emerald-600" /></span>
                       <span className="font-mono text-emerald-700 font-extrabold">{slideData.bg.monthly.find(m => m.id === 'bg-m09')?.value}%</span>
                     </div>
                   </div>
@@ -1891,7 +1905,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                 </div>
                 <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
                   <span className="font-bold text-slate-800 block mb-1">
-                    {slide2Data.countermeasures?.title || 'Kế hoạch cải tiến & Đối sách (Tháng 9):'}
+                    {slide2Data.countermeasures?.title || `Kế hoạch cải tiến & Đối sách (${currentMonthLabel}):`}
                   </span>
                   <ul className="space-y-1 text-slate-600">
                     {(slide2Data.countermeasures?.items || []).map((item, idx) => (
@@ -1966,7 +1980,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                       Tự động tính PXLR theo công thức tuyệt đối: NSLĐ = Σ(SL) / Σ(Định Mức)
                     </div>
                     <div className="text-[11px] text-purple-700">
-                      Khi bật: Sửa số liệu RO hoặc BG sẽ tự động tính chính xác 100% cột PXLR (Tháng 9 & các Tuần) theo trọng số chuẩn.
+                      Khi bật: Sửa số liệu RO hoặc BG sẽ tự động tính chính xác 100% cột PXLR theo trọng số chuẩn.
                     </div>
                   </div>
                 </div>
@@ -2027,10 +2041,10 @@ export const TabPowerPointPresentation: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px] text-purple-950">
                     <div className="bg-white/80 p-2 rounded border border-purple-100">
-                      <span className="font-bold text-purple-800">Tháng 9:</span> ({editingData.ro.monthly.find(m => m.id === 'ro-m09')?.value}% × 86.99%) + ({editingData.bg.monthly.find(m => m.id === 'bg-m09')?.value}% × 13.01%) = <strong className="text-purple-700 text-xs">{editingData.pxlr.monthly.find(m => m.id === 'pxlr-m09')?.value}%</strong>
+                      <span className="font-bold text-purple-800">Tháng Gần Nhất:</span> ({editingData.ro.monthly[editingData.ro.monthly.length - 1]?.value}% × 86.99%) + ({editingData.bg.monthly[editingData.bg.monthly.length - 1]?.value}% × 13.01%) = <strong className="text-purple-700 text-xs">{editingData.pxlr.monthly[editingData.pxlr.monthly.length - 1]?.value}%</strong>
                     </div>
                     <div className="bg-white/80 p-2 rounded border border-purple-100">
-                      <span className="font-bold text-purple-800">Tuần 37:</span> ({editingData.ro.weekly.find(w => w.id === 'ro-w37')?.value}% × 86.57%) + ({editingData.bg.weekly.find(w => w.id === 'bg-w37')?.value}% × 13.43%) = <strong className="text-purple-700 text-xs">{editingData.pxlr.weekly.find(w => w.id === 'pxlr-w37')?.value}%</strong>
+                      <span className="font-bold text-purple-800">Tuần Gần Nhất:</span> ({editingData.ro.weekly[editingData.ro.weekly.length - 1]?.value}% × 86.57%) + ({editingData.bg.weekly[editingData.bg.weekly.length - 1]?.value}% × 13.43%) = <strong className="text-purple-700 text-xs">{editingData.pxlr.weekly[editingData.pxlr.weekly.length - 1]?.value}%</strong>
                     </div>
                   </div>
                 </div>
@@ -2044,7 +2058,7 @@ export const TabPowerPointPresentation: React.FC = () => {
                     Số Liệu Theo Tuần (Biểu đồ trên)
                   </h4>
                   <span className="text-[11px] text-slate-400">
-                    Tuần 35: Dữ liệu cũ (Tháng 8) • Tuần 36, 37, 38: Dữ liệu mới (Tháng 9)
+                    Dữ liệu lịch sử & dữ liệu cập nhật mới từ báo cáo ngày
                   </span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

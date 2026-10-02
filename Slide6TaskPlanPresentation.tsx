@@ -25,7 +25,7 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
         <div className="w-10 sm:w-16 bg-[#cc0000] flex-shrink-0" />
         <div className="flex-1 bg-[#006064] flex items-center px-4 sm:px-6">
           <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase">
-            BÁO CÁO SẢN XUẤT DCLR
+            BÁO CÁO SẢN XUẤT DCLR (TUẦN {data.weekHeader})
           </h1>
           {!isFullscreen && onOpenEditor && (
             <button
@@ -47,7 +47,7 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
             {data.weekHeader || '7'}
           </span>
           <span className="text-slate-900 font-bold text-lg sm:text-xl tracking-tight">
-            {data.title || 'Công việc W38 và KHCV W39'}
+            {data.title || 'KẾ HOẠCH CÔNG VIỆC'}
           </span>
         </div>        <div className="border-[3px] border-[#4472c4] rounded-sm overflow-hidden bg-white shadow-lg h-full">
           <table className="w-full border-collapse table-fixed h-full">
@@ -77,7 +77,7 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
                     <div className="flex flex-col items-center justify-center gap-2.5">
                       {row.deadline.split('\n').map((line, lIdx) => {
                         const isHighlighted = row.highlightedText && line.includes(row.highlightedText);
-                        const isOverdue = (line.includes('05/09') || line.includes('20/09')) && !line.includes('Hoàn thành');
+                        const isOverdue = line.includes('Trễ') || (line.includes('Gia hạn') && !line.includes('Hoàn thành'));
                         const isCompleted = line.includes('Hoàn thành');
 
                         return (

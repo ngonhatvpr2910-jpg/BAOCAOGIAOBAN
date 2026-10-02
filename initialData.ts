@@ -268,6 +268,9 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'pxlr-m07', label: 'Tháng 7', value: 135.5 },
       { id: 'pxlr-m08', label: 'Tháng 8', value: 133.6 },
       { id: 'pxlr-m09', label: 'Tháng 9', value: 117.0 },
+      { id: 'pxlr-m10', label: 'Tháng 10', value: 0 },
+      { id: 'pxlr-m11', label: 'Tháng 11', value: 0 },
+      { id: 'pxlr-m12', label: 'Tháng 12', value: 0 },
     ],
   },
   ro: {
@@ -286,6 +289,9 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'ro-m07', label: 'Tháng 7', value: 117.1 },
       { id: 'ro-m08', label: 'Tháng 8', value: 111.2 },
       { id: 'ro-m09', label: 'Tháng 9', value: 117.0 },
+      { id: 'ro-m10', label: 'Tháng 10', value: 0 },
+      { id: 'ro-m11', label: 'Tháng 11', value: 0 },
+      { id: 'ro-m12', label: 'Tháng 12', value: 0 },
     ],
   },
   bg: {
@@ -304,6 +310,9 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'bg-m07', label: 'Tháng 7', value: 87.1 },
       { id: 'bg-m08', label: 'Tháng 8', value: 108.2 },
       { id: 'bg-m09', label: 'Tháng 9', value: 97.0 },
+      { id: 'bg-m10', label: 'Tháng 10', value: 0 },
+      { id: 'bg-m11', label: 'Tháng 11', value: 0 },
+      { id: 'bg-m12', label: 'Tháng 12', value: 0 },
     ],
   },
 };
@@ -596,6 +605,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'pxlr-qw-37', month: 'Tuần 37', dmVatTu: 2.49, vatTu: 1.00, totalLoi4M: 3.60 },
         { id: 'pxlr-qw-38', month: 'Tuần 38', dmVatTu: 2.49, vatTu: 1.30, totalLoi4M: 3.90 },
         { id: 'pxlr-qw-39', month: 'Tuần 39', dmVatTu: 2.49, vatTu: 0.30, totalLoi4M: 3.50 },
+        { id: 'pxlr-qw-40', month: 'Tuần 40', dmVatTu: 2.49, vatTu: 1.10, totalLoi4M: 4.20 },
       ],
     },
     ro: {
@@ -613,6 +623,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'ro-qw-37', month: 'Tuần 37', dmVatTu: 2.4, vatTu: 0.9, totalLoi4M: 2.9 },
         { id: 'ro-qw-38', month: 'Tuần 38', dmVatTu: 2.4, vatTu: 1.2, totalLoi4M: 3.8 },
         { id: 'ro-qw-39', month: 'Tuần 39', dmVatTu: 2.4, vatTu: 0.0, totalLoi4M: 3.4 },
+        { id: 'ro-qw-40', month: 'Tuần 40', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.6 },
       ],
     },
     bg: {
@@ -630,6 +641,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'bg-qw-37', month: 'Tuần 37', dmVatTu: 4.03, vatTu: 1.80, totalLoi4M: 7.80 },
         { id: 'bg-qw-38', month: 'Tuần 38', dmVatTu: 4.03, vatTu: 2.30, totalLoi4M: 4.90 },
         { id: 'bg-qw-39', month: 'Tuần 39', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 3.50 },
+        { id: 'bg-qw-40', month: 'Tuần 40', dmVatTu: 4.03, vatTu: 1.50, totalLoi4M: 5.80 },
       ],
     },
   },
@@ -689,7 +701,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
     ],
   },
   countermeasures: {
-    title: 'Các đối sách giảm tỉ lệ lỗi trong tháng 9:',
+    title: 'Các đối sách giảm tỉ lệ lỗi hiện tại:',
     items: [
       'Cải tiến PP thực hiện khay LLT Xếp Lớp',
       'Đào tạo lại các vị trí trọng điểm hiểu về sản phẩm máy lọc nước RO',
@@ -803,8 +815,8 @@ export const INITIAL_SLIDE4_PRODUCTION_TARGET: Slide4ProductionTargetData = {
 };
 
 export const INITIAL_SLIDE5_PRODUCTION_PLAN: Slide5ProductionPlanData = {
-  title: 'KHSX W39 – Nhân Lực',
-  weekHeader: 'W39',
+  title: 'KHSX – Nhân Lực',
+  weekHeader: 'Tuần này',
   manpowerSummary: '53/57 NS Line',
   rmaSummary: 'RMA 12/14NS',
   rows: [
@@ -819,7 +831,7 @@ export const INITIAL_SLIDE5_PRODUCTION_PLAN: Slide5ProductionPlanData = {
 };
 
 export const INITIAL_SLIDE6_TASK_PLAN: Slide6TaskPlanData = {
-  title: 'Công việc W38 và KHCV W39',
+  title: 'Kế hoạch công việc trọng điểm',
   weekHeader: '7',
   rows: [
     {

@@ -125,7 +125,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
         {/* Dark Teal / Cyan Banner */}
         <div className="flex-1 bg-[#006064] flex items-center justify-between px-4 sm:px-6">
           <h1 className="text-white font-black text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif]">
-            {data.headerBarText || 'BÁO CÁO SẢN XUẤT DCLR'}
+            {data.headerBarText || 'BÁO CÁO SẢN XUẤT DCLR'} ({activeFrame === 'month' ? 'TỔNG HỢP THÁNG' : activeFrame === 'week' ? `${data.weekly?.pxlr.items[weekStartIndex]?.month.replace('Tuần ', 'W')} ➜ ${data.weekly?.pxlr.items[Math.min((data.weekly?.pxlr.items.length || 1) - 1, weekStartIndex + 3)]?.month.replace('Tuần ', 'W')}` : `NGÀY ${data.daily?.pxlr.items[dayStartIndex]?.month} ➜ ${data.daily?.pxlr.items[Math.min((data.daily?.pxlr.items.length || 1) - 1, dayStartIndex + 6)]?.month}`})
           </h1>
           <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-800/80 text-teal-100 text-xs font-sans font-medium border border-teal-700">
             <Sparkles className="w-3 h-3 text-amber-300" />
@@ -144,7 +144,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
               {data.slideNumber || '3'}
             </span>
             <span className="text-slate-900 font-bold text-lg sm:text-xl tracking-tight">
-              {data.title || 'Chất Lượng'}
+              {data.title || 'Chất Lượng'} ({activeFrame === 'month' ? 'Tháng' : activeFrame === 'week' ? 'Tuần' : 'Ngày'})
             </span>
           </div>
           {/* Timeframe View Mode Selector & Quick Daily Input */}
@@ -168,10 +168,10 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                     ? 'bg-teal-700 text-white shadow-xs'
                     : 'text-slate-700 hover:bg-slate-200'
                 }`}
-                title="Xem tỷ lệ lỗi tổng hợp theo Tháng (T6 - T9)"
+                title="Xem tỷ lệ lỗi tổng hợp theo Tháng"
               >
                 <Calendar className="w-3.5 h-3.5" />
-                <span>Theo Tháng (T6-T9)</span>
+                <span>Theo Tháng</span>
               </button>
 
               <button
@@ -346,10 +346,10 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
             </ol>
           </div>
 
-          {/* Right Card: Các đối sách giảm tỉ lệ lỗi trong tháng 9 (Green text) */}
+          {/* Right Card: Các đối sách giảm tỉ lệ lỗi (Green text) */}
           <div className="bg-white border-2 border-[#C00000] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-start">
             <h4 className="text-[#008000] font-black text-base sm:text-lg md:text-[20px] mb-3 leading-snug">
-              {data.countermeasures?.title || 'Các đối sách giảm tỉ lệ lỗi trong tháng 9:'}
+              {data.countermeasures?.title || 'Các đối sách giảm tỉ lệ lỗi hiện tại:'}
             </h4>
             <ol className="space-y-3 text-[#008000] font-bold text-sm sm:text-base md:text-[16px] leading-relaxed list-none pl-0">
               {(data.countermeasures?.items || []).map((item, idx) => (
@@ -365,7 +365,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
         {/* 5. SLIDE FOOTER */}
         <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-xs sm:text-sm text-slate-500 select-none">
           <span className="font-sans font-medium">
-            Phân Xưởng Lắp Ráp • {activeFrame === 'month' ? 'Chế độ xem Tháng (T5 - T9)' : activeFrame === 'week' ? 'Chế độ xem Tuần (W35 - W38)' : 'Chế độ xem Ngày (Chi tiết)'}
+            Phân Xưởng Lắp Ráp • {activeFrame === 'month' ? 'Chế độ xem Tháng' : activeFrame === 'week' ? 'Chế độ xem Tuần' : 'Chế độ xem Ngày (Chi tiết)'}
           </span>
           <span className="font-sans font-medium text-slate-600">Font chữ chuẩn Times New Roman • Cỡ chữ to rõ trình chiếu</span>
         </div>

@@ -27,7 +27,7 @@ export const Slide5ProductionPlanPresentation: React.FC<Slide5ProductionPlanPres
         <div className="w-10 sm:w-16 bg-[#cc0000] flex-shrink-0" />
         <div className="flex-1 bg-[#006064] flex items-center px-4 sm:px-6">
           <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase">
-            BÁO CÁO SẢN XUẤT DCLR
+            BÁO CÁO SẢN XUẤT DCLR (TUẦN {data.weekHeader})
           </h1>
           {!isFullscreen && onOpenEditor && (
             <button

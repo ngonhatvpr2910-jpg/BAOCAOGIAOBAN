@@ -9,7 +9,6 @@ import {
 
 /**
  * Tính toán ngày tiếp theo một cách tuần tự và thông minh khi người dùng bấm "Thêm Ngày"
- * Ví dụ: nếu ngày cuối cùng trong danh sách là 17/09/2026 thì ngày tiếp theo sẽ là 18/09/2026.
  */
 export function getNextQualityDateInfo(records: QualityDailyRecord[]): {
   date: string;
@@ -17,24 +16,15 @@ export function getNextQualityDateInfo(records: QualityDailyRecord[]): {
   week: string;
   month: string;
 } {
-  let nextDate = new Date(2026, 8, 18); // Default 18/09/2026 (Tháng 9)
+  // Lấy ngày cuối cùng trong danh sách hoặc dùng ngày hôm nay
+  let nextDate = new Date();
 
   if (records && records.length > 0) {
     const lastRec = records[records.length - 1];
     
-    // Parse ngày từ date (YYYY-MM-DD) hoặc dayLabel (DD/MM)
     if (lastRec.date && /^\d{4}-\d{2}-\d{2}$/.test(lastRec.date)) {
       const parts = lastRec.date.split('-').map(Number);
-      const y = parts[0];
-      const m = parts[1] - 1;
-      const d = parts[2];
-      nextDate = new Date(y, m, d + 1);
-    } else if (lastRec.dayLabel && /^\d{1,2}\/\d{1,2}/.test(lastRec.dayLabel)) {
-      const parts = lastRec.dayLabel.split('/').map(Number);
-      const d = parts[0];
-      const m = parts[1] - 1;
-      const y = 2026;
-      nextDate = new Date(y, m, d + 1);
+      nextDate = new Date(parts[0], parts[1] - 1, parts[2] + 1);
     }
   }
 
@@ -47,34 +37,28 @@ export function getNextQualityDateInfo(records: QualityDailyRecord[]): {
   const dateStr = `${y}-${padMonth}-${padDay}`;
   const dayLabelStr = `${padDay}/${padMonth}`;
 
-  // Tự động phân loại Tuần logic
-  let weekStr = 'W38';
-  if (m === 9) {
-    if (d <= 2) weekStr = 'W35';
-    else if (d <= 9) weekStr = 'W36';
-    else if (d <= 13) weekStr = 'W37';
-    else if (d <= 20) weekStr = 'W38';
-    else if (d <= 27) weekStr = 'W39';
-    else weekStr = 'W40';
-  } else if (m === 10) {
-    if (d <= 4) weekStr = 'W40';
-    else if (d <= 11) weekStr = 'W41';
-    else if (d <= 18) weekStr = 'W42';
-    else if (d <= 25) weekStr = 'W43';
-    else weekStr = 'W44';
-  } else {
-    const lastWeek = records && records.length > 0 ? records[records.length - 1].week : 'W38';
-    weekStr = lastWeek || 'W38';
-  }
-
+  // Tự động phân loại Tuần logic (Dùng chung logic với productivityFormulas nếu có thể)
+  // Ở đây chúng ta sẽ giả định một quy trình chốt sổ linh hoạt hơn
+  const weekLabel = `W${getWeekNumber(nextDate)}`;
   const monthStr = `T${m}`;
 
   return {
     date: dateStr,
     dayLabel: dayLabelStr,
-    week: weekStr,
+    week: weekLabel,
     month: monthStr,
   };
+}
+
+/**
+ * Helper to get week number (ISO-8601 or similar)
+ */
+function getWeekNumber(d: Date): number {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return weekNo;
 }
 
 /**
@@ -179,11 +163,8 @@ export function rollupDailyToQualityCharts(
   const weeklyRoItems: Slide2QualityItem[] = [];
   const weeklyBgItems: Slide2QualityItem[] = [];
 
-  // Thu thập toàn bộ danh sách các tuần từ quá khứ đến hiện tại (Tuần 32 - Tuần 39...)
-  const allWeekSet = new Set<string>([
-    'Tuần 32', 'Tuần 33', 'Tuần 34', 'Tuần 35', 
-    'Tuần 36', 'Tuần 37', 'Tuần 38', 'Tuần 39'
-  ]);
+  // Thu thập toàn bộ danh sách các tuần từ quá khứ đến hiện tại
+  const allWeekSet = new Set<string>();
 
   if (baseWeekly?.pxlr?.items) {
     baseWeekly.pxlr.items.forEach(item => {
@@ -437,7 +418,7 @@ export function getSyncedQualityForPXLR(
   if (timeFramePreference === 'week') {
     const weeklyItems = slide2Data.weekly?.pxlr?.items || [];
     const latestPxlrWeek = weeklyItems.length > 0 ? weeklyItems[weeklyItems.length - 1] : null;
-    const weekLabel = latestPxlrWeek?.month || 'Tuần 39';
+    const weekLabel = latestPxlrWeek?.month || (weeklyItems.length > 0 ? weeklyItems[weeklyItems.length - 1].month : 'Tuần 39');
     
     const roItem = slide2Data.weekly?.ro?.items?.find(i => i.month === weekLabel) || 
       (slide2Data.weekly?.ro?.items ? slide2Data.weekly.ro.items[slide2Data.weekly.ro.items.length - 1] : null);

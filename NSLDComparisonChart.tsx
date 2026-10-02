@@ -35,7 +35,16 @@ type LineScope = 'all' | 'bg' | 'ro' | 'compare';
 export const NSLDComparisonChart: React.FC = () => {
   const [granularity, setGranularity] = useState<TimeGranularity>('daily');
   const [lineScope, setLineScope] = useState<LineScope>('bg'); // Default to Bếp Ga matching user's latest screenshot
-  const [selectedMonth, setSelectedMonth] = useState<'all' | 'Jul' | 'Aug' | 'Sep'>('Sep'); // Default to Sep matching screenshot
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    RAW_DAILY_NSLD_DATA.forEach(d => months.add(d.month));
+    return Array.from(months);
+  }, []);
+
+  const [selectedMonth, setSelectedMonth] = useState<'all' | string>(() => {
+    if (availableMonths.length > 0) return availableMonths[availableMonths.length - 1];
+    return 'all';
+  });
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [showTargetLine, setShowTargetLine] = useState<boolean>(true);
   const [showDataTable, setShowDataTable] = useState<boolean>(false);
@@ -305,7 +314,8 @@ export const NSLDComparisonChart: React.FC = () => {
             <span className="text-[11px] text-slate-500 font-bold px-1.5 flex items-center gap-1">
               <Calendar className="w-3 h-3" /> Tháng:
             </span>
-            {(['Sep', 'Aug', 'Jul', 'all'] as const).map((m) => (
+            {/* Month filter buttons derived from data */}
+            {availableMonths.map((m) => (
               <button
                 key={m}
                 type="button"
@@ -316,9 +326,28 @@ export const NSLDComparisonChart: React.FC = () => {
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
-                {m === 'Sep' ? 'Tháng 9' : m === 'Aug' ? 'Tháng 8' : m === 'Jul' ? 'Tháng 7' : 'Tất cả (Cuộn)'}
+                {(() => {
+                  const monthsMap: Record<string, string> = {
+                    'Jan': 'Tháng 1', 'Feb': 'Tháng 2', 'Mar': 'Tháng 3', 'Apr': 'Tháng 4',
+                    'May': 'Tháng 5', 'Jun': 'Tháng 6', 'Jul': 'Tháng 7', 'Aug': 'Tháng 8',
+                    'Sep': 'Tháng 9', 'Oct': 'Tháng 10', 'Nov': 'Tháng 11', 'Dec': 'Tháng 12',
+                    'T9': 'Tháng 9', 'T10': 'Tháng 10', 'T11': 'Tháng 11', 'T12': 'Tháng 12'
+                  };
+                  return monthsMap[m] || m;
+                })()}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setSelectedMonth('all')}
+              className={`px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer ${
+                selectedMonth === 'all'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              Tất cả (Cuộn)
+            </button>
           </div>
         )}
 

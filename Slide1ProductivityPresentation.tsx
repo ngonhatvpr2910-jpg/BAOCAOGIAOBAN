@@ -54,7 +54,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
         {/* Dark Teal / Cyan Banner */}
         <div className="flex-1 bg-[#006064] flex items-center px-4 sm:px-6">
           <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif]">
-            {data.title || 'BÁO CÁO SẢN XUẤT DCLR'}
+            {data.title || 'BÁO CÁO SẢN XUẤT DCLR'} ({data.pxlr.weekly[weekStartIndex]?.label.replace('Tuần ', 'W')} ➜ {data.pxlr.weekly[Math.min(totalWeeks - 1, weekStartIndex + weeksToShow - 1)]?.label.replace('Tuần ', 'W')})
           </h1>
         </div>
       </div>

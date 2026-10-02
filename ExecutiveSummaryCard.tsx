@@ -34,8 +34,6 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeFrame, setTimeFrame] = useState<'week' | 'month'>('week');
-  const [selectedWeek, setSelectedWeek] = useState<string>('W39');
-  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 9');
 
   const { monthlyHistory, slide2Quality } = useProduction();
 
@@ -47,6 +45,42 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   const slide1Data = useMemo(() => {
     return StorageService.getSlide1NSLD();
   }, []);
+
+  const dynamicAvailableWeeks = useMemo(() => {
+    const fromData = new Set<string>();
+    if (slide1Data) {
+      slide1Data.pxlr.weekly.forEach(i => {
+        const label = i.label.replace('Tuần ', 'W');
+        fromData.add(label);
+      });
+    }
+    AVAILABLE_WEEKS.forEach(w => fromData.add(w));
+    return Array.from(fromData).sort((a, b) => {
+      const nA = parseInt(a.replace(/\D/g, ''), 10);
+      const nB = parseInt(b.replace(/\D/g, ''), 10);
+      return nA - nB;
+    });
+  }, [slide1Data]);
+
+  const dynamicAvailableMonths = useMemo(() => {
+    const fromData = new Set<string>();
+    if (slide1Data) {
+      slide1Data.pxlr.monthly.forEach(i => fromData.add(i.label));
+    }
+    AVAILABLE_MONTHS.forEach(m => fromData.add(m));
+    return Array.from(fromData).sort((a, b) => {
+      const nA = parseInt(a.replace(/\D/g, ''), 10);
+      const nB = parseInt(b.replace(/\D/g, ''), 10);
+      return nA - nB;
+    });
+  }, [slide1Data]);
+
+  const [selectedWeek, setSelectedWeek] = useState<string>(() => {
+    return dynamicAvailableWeeks[dynamicAvailableWeeks.length - 1] || '';
+  });
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+    return dynamicAvailableMonths[dynamicAvailableMonths.length - 1] || '';
+  });
 
   // Tổng hợp dữ liệu điều hành theo tuần hoặc theo tháng dựa trên data
   const summaryData = useMemo(() => {
@@ -80,11 +114,8 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           <div className="w-10 sm:w-16 bg-[#cc0000] flex-shrink-0" />
           <div className="flex-1 bg-[#006064] flex items-center justify-between px-4 sm:px-6">
             <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif]">
-              BÁO CÁO SẢN XUẤT DCLR
+              BÁO CÁO SẢN XUẤT DCLR ({activePeriodLabel})
             </h1>
-            <span className="text-cyan-200 text-xs sm:text-sm font-bold tracking-wide">
-              Báo Cáo Tổng Thể Toàn Xưởng ({activePeriodLabel})
-            </span>
           </div>
         </div>
       ) : null}
@@ -135,12 +166,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             </button>
           </div>
 
-          {/* Period Selector (W37, W38, W39 / Tháng 6, 7, 8, 9) */}
+          {/* Period Selector */}
           <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-xl border border-slate-700 text-xs">
             {timeFrame === 'week' ? (
-              AVAILABLE_WEEKS.map(w => {
+              dynamicAvailableWeeks.slice(-5).map(w => {
                 const isSelected = selectedWeek === w;
-                const isLatest = w === 'W39';
+                const isLatest = w === dynamicAvailableWeeks[dynamicAvailableWeeks.length - 1];
                 return (
                   <button
                     key={`btn-week-${w}`}
@@ -161,9 +192,9 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 );
               })
             ) : (
-              AVAILABLE_MONTHS.map(m => {
+              dynamicAvailableMonths.slice(-4).map(m => {
                 const isSelected = selectedMonth === m;
-                const isLatest = m === 'Tháng 9';
+                const isLatest = m === dynamicAvailableMonths[dynamicAvailableMonths.length - 1];
                 return (
                   <button
                     key={`btn-month-${m}`}
@@ -256,7 +287,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   <div className="rounded-2xl border-2 border-blue-400 bg-blue-50/20 p-3.5 flex flex-col justify-between shadow-2xs hover:shadow-xs transition">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                        KHSX {item.unitKey} {activePeriodLabel}
+                        KHSX {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                       </span>
                       <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-blue-100 text-blue-800 uppercase">
                         Kế hoạch
@@ -282,7 +313,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                        THỰC HIỆN {item.unitKey} {activePeriodLabel}
+                        THỰC HIỆN {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                       </span>
                       {isRmaNoPlan ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-200 text-slate-700">
@@ -326,7 +357,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                        NSLĐ {item.unitKey} {activePeriodLabel}
+                        NSLĐ {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                       </span>
                       {isRmaNoPlan ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-200 text-slate-700">
@@ -372,7 +403,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                        ĐI LÀM {item.unitKey} {activePeriodLabel}
+                        ĐI LÀM {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                       </span>
                       {isAttendancePass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
@@ -423,7 +454,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       }`}>
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                            TỈ LỆ LỖI {item.unitKey} {activePeriodLabel}
+                            TỈ LỆ LỖI {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                           </span>
                           {isErrorPass ? (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
@@ -459,7 +490,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       }`}>
                         <div className="flex items-center justify-between">
                           <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
-                            HƯ HỎNG {item.unitKey} {activePeriodLabel}
+                            HƯ HỎNG {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                           </span>
                           {isZeroDefect ? (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-200 text-emerald-900 flex items-center gap-0.5">
@@ -537,7 +568,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             <thead>
               <tr className="bg-slate-100 text-slate-800 font-bold">
                 <th className="border border-slate-200 p-2.5">Bộ Phận / Line</th>
-                <th className="border border-slate-200 p-2.5 text-center">Tiến Độ KHSX ({activePeriodLabel})</th>
+                <th className="border border-slate-200 p-2.5 text-center">Tiến Độ KHSX ({activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel})</th>
                 <th className="border border-slate-200 p-2.5 text-center bg-blue-50/50">MỤC TIÊU NSLĐ</th>
                 <th className="border border-slate-200 p-2.5 text-center">NSLĐ THỰC TẾ</th>
                 <th className="border border-slate-200 p-2.5 text-center bg-emerald-50/50">MỤC TIÊU ĐI LÀM</th>

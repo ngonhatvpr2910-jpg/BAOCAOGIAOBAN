@@ -27,7 +27,7 @@ export const Slide4ProductionTargetPresentation: React.FC<Slide4ProductionTarget
         <div className="w-10 sm:w-16 bg-[#cc0000] flex-shrink-0" />
         <div className="flex-1 bg-[#006064] flex items-center px-4 sm:px-6">
           <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase">
-            BÁO CÁO SẢN XUẤT DCLR
+            BÁO CÁO SẢN XUẤT DCLR (NĂM 2026)
           </h1>
           {!isFullscreen && onOpenEditor && (
             <button
@@ -141,7 +141,7 @@ export const Slide4ProductionTargetPresentation: React.FC<Slide4ProductionTarget
           <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-200 text-xs text-slate-500 font-bold uppercase tracking-widest">
             <div className="flex items-center gap-2">
               <Info className="w-4 h-4 text-emerald-500" />
-              <span>Dữ liệu dựa trên báo cáo thực tế tháng 1 - tháng 9 và kế hoạch dự kiến tháng 10 - tháng 12</span>
+              <span>Dữ liệu dựa trên báo cáo thực tế và kế hoạch dự kiến của năm 2026</span>
             </div>
             <div className="flex items-center gap-4">
               <span>PowerPoint Slide {data.slideNumber || '5'}</span>
