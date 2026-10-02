@@ -51,15 +51,9 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
         setSelectedCutoffs([...currentCutoffs].sort((a, b) => a - b));
         setAnchorDay(currentCutoffs[0] || null);
       } else {
-        // Default to Thursdays if Month 9, or Sundays
-        if (monthIndex0 === 8) { // September
-          const thuCutoffs = getCutoffsByDayOfWeek(year, monthIndex0, 4); // Thursday
-          setSelectedCutoffs(thuCutoffs);
-          setAnchorDay(17);
-        } else {
-          setSelectedCutoffs(getDefaultSundayCutoffs(year, monthIndex0));
-          setAnchorDay(null);
-        }
+        // Default to Sundays for most months
+        setSelectedCutoffs(getDefaultSundayCutoffs(year, monthIndex0));
+        setAnchorDay(null);
       }
     }
   }, [isOpen, currentCutoffs, year, monthIndex0]);

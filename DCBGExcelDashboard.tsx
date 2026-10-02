@@ -64,7 +64,11 @@ export const DCBGExcelDashboard: React.FC = () => {
     resetDailyNSLDRMA,
     updateMatrixBGForMonth,
     updateMatrixROForMonth,
-    isDateLocked
+    isDateLocked,
+    dashboardYear: selectedYear,
+    setDashboardYear: setSelectedYear,
+    dashboardMonthIndex0: selectedMonthIndex0,
+    setDashboardMonthIndex0: setSelectedMonthIndex0,
   } = useProduction();
 
   const { canEditDCBG } = useAuth();
@@ -83,13 +87,9 @@ export const DCBGExcelDashboard: React.FC = () => {
   const sysYear = now.getFullYear() || 2026;
   const sysMonthIndex0 = now.getMonth() >= 0 && now.getMonth() <= 11 ? now.getMonth() : 8;
 
-  // Selected Month State
-  const [selectedYear, setSelectedYear] = useState<number>(sysYear);
-  const [selectedMonthIndex0, setSelectedMonthIndex0] = useState<number>(sysMonthIndex0);
-
   // Local matrix data for the chosen month
   const [localMatrix, setLocalMatrix] = useState<ExcelMatrixBGColumn[]>(() => {
-    return StorageService.getMatrixBGForMonth(sysYear, sysMonthIndex0);
+    return StorageService.getMatrixBGForMonth(selectedYear, selectedMonthIndex0);
   });
 
   // UI view toggles

@@ -184,6 +184,7 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
   const cols: ExcelMatrixBGColumn[] = [];
   const isNewInputMonth = monthIndex0 >= 8; // Tháng 9 trở đi là dữ liệu mới chạy tự động từ nhập liệu, khởi tạo bằng 0
   const isMonth9 = (year === 2026 && monthIndex0 === 8);
+  const isMonth10 = (year === 2026 && monthIndex0 === 9);
   const month9Cutoffs = [3, 10, 17, 24];
   const month9Labels: Record<number, string> = {
     3: 'W36 01 - 03/Sep',
@@ -191,6 +192,14 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     17: 'W38 11 - 17/Sep',
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
+  };
+  const month10Cutoffs = [4, 11, 18, 25];
+  const month10Labels: Record<number, string> = {
+    4: 'W40 01 - 04/Oct',
+    11: 'W41 05 - 11/Oct',
+    18: 'W42 12 - 18/Oct',
+    25: 'W43 19 - 25/Oct',
+    31: 'W44 26 - 31/Oct',
   };
 
   let weekNum = 1;
@@ -236,10 +245,14 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     });
 
     // Check cutoff
-    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : isSunday;
-    if (isCutoff) {
-      const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : `W${weekNum}`;
-      cols.push({
+    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+    if (isCutoff || (day === daysCount)) {
+      const isActuallyCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+      if (!isActuallyCutoff && day === daysCount && cols.length > 0 && cols[cols.length-1].isWeeklyTotal) {
+          // don't add extra weekly total if already added
+      } else {
+        const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : (isMonth10 ? (month10Labels[day] || `W${40 + weekNum}`) : `W${weekNum}`);
+        cols.push({
         id: `bg-w${weekNum}-${monthIndex0 + 1}-${day}`,
         label: wLabel,
         isWeeklyTotal: true,
@@ -257,6 +270,7 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
         tiLeDiLam: 0,
       });
       weekNum++;
+      }
     }
   }
 
@@ -438,6 +452,7 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
   const cols: ExcelMatrixROColumn[] = [];
   const isNewInputMonth = monthIndex0 >= 8; // Tháng 9 trở đi là dữ liệu mới chạy tự động từ nhập liệu, khởi tạo bằng 0
   const isMonth9 = (year === 2026 && monthIndex0 === 8);
+  const isMonth10 = (year === 2026 && monthIndex0 === 9);
   const month9Cutoffs = [3, 10, 17, 24];
   const month9Labels: Record<number, string> = {
     3: 'W36 01 - 03/Sep',
@@ -445,6 +460,14 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     17: 'W38 11 - 17/Sep',
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
+  };
+  const month10Cutoffs = [4, 11, 18, 25];
+  const month10Labels: Record<number, string> = {
+    4: 'W40 01 - 04/Oct',
+    11: 'W41 05 - 11/Oct',
+    18: 'W42 12 - 18/Oct',
+    25: 'W43 19 - 25/Oct',
+    31: 'W44 26 - 31/Oct',
   };
 
   let weekNum = 1;
@@ -485,10 +508,14 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
       tiLeDiLam: tiLe,
     });
 
-    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : isSunday;
-    if (isCutoff) {
-      const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : `W${weekNum}/T${monthIndex0 + 1}`;
-      cols.push({
+    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+    if (isCutoff || (day === daysCount)) {
+      const isActuallyCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+      if (!isActuallyCutoff && day === daysCount && cols.length > 0 && cols[cols.length-1].isWeeklyTotal) {
+          // skip
+      } else {
+        const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : (isMonth10 ? (month10Labels[day] || `W${40 + weekNum}`) : `W${weekNum}/T${monthIndex0 + 1}`);
+        cols.push({
         id: `ro-w${weekNum}-${monthIndex0 + 1}-${day}`,
         label: wLabel,
         isWeeklyTotal: true,
@@ -504,6 +531,7 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
         tiLeDiLam: 0,
       });
       weekNum++;
+      }
     }
   }
 

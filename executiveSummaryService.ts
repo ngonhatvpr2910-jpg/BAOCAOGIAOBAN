@@ -894,8 +894,22 @@ export function getExecutiveSummaryData(
 
   // 4. ĐỒNG BỘ DỮ LIỆU KHSX NGÀY VÀ SẢN LƯỢNG QUY ĐỔI TỪ CÁC DÂY CHUYỀN (DC RO, DC BG, RMA) TOÀN PHÂN XƯỞNG
   try {
-    const matrixRO = StorageService.getMatrixROForMonth(2026, 8) || [];
-    const matrixBG = StorageService.getMatrixBGForMonth(2026, 8) || [];
+    let targetMonthIdx = 8; // Default to September (Index 8)
+    if (timeFrame === 'month') {
+      const mMatch = periodKey.match(/\d+/);
+      if (mMatch) targetMonthIdx = parseInt(mMatch[0], 10) - 1;
+    } else {
+      const wMatch = periodKey.match(/\d+/);
+      if (wMatch) {
+        const wNum = parseInt(wMatch[0], 10);
+        // Map weeks to months: W36-39 -> Sep (8), W40-44 -> Oct (9)
+        if (wNum >= 40) targetMonthIdx = 9;
+        else targetMonthIdx = 8;
+      }
+    }
+
+    const matrixRO = StorageService.getMatrixROForMonth(2026, targetMonthIdx) || [];
+    const matrixBG = StorageService.getMatrixBGForMonth(2026, targetMonthIdx) || [];
 
     if (timeFrame === 'week') {
       const weekNumMatch = periodKey.match(/\d+/);

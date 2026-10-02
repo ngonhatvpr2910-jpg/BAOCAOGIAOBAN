@@ -89,6 +89,12 @@ interface ProductionContextType {
   GLOBAL_LOCK_DATE: string;
   isDateLocked: (date: string) => boolean;
   isWeekLocked: (week: string) => boolean;
+  dashboardYear: number;
+  setDashboardYear: (year: number) => void;
+  dashboardMonthIndex0: number;
+  setDashboardMonthIndex0: (month: number) => void;
+  dataVersion: number;
+  refreshData: () => void;
 }
 
 export const GLOBAL_LOCK_DATE = '2026-09-24';
@@ -107,6 +113,17 @@ const ProductionContext = createContext<ProductionContextType | undefined>(undef
 export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  const [dashboardYear, setDashboardYear] = useState<number>(2026);
+  const [dashboardMonthIndex0, setDashboardMonthIndex0] = useState<number>(() => {
+    const now = new Date();
+    return now.getMonth();
+  });
+  const [dataVersion, setDataVersion] = useState<number>(0);
+
+  const refreshData = useCallback(() => {
+    setDataVersion(v => v + 1);
+  }, []);
 
   const [dcbgRecords, setDcbgRecords] = useState<DailyDCBGRecord[]>(() => StorageService.getDCBGRecords());
   const [dcroRecords, setDcroRecords] = useState<DailyDCRORecord[]>(() => StorageService.getDCRORecords());
@@ -724,17 +741,19 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateMatrixROForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixROColumn[]) => {
     StorageService.saveMatrixROForMonth(year, monthIndex0, columns);
-    // If it's the current selected year/month, update state too
-    // In a real app we might want to track current dashboard month in context
-    // For now, if year/month matches what's expected for 'current'
-    if (year === 2026 && monthIndex0 === 8) {
+    
+    // If it matches what we are currently viewing in dashboard, sync state
+    if (year === dashboardYear && monthIndex0 === dashboardMonthIndex0) {
       setMatrixRO(columns);
     }
+    
+    refreshData();
+
     // Notify components that data has updated
     window.dispatchEvent(new CustomEvent('production-data-updated', { 
       detail: { type: 'matrix-ro', year, monthIndex0 } 
     }));
-  }, []);
+  }, [dashboardYear, dashboardMonthIndex0, refreshData]);
 
   const resetMatrixRO = useCallback(() => {
     setMatrixRO(INITIAL_MATRIX_RO);
@@ -747,13 +766,17 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateMatrixBGForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixBGColumn[]) => {
     StorageService.saveMatrixBGForMonth(year, monthIndex0, columns);
-    if (year === 2026 && monthIndex0 === 8) {
+    
+    if (year === dashboardYear && monthIndex0 === dashboardMonthIndex0) {
       setMatrixBG(columns);
     }
+    
+    refreshData();
+
     window.dispatchEvent(new CustomEvent('production-data-updated', { 
       detail: { type: 'matrix-bg', year, monthIndex0 } 
     }));
-  }, []);
+  }, [dashboardYear, dashboardMonthIndex0, refreshData]);
 
   const resetMatrixBG = useCallback(() => {
     setMatrixBG(INITIAL_MATRIX_BG);
@@ -816,6 +839,12 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         GLOBAL_LOCK_DATE,
         isDateLocked,
         isWeekLocked,
+        dashboardYear,
+        setDashboardYear,
+        dashboardMonthIndex0,
+        setDashboardMonthIndex0,
+        dataVersion,
+        refreshData,
       }}
     >
       {children}

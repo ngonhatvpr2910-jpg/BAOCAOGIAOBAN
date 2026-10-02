@@ -35,16 +35,16 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeFrame, setTimeFrame] = useState<'week' | 'month'>('week');
 
-  const { monthlyHistory, slide2Quality } = useProduction();
+  const { monthlyHistory, slide2Quality, dataVersion } = useProduction();
 
   // Đọc dữ liệu chi phí hư hỏng thực tế từ Storage
   const defectCostData = useMemo(() => {
     return StorageService.getSlide3DefectCost();
-  }, []);
+  }, [dataVersion]);
 
   const slide1Data = useMemo(() => {
     return StorageService.getSlide1NSLD();
-  }, []);
+  }, [dataVersion]);
 
   const dynamicAvailableWeeks = useMemo(() => {
     const fromData = new Set<string>();
@@ -93,7 +93,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
       slide1Data,
       slide2Quality || StorageService.getSlide2Quality()
     );
-  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, slide2Quality]);
+  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, slide2Quality, dataVersion]);
 
   const activePeriodLabel = timeFrame === 'week' ? selectedWeek : selectedMonth;
 

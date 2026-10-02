@@ -51,7 +51,15 @@ import { WeekCutoffModal } from './WeekCutoffModal';
 import { exportProductionTemplate, importProductionExcel } from './excelProductionService';
 
 export const DCROExcelDashboard: React.FC = () => {
-  const { updateMatrixBGForMonth, updateMatrixROForMonth, isDateLocked } = useProduction();
+  const { 
+    updateMatrixBGForMonth, 
+    updateMatrixROForMonth, 
+    isDateLocked,
+    dashboardYear: selectedYear,
+    setDashboardYear: setSelectedYear,
+    dashboardMonthIndex0: selectedMonthIndex0,
+    setDashboardMonthIndex0: setSelectedMonthIndex0,
+  } = useProduction();
   const { canEditDCRO } = useAuth();
 
   const canEditCell = (col: ExcelMatrixROColumn) => {
@@ -65,13 +73,9 @@ export const DCROExcelDashboard: React.FC = () => {
   const sysYear = now.getFullYear() || 2026;
   const sysMonthIndex0 = now.getMonth() >= 0 && now.getMonth() <= 11 ? now.getMonth() : 8;
 
-  // Selected Month State
-  const [selectedYear, setSelectedYear] = useState<number>(sysYear);
-  const [selectedMonthIndex0, setSelectedMonthIndex0] = useState<number>(sysMonthIndex0);
-
   // Local matrix data for the chosen month
   const [localMatrix, setLocalMatrix] = useState<ExcelMatrixROColumn[]>(() => {
-    return StorageService.getMatrixROForMonth(sysYear, sysMonthIndex0);
+    return StorageService.getMatrixROForMonth(selectedYear, selectedMonthIndex0);
   });
 
   const [showMatrixEditor, setShowMatrixEditor] = useState<boolean>(true);
