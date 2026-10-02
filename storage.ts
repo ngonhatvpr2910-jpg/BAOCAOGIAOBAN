@@ -583,6 +583,22 @@ export const StorageService = {
         }
         if (!parsed.dailyRecords || parsed.dailyRecords.length === 0) {
           parsed.dailyRecords = INITIAL_SLIDE2_QUALITY.dailyRecords;
+        } else {
+          // Migration: Ensure Sundays (06/09, 13/09, 20/09) are present for the user
+          const sunDates = ['2026-09-06', '2026-09-13', '2026-09-20'];
+          let added = false;
+          sunDates.forEach(date => {
+            if (!parsed.dailyRecords.some(r => r.date === date)) {
+              const initSun = INITIAL_SLIDE2_QUALITY.dailyRecords.find(r => r.date === date);
+              if (initSun) {
+                parsed.dailyRecords.push(initSun);
+                added = true;
+              }
+            }
+          });
+          if (added) {
+            parsed.dailyRecords.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+          }
         }
         // If current active is month, make sure parsed.bg, parsed.ro, parsed.pxlr match monthly
         if (parsed.activeTimeFrame === 'month' || !parsed.activeTimeFrame) {

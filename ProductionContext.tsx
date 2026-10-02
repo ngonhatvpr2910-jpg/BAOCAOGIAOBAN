@@ -16,7 +16,7 @@ import {
   Slide2QualityData,
 } from './types';
 import { StorageService } from './storage';
-import { getSyncedQualityForPXLR } from './qualityFormulas';
+import { getSyncedQualityForPXLR, rollupDailyToQualityCharts } from './qualityFormulas';
 import { recalculateBGMatrix, recalculateROMatrix } from './matrixGenerator';
 import { 
   MONTHLY_HISTORY, 
@@ -26,6 +26,7 @@ import {
   INITIAL_DAILY_NSLD_RMA,
   INITIAL_MATRIX_RO,
   INITIAL_MATRIX_BG,
+  INITIAL_QUALITY_DAILY_RECORDS,
 } from './initialData';
 
 interface ProductionContextType {
@@ -138,6 +139,36 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   
   // Dữ liệu Slide 2: Chất Lượng
   const [slide2Quality, setSlide2Quality] = useState<Slide2QualityData>(() => StorageService.getSlide2Quality());
+
+  // Migration: Ensure Sundays (06/09, 13/09, 20/09) are present in Slide 2 Quality
+  useEffect(() => {
+    const sunDates = ['2026-09-06', '2026-09-13', '2026-09-20'];
+    const currentRecords = slide2Quality.dailyRecords || [];
+    let needsUpdate = false;
+    const records = [...currentRecords];
+
+    sunDates.forEach(date => {
+      if (!records.some(r => r.date === date)) {
+        const initSun = INITIAL_QUALITY_DAILY_RECORDS.find(r => r.date === date);
+        if (initSun) {
+          records.push(initSun);
+          needsUpdate = true;
+        }
+      }
+    });
+
+    if (needsUpdate) {
+      records.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      const nextData = { ...slide2Quality, dailyRecords: records };
+      const rolled = rollupDailyToQualityCharts(records, nextData.monthly, nextData.weekly);
+      nextData.daily = rolled.daily;
+      nextData.weekly = rolled.weekly;
+      nextData.monthly = rolled.monthly;
+      
+      setSlide2Quality(nextData);
+      StorageService.saveSlide2Quality(nextData);
+    }
+  }, [slide2Quality]);
   const [qualityTimeFrame, setQualityTimeFrame] = useState<'day' | 'week' | 'month'>('day');
 
   const updateSlide2Quality = useCallback((newData: Slide2QualityData) => {

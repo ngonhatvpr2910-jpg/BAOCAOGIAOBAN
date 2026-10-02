@@ -99,16 +99,19 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
       
       // Tính toán ngày tiếp theo tuần tự thông minh (VD: đang đến 17/09 thì ngày tiếp theo là 18/09)
       const nextDateInfo = getNextQualityDateInfo(records);
+      const isSunday = new Date(nextDateInfo.date).getDay() === 0;
 
       const lastRec = records.length > 0 ? records[records.length - 1] : null;
-      const defaultRoVatTu = lastRec ? lastRec.ro.vatTu : 0.8;
-      const defaultRoLoi4M = lastRec ? lastRec.ro.totalLoi4M : 3.2;
-      const defaultBgVatTu = lastRec ? lastRec.bg.vatTu : 2.5;
-      const defaultBgLoi4M = lastRec ? lastRec.bg.totalLoi4M : 6.5;
+      
+      // Mặc định lỗi là 0 cho Chủ Nhật theo yêu cầu, các ngày khác lấy theo ngày trước đó hoặc default
+      const defaultRoVatTu = isSunday ? 0 : (lastRec ? lastRec.ro.vatTu : 0.8);
+      const defaultRoLoi4M = isSunday ? 0 : (lastRec ? lastRec.ro.totalLoi4M : 3.2);
+      const defaultBgVatTu = isSunday ? 0 : (lastRec ? lastRec.bg.vatTu : 2.5);
+      const defaultBgLoi4M = isSunday ? 0 : (lastRec ? lastRec.bg.totalLoi4M : 6.5);
 
       const pxlrCalc = calculatePXLRQuality(
-        { dmVatTu: 2.4, vatTu: defaultRoVatTu, totalLoi4M: defaultRoLoi4M, sanLuong: 750 },
-        { dmVatTu: 4.03, vatTu: defaultBgVatTu, totalLoi4M: defaultBgLoi4M, sanLuong: 60 }
+        { dmVatTu: 2.4, vatTu: defaultRoVatTu, totalLoi4M: defaultRoLoi4M, sanLuong: 0 },
+        { dmVatTu: 4.03, vatTu: defaultBgVatTu, totalLoi4M: defaultBgLoi4M, sanLuong: 0 }
       );
 
       const newRec: QualityDailyRecord = {
@@ -403,17 +406,22 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 font-mono">
-                    {(formData.dailyRecords || []).map((rec, idx) => (
-                      <tr key={rec.id || idx} className="hover:bg-slate-50">
-                        {/* Ngày */}
-                        <td className="p-2 text-center font-bold text-slate-800">
-                          <input
-                            type="text"
-                            value={rec.dayLabel}
-                            onChange={e => handleDailyRecordChange(rec.id, 'dayLabel', e.target.value)}
-                            className="w-14 border rounded px-1.5 py-1 text-center font-bold text-xs bg-white border-slate-300"
-                          />
-                        </td>
+                    {(formData.dailyRecords || []).map((rec, idx) => {
+                      const isSunday = rec.date ? new Date(rec.date).getDay() === 0 : false;
+                      return (
+                        <tr key={rec.id || idx} className={`hover:bg-slate-50 ${isSunday ? 'bg-amber-50/70' : ''}`}>
+                          {/* Ngày */}
+                          <td className={`p-2 text-center font-bold ${isSunday ? 'text-amber-900' : 'text-slate-800'}`}>
+                            <div className="flex flex-col items-center gap-0.5">
+                              <input
+                                type="text"
+                                value={rec.dayLabel}
+                                onChange={e => handleDailyRecordChange(rec.id, 'dayLabel', e.target.value)}
+                                className={`w-14 border rounded px-1.5 py-1 text-center font-bold text-xs bg-white border-slate-300 ${isSunday ? 'text-amber-900 border-amber-300' : ''}`}
+                              />
+                              {isSunday && <span className="text-[9px] font-black text-amber-600 uppercase">CN</span>}
+                            </div>
+                          </td>
                         {/* Tuần */}
                         <td className="p-2 text-center font-bold">
                           <select
@@ -513,7 +521,8 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    );
+                  })}
                   </tbody>
                 </table>
               </div>
