@@ -14,6 +14,7 @@ import {
   ExcelMatrixROColumn,
   ExcelMatrixBGColumn,
   Slide2QualityData,
+  GlobalNormsConfig,
 } from './types';
 import { StorageService } from './storage';
 import { getSyncedQualityForPXLR, rollupDailyToQualityCharts } from './qualityFormulas';
@@ -96,6 +97,9 @@ interface ProductionContextType {
   setDashboardMonthIndex0: (month: number) => void;
   dataVersion: number;
   refreshData: () => void;
+  // Global Norms & Targets
+  globalNorms: GlobalNormsConfig;
+  updateGlobalNorms: (norms: GlobalNormsConfig) => void;
 }
 
 export const GLOBAL_LOCK_DATE = '2026-09-24';
@@ -136,6 +140,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [matrixBG, setMatrixBG] = useState<ExcelMatrixBGColumn[]>(() => StorageService.getMatrixBG());
   const [alerts, setAlerts] = useState<PushAlert[]>(() => StorageService.getAlerts());
   const [thresholds, setThresholds] = useState<ThresholdConfig>(() => StorageService.getThresholds());
+  const [globalNorms, setGlobalNorms] = useState<GlobalNormsConfig>(() => StorageService.getGlobalNorms());
   
   // Dữ liệu Slide 2: Chất Lượng
   const [slide2Quality, setSlide2Quality] = useState<Slide2QualityData>(() => StorageService.getSlide2Quality());
@@ -174,6 +179,10 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const updateSlide2Quality = useCallback((newData: Slide2QualityData) => {
     StorageService.saveSlide2Quality(newData);
     setSlide2Quality(newData);
+  }, []);
+
+  const updateGlobalNorms = useCallback((newNorms: GlobalNormsConfig) => {
+    setGlobalNorms(newNorms);
   }, []);
 
   const qualityMetrics = useMemo(() => {
@@ -220,6 +229,11 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     StorageService.saveThresholds(thresholds);
   }, [thresholds]);
+
+  useEffect(() => {
+    StorageService.saveGlobalNorms(globalNorms);
+    refreshData();
+  }, [globalNorms, refreshData]);
 
   // Request browser notification
   const requestNotificationPermission = async (): Promise<boolean> => {
@@ -876,6 +890,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setDashboardMonthIndex0,
         dataVersion,
         refreshData,
+        globalNorms,
+        updateGlobalNorms,
       }}
     >
       {children}

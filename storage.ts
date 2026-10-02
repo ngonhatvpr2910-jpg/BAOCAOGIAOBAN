@@ -16,6 +16,7 @@ import {
   Slide4ProductionTargetData,
   Slide5ProductionPlanData,
   Slide6TaskPlanData,
+  GlobalNormsConfig,
 } from './types';
 import { 
   INITIAL_DCBG_RECORDS, 
@@ -34,6 +35,7 @@ import {
   INITIAL_SLIDE4_PRODUCTION_TARGET,
   INITIAL_SLIDE5_PRODUCTION_PLAN,
   INITIAL_SLIDE6_TASK_PLAN,
+  DEFAULT_GLOBAL_NORMS,
 } from './initialData';
 import { 
   generateMonthBGMatrix, 
@@ -61,6 +63,7 @@ const STORAGE_KEYS = {
   SLIDE4_PRODUCTION_TARGET: 'pxlr_slide4_production_target_v10',
   SLIDE5_PRODUCTION_PLAN: 'pxlr_slide5_production_plan_v1',
   SLIDE6_TASK_PLAN: 'pxlr_slide6_task_plan_v1',
+  GLOBAL_NORMS: 'pxlr_global_norms_v1',
 };
 
 
@@ -427,8 +430,9 @@ export const StorageService = {
       dcbg: this.getDCBGRecords(),
       dcro: this.getDCRORecords(),
       thresholds: this.getThresholds(),
+      norms: this.getGlobalNorms(),
       exportDate: new Date().toISOString(),
-      version: '1.0.0',
+      version: '1.1.0',
     };
   },
 
@@ -439,6 +443,9 @@ export const StorageService = {
         this.saveDCRORecords(backupData.dcro);
         if (backupData.thresholds) {
           this.saveThresholds(backupData.thresholds);
+        }
+        if (backupData.norms) {
+          this.saveGlobalNorms(backupData.norms);
         }
         return true;
       }
@@ -889,6 +896,23 @@ export const StorageService = {
     return INITIAL_SLIDE6_TASK_PLAN;
   },
 
+  getGlobalNorms(): GlobalNormsConfig {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.GLOBAL_NORMS);
+      return data ? JSON.parse(data) : DEFAULT_GLOBAL_NORMS;
+    } catch {
+      return DEFAULT_GLOBAL_NORMS;
+    }
+  },
+
+  saveGlobalNorms(norms: GlobalNormsConfig) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.GLOBAL_NORMS, JSON.stringify(norms));
+    } catch (e) {
+      console.error('Failed to save global norms', e);
+    }
+  },
+
   resetToDefault() {
     localStorage.removeItem(STORAGE_KEYS.DCBG);
     localStorage.removeItem(STORAGE_KEYS.DCRO);
@@ -898,5 +922,6 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.SLIDE1_NSLD);
     localStorage.removeItem(STORAGE_KEYS.SLIDE2_QUALITY);
     localStorage.removeItem(STORAGE_KEYS.SLIDE3_DEFECT_COST);
+    localStorage.removeItem(STORAGE_KEYS.GLOBAL_NORMS);
   }
 };

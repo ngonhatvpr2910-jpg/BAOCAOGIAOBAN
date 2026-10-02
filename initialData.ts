@@ -19,8 +19,32 @@ import {
   DefectCostBarItem,
   Slide4ProductionTargetData,
   Slide5ProductionPlanData,
-  Slide6TaskPlanData
+  Slide6TaskPlanData,
+  GlobalNormsConfig
 } from './types';
+
+export const DEFAULT_GLOBAL_NORMS: GlobalNormsConfig = {
+  nsldTarget: {
+    pxlr: 120.0,
+    ro: 120.0,
+    bg: 100.0,
+  },
+  attendanceTarget: {
+    pxlr: 95.0,
+    ro: 95.0,
+    bg: 95.0,
+  },
+  errorRateQuota: {
+    pxlr: 7.38,
+    ro: 5.20,
+    bg: 7.74,
+  },
+  defectCostTarget: {
+    pxlr: 6200000,
+    ro: 3500000,
+    bg: 2000000,
+  },
+};
 
 export const INITIAL_USERS: User[] = [
   {

@@ -1,4 +1,4 @@
-import { UnitExecutiveSummary, MonthlyHistoryRecord, SlideDefectCostData, Slide1NSLDData, Slide2QualityData } from './types';
+import { UnitExecutiveSummary, MonthlyHistoryRecord, SlideDefectCostData, Slide1NSLDData, Slide2QualityData, GlobalNormsConfig } from './types';
 import { StorageService } from './storage';
 import { synchronizeSlide3Data, isSameWeek, isItemInMonth } from './defectCostSyncService';
 
@@ -684,7 +684,8 @@ export function getExecutiveSummaryData(
   defectCostData?: SlideDefectCostData,
   monthlyHistory?: MonthlyHistoryRecord[],
   slide1Data?: Slide1NSLDData,
-  slide2QualityData?: Slide2QualityData
+  slide2QualityData?: Slide2QualityData,
+  globalNorms?: GlobalNormsConfig
 ): ExecutiveSummaryPeriodResult {
   // Lấy dữ liệu nền tảng tương ứng
   let base: ExecutiveSummaryPeriodResult | undefined;
@@ -718,6 +719,39 @@ export function getExecutiveSummaryData(
   const activeSlide1 = slide1Data || StorageService.getSlide1NSLD();
   const activeSlide2 = slide2QualityData || StorageService.getSlide2Quality();
   const activeSlide3 = defectCostData || StorageService.getSlide3DefectCost();
+  const activeNorms = globalNorms || StorageService.getGlobalNorms();
+
+  // 0. ÁP DỤNG ĐỊNH MỨC & MỤC TIÊU TỪ CÀI ĐẶT
+  result.units = result.units.map(u => {
+    if (u.unitKey === 'PXLR') {
+      return {
+        ...u,
+        nsldTarget: activeNorms.nsldTarget.pxlr,
+        attendanceTarget: activeNorms.attendanceTarget.pxlr,
+        errorRateQuota: activeNorms.errorRateQuota.pxlr,
+        defectCostTarget: activeNorms.defectCostTarget.pxlr,
+      };
+    }
+    if (u.unitKey === 'RO') {
+      return {
+        ...u,
+        nsldTarget: activeNorms.nsldTarget.ro,
+        attendanceTarget: activeNorms.attendanceTarget.ro,
+        errorRateQuota: activeNorms.errorRateQuota.ro,
+        defectCostTarget: activeNorms.defectCostTarget.ro,
+      };
+    }
+    if (u.unitKey === 'BG') {
+      return {
+        ...u,
+        nsldTarget: activeNorms.nsldTarget.bg,
+        attendanceTarget: activeNorms.attendanceTarget.bg,
+        errorRateQuota: activeNorms.errorRateQuota.bg,
+        defectCostTarget: activeNorms.defectCostTarget.bg,
+      };
+    }
+    return u;
+  });
 
   // 1. ĐỒNG BỘ DỮ LIỆU TỪ SLIDE 1: NĂNG SUẤT LAO ĐỘNG (NSLĐ), KHSX, THỰC HIỆN, ĐI LÀM %
   if (activeSlide1) {

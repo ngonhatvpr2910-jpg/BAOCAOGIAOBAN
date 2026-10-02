@@ -100,10 +100,11 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenSettingsModal}
               id="btn-open-settings"
-              className="p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer hidden sm:block"
-              title="Cài đặt ngưỡng cảnh báo"
+              className="flex items-center gap-1.5 p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer hidden sm:flex"
+              title="Cài đặt định mức & ngưỡng cảnh báo"
             >
               <Sliders className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden lg:inline text-xs font-bold uppercase tracking-tighter">Cài đặt</span>
             </button>
 
             {/* Auth / Profile Switcher */}

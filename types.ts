@@ -392,6 +392,29 @@ export interface Slide2QualityData {
   };
 }
 
+export interface GlobalNormsConfig {
+  nsldTarget: {
+    pxlr: number;
+    ro: number;
+    bg: number;
+  };
+  attendanceTarget: {
+    pxlr: number;
+    ro: number;
+    bg: number;
+  };
+  errorRateQuota: {
+    pxlr: number;
+    ro: number;
+    bg: number;
+  };
+  defectCostTarget: {
+    pxlr: number; // exact VND
+    ro: number;   // exact VND
+    bg: number;   // exact VND
+  };
+}
+
 export interface ProductionTargetMonth {
   month: string; // "Tháng 1"
   nsld: number;

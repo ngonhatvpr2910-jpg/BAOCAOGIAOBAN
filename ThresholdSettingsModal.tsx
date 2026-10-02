@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useProduction } from './ProductionContext';
 import { useAuth } from './AuthContext';
 import { StorageService } from './storage';
-import { Sliders, X, Save, RotateCcw, Download, Upload, Check, Bell, Clock, FileDown } from 'lucide-react';
+import { DEFAULT_GLOBAL_NORMS } from './initialData';
+import { Sliders, X, Save, RotateCcw, Download, Upload, Check, Bell, Clock, FileDown, Target } from 'lucide-react';
 
 interface ThresholdSettingsModalProps {
   isOpen: boolean;
@@ -13,10 +14,11 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { thresholds, updateThresholds } = useProduction();
+  const { thresholds, updateThresholds, globalNorms, updateGlobalNorms } = useProduction();
   const { canManageSettings } = useAuth();
 
   const [form, setForm] = useState({ ...thresholds });
+  const [normsForm, setNormsForm] = useState({ ...globalNorms });
   const [msg, setMsg] = useState('');
 
   if (!isOpen) return null;
@@ -24,11 +26,28 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     updateThresholds(form);
-    setMsg('Đã cập nhật cấu hình ngưỡng thành công!');
+    updateGlobalNorms(normsForm);
+    setMsg('Đã cập nhật cấu hình thành công!');
     setTimeout(() => {
       setMsg('');
       onClose();
     }, 1000);
+  };
+
+  const handleResetNorms = () => {
+    if (window.confirm('Khôi phục toàn bộ định mức về mặc định của nhà máy?')) {
+      setNormsForm({ ...DEFAULT_GLOBAL_NORMS });
+    }
+  };
+
+  const updateNormField = (category: keyof typeof globalNorms, unit: 'pxlr' | 'ro' | 'bg', value: number) => {
+    setNormsForm(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [unit]: value
+      }
+    }));
   };
 
   const handleExportJSON = () => {
@@ -66,12 +85,11 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
       <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden flex flex-col">
-        {/* Top bar */}
-        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-blue-400" />
-            <h3 className="text-base font-bold">
-              Cài Đặt Ngưỡng Cảnh Báo & Tự Động Hóa
+            <h3 className="text-base font-bold uppercase tracking-tight">
+              Cài Đặt Hệ Thống & Định Mức
             </h3>
           </div>
           <button
@@ -82,7 +100,70 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-5">
+        <form onSubmit={handleSave} className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-8 scrollbar-thin scrollbar-thumb-slate-300">
+          {/* Section 0: KPI & Mục Tiêu Sản Xuất (SLIDE 1 & SLIDE 4) */}
+          <div className="space-y-4 bg-blue-50/30 p-4 rounded-2xl border border-blue-100">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-2">
+              <h4 className="text-sm font-black uppercase tracking-tight text-blue-900 flex items-center gap-1.5">
+                <Target className="w-4 h-4 text-blue-600" />
+                Cập Nhật Định Mức & Mục Tiêu (KPI)
+              </h4>
+              <button
+                type="button"
+                onClick={handleResetNorms}
+                className="text-[10px] font-bold text-blue-600 hover:text-rose-600 transition-colors flex items-center gap-1"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Khôi phục mặc định
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6">
+              {/* NSLD Targets */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">1. Mục tiêu NSLĐ (%)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <CompactNormInput label="PXLR" value={normsForm.nsldTarget.pxlr} onChange={v => updateNormField('nsldTarget', 'pxlr', v)} unit="%" />
+                  <CompactNormInput label="Nhóm RO" value={normsForm.nsldTarget.ro} onChange={v => updateNormField('nsldTarget', 'ro', v)} unit="%" />
+                  <CompactNormInput label="Bếp Gas" value={normsForm.nsldTarget.bg} onChange={v => updateNormField('nsldTarget', 'bg', v)} unit="%" />
+                </div>
+              </div>
+
+              {/* Attendance Targets */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">2. Tỉ lệ đi làm (%)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <CompactNormInput label="PXLR" value={normsForm.attendanceTarget.pxlr} onChange={v => updateNormField('attendanceTarget', 'pxlr', v)} unit="%" />
+                  <CompactNormInput label="Nhóm RO" value={normsForm.attendanceTarget.ro} onChange={v => updateNormField('attendanceTarget', 'ro', v)} unit="%" />
+                  <CompactNormInput label="Bếp Gas" value={normsForm.attendanceTarget.bg} onChange={v => updateNormField('attendanceTarget', 'bg', v)} unit="%" />
+                </div>
+              </div>
+
+              {/* Error Rate Quotas */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">3. Định mức tỉ lệ lỗi (%)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <CompactNormInput label="PXLR" value={normsForm.errorRateQuota.pxlr} onChange={v => updateNormField('errorRateQuota', 'pxlr', v)} unit="%" />
+                  <CompactNormInput label="Line RO" value={normsForm.errorRateQuota.ro} onChange={v => updateNormField('errorRateQuota', 'ro', v)} unit="%" />
+                  <CompactNormInput label="Bếp Gas" value={normsForm.errorRateQuota.bg} onChange={v => updateNormField('errorRateQuota', 'bg', v)} unit="%" />
+                </div>
+              </div>
+
+              {/* Defect Cost Targets */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">4. Chi phí hư hỏng (VNĐ)</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <CompactNormInput label="PXLR" value={normsForm.defectCostTarget.pxlr} onChange={v => updateNormField('defectCostTarget', 'pxlr', v)} unit="đ" step={100000} />
+                  <CompactNormInput label="RO" value={normsForm.defectCostTarget.ro} onChange={v => updateNormField('defectCostTarget', 'ro', v)} unit="đ" step={100000} />
+                  <CompactNormInput label="BG" value={normsForm.defectCostTarget.bg} onChange={v => updateNormField('defectCostTarget', 'bg', v)} unit="đ" step={100000} />
+                </div>
+              </div>
+            </div>
+            <p className="text-[10px] text-blue-700/60 italic leading-tight">
+              * Các định mức này được dùng để đánh giá trạng thái (Xanh/Đỏ) trên toàn bộ hệ thống Slide báo cáo.
+            </p>
+          </div>
+
           {/* Section 1: Ngưỡng cảnh báo biến động */}
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
@@ -275,3 +356,27 @@ export const ThresholdSettingsModal: React.FC<ThresholdSettingsModalProps> = ({
     </div>
   );
 };
+
+interface CompactNormInputProps {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  unit: string;
+  step?: number;
+}
+
+const CompactNormInput: React.FC<CompactNormInputProps> = ({ label, value, onChange, unit, step = 0.1 }) => (
+  <div className="space-y-1">
+    <div className="text-[9px] font-black text-slate-400 uppercase truncate">{label}</div>
+    <div className="relative">
+      <input
+        type="number"
+        step={step}
+        value={value}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        className="w-full bg-white border border-slate-200 rounded-lg pl-2 pr-5 py-1.5 text-xs font-black text-slate-800 focus:border-blue-500 outline-hidden"
+      />
+      <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-bold text-slate-400 pointer-events-none">{unit}</span>
+    </div>
+  </div>
+);

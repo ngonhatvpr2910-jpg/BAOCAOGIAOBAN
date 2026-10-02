@@ -6,6 +6,7 @@ import {
   AVAILABLE_WEEKS, 
   AVAILABLE_MONTHS 
 } from './executiveSummaryService';
+import { GlobalNormsEditorModal } from './GlobalNormsEditorModal';
 import { 
   BarChart3, 
   Target, 
@@ -20,7 +21,8 @@ import {
   Sparkles,
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Edit3
 } from 'lucide-react';
 
 interface ExecutiveSummaryCardProps {
@@ -34,8 +36,9 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 }) => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [timeFrame, setTimeFrame] = useState<'week' | 'month'>('week');
+  const [isNormsEditorOpen, setIsNormsEditorOpen] = useState(false);
 
-  const { monthlyHistory, slide2Quality, dataVersion } = useProduction();
+  const { monthlyHistory, slide2Quality, dataVersion, globalNorms } = useProduction();
 
   // Đọc dữ liệu chi phí hư hỏng thực tế từ Storage
   const defectCostData = useMemo(() => {
@@ -91,9 +94,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
       defectCostData, 
       monthlyHistory,
       slide1Data,
-      slide2Quality || StorageService.getSlide2Quality()
+      slide2Quality || StorageService.getSlide2Quality(),
+      globalNorms
     );
-  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, slide2Quality, dataVersion]);
+  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, slide2Quality, dataVersion, globalNorms]);
 
   const activePeriodLabel = timeFrame === 'week' ? selectedWeek : selectedMonth;
 
@@ -132,9 +136,6 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           <div>
             <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
               <span>BÁO CÁO TỔNG THỂ - EXECUTIVE SUMMARY ({activePeriodLabel})</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-500/30 text-blue-200 border border-blue-400/30">
-                Chuẩn Định Mức & Mục Tiêu
-              </span>
             </h2>
             <p className="text-xs text-slate-300">
               Bảng số liệu điều hành then chốt: Kế hoạch, Thực hiện, NSLĐ, Tỉ lệ đi làm, Tỉ lệ lỗi và Chi phí hư hỏng theo {timeFrame === 'week' ? 'tuần' : 'tháng'}.
@@ -236,6 +237,15 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               Bảng Định Mức Chuẩn
             </button>
           </div>
+
+          {/* New prominent Edit Button */}
+          <button
+            onClick={() => setIsNormsEditorOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/20 transition-all transform hover:scale-105 active:scale-95 cursor-pointer border border-rose-400/30 hidden-ppt"
+          >
+            <Edit3 className="w-4 h-4" />
+            <span>Chỉnh sửa Định mức & Mục tiêu</span>
+          </button>
         </div>
       </div>
 
@@ -366,10 +376,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       ) : isNsldPass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                           ✓ Đạt MT ≥{item.nsldTarget}%
+                          <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 flex items-center gap-0.5">
                           ⚠ Chưa Đạt MT {item.nsldTarget}%
+                          <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                         </span>
                       )}
                     </div>
@@ -408,10 +420,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       {isAttendancePass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                           ✓ Đạt MT ≥{item.attendanceTarget}%
+                          <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                         </span>
                       ) : (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 flex items-center gap-0.5">
                           ⚠ Chưa Đạt MT {item.attendanceTarget}%
+                          <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                         </span>
                       )}
                     </div>
@@ -459,10 +473,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                           {isErrorPass ? (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                               ✓ Đạt ĐM
+                              <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 flex items-center gap-0.5">
                               ⚠ Vượt ĐM
+                              <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                             </span>
                           )}
                         </div>
@@ -499,10 +515,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                           ) : isCostPass ? (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                               ✓ Đạt MT
+                              <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                             </span>
                           ) : (
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-800 flex items-center gap-0.5">
                               ⚠ Vượt MT
+                              <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
                             </span>
                           )}
                         </div>
@@ -547,13 +565,33 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               <tr className="bg-slate-100 text-slate-800 font-bold">
                 <th className="border border-slate-200 p-2.5">Bộ Phận / Line</th>
                 <th className="border border-slate-200 p-2.5 text-center">Tiến Độ KHSX ({activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel})</th>
-                <th className="border border-slate-200 p-2.5 text-center bg-blue-50/50">MỤC TIÊU NSLĐ</th>
+                <th className="border border-slate-200 p-2.5 text-center bg-blue-50/50">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>MỤC TIÊU NSLĐ</span>
+                    <Edit3 className="w-3 h-3 text-blue-400 cursor-pointer hover:text-blue-600 hidden-ppt" onClick={() => setIsNormsEditorOpen(true)} />
+                  </div>
+                </th>
                 <th className="border border-slate-200 p-2.5 text-center">NSLĐ THỰC TẾ</th>
-                <th className="border border-slate-200 p-2.5 text-center bg-emerald-50/50">MỤC TIÊU ĐI LÀM</th>
+                <th className="border border-slate-200 p-2.5 text-center bg-emerald-50/50">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>MỤC TIÊU ĐI LÀM</span>
+                    <Edit3 className="w-3 h-3 text-emerald-400 cursor-pointer hover:text-emerald-600 hidden-ppt" onClick={() => setIsNormsEditorOpen(true)} />
+                  </div>
+                </th>
                 <th className="border border-slate-200 p-2.5 text-center">ĐI LÀM THỰC TẾ</th>
-                <th className="border border-slate-200 p-2.5 text-center bg-amber-50/50">ĐỊNH MỨC TỈ LỆ LỖI</th>
+                <th className="border border-slate-200 p-2.5 text-center bg-amber-50/50">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>ĐỊNH MỨC TỈ LỆ LỖI</span>
+                    <Edit3 className="w-3 h-3 text-amber-400 cursor-pointer hover:text-amber-600 hidden-ppt" onClick={() => setIsNormsEditorOpen(true)} />
+                  </div>
+                </th>
                 <th className="border border-slate-200 p-2.5 text-center">LỖI THỰC TẾ</th>
-                <th className="border border-slate-200 p-2.5 text-center bg-rose-50/50">MỤC TIÊU HƯ HỎNG</th>
+                <th className="border border-slate-200 p-2.5 text-center bg-rose-50/50">
+                  <div className="flex items-center justify-center gap-1">
+                    <span>MỤC TIÊU HƯ HỎNG</span>
+                    <Edit3 className="w-3 h-3 text-rose-400 cursor-pointer hover:text-rose-600 hidden-ppt" onClick={() => setIsNormsEditorOpen(true)} />
+                  </div>
+                </th>
                 <th className="border border-slate-200 p-2.5 text-center">HƯ HỎNG THỰC TẾ</th>
                 <th className="border border-slate-200 p-2.5 text-center">ĐÁNH GIÁ</th>
               </tr>
@@ -642,6 +680,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           </table>
         </div>
       )}
+
+      {/* Norms Editor Modal */}
+      <GlobalNormsEditorModal 
+        isOpen={isNormsEditorOpen}
+        onClose={() => setIsNormsEditorOpen(false)}
+      />
     </div>
   );
 };

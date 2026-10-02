@@ -28,6 +28,9 @@ import {
 } from './productivityFormulas';
 import { applyTimeFrameToSlide2Data } from './qualityFormulas';
 import { synchronizeSlide3Data } from './defectCostSyncService';
+import { exportToPowerPoint } from './powerpointService';
+import { GlobalNormsEditorModal } from './GlobalNormsEditorModal';
+import { PowerPointCoverSlide } from './PowerPointCoverSlide';
 import { 
   Tv, 
   Maximize2, 
@@ -61,7 +64,9 @@ import {
   Download,
   Upload,
   FileSpreadsheet,
-  ClipboardList
+  ClipboardList,
+  Presentation,
+  Settings2
 } from 'lucide-react';
 
 export const TabPowerPointPresentation: React.FC = () => {
@@ -77,7 +82,7 @@ export const TabPowerPointPresentation: React.FC = () => {
     updateSlide2Quality
   } = useProduction();
   const showNotes = false; // Luôn ẩn các ghi chú theo yêu cầu
-  const [activeSlide, setActiveSlide] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
+  const [activeSlide, setActiveSlide] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>(0);
   const [slideData, setSlideData] = useState<Slide1NSLDData>(() => StorageService.getSlide1NSLD());
   const [slide2Data, setSlide2Data] = useState<Slide2QualityData>(() => slide2Quality || StorageService.getSlide2Quality());
   
@@ -121,7 +126,9 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [isSlide4EditorOpen, setIsSlide4EditorOpen] = useState(false);
   const [isSlide5EditorOpen, setIsSlide5EditorOpen] = useState(false);
   const [isSlide6EditorOpen, setIsSlide6EditorOpen] = useState(false);
+  const [isNormsModalOpen, setIsNormsModalOpen] = useState(false);
   const [isExcelImportModalOpen, setIsExcelImportModalOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [editingData, setEditingData] = useState<Slide1NSLDData>(slideData);
   const [activeEditSection, setActiveEditSection] = useState<'pxlr' | 'ro' | 'bg'>('pxlr');
   const [autoCalculatePXLR, setAutoCalculatePXLR] = useState(true);
@@ -133,6 +140,7 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [syncVersion, setSyncVersion] = useState(0);
   const [summaryView, setSummaryView] = useState<'auto' | 'slide1' | 'slide2' | 'both'>('auto');
   
+  const slide0Ref = useRef<HTMLDivElement>(null);
   const slide1Ref = useRef<HTMLDivElement>(null);
   const slide2Ref = useRef<HTMLDivElement>(null);
   const slide3Ref = useRef<HTMLDivElement>(null);
@@ -143,10 +151,11 @@ export const TabPowerPointPresentation: React.FC = () => {
   const fullscreenContainerRef = useRef<HTMLDivElement>(null);
 
   // Lướt chuột chuyển slide mượt mà giống PowerPoint
-  const scrollToSlide = (slideNum: 1 | 2 | 3 | 4 | 5 | 6 | 7) => {
+  const scrollToSlide = (slideNum: 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) => {
     setActiveSlide(slideNum);
     let target: HTMLDivElement | null = null;
-    if (slideNum === 1) target = slide1Ref.current;
+    if (slideNum === 0) target = slide0Ref.current;
+    else if (slideNum === 1) target = slide1Ref.current;
     else if (slideNum === 2) target = slide2Ref.current;
     else if (slideNum === 3) target = slide3Ref.current;
     else if (slideNum === 4) target = slide4Ref.current;
@@ -205,7 +214,14 @@ export const TabPowerPointPresentation: React.FC = () => {
           return;
         }
       }
-      setActiveSlide(1);
+      if (slide1Ref.current) {
+        const rect1 = slide1Ref.current.getBoundingClientRect();
+        if (rect1.top <= window.innerHeight * 0.45) {
+          setActiveSlide(1);
+          return;
+        }
+      }
+      setActiveSlide(0);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
@@ -258,7 +274,14 @@ export const TabPowerPointPresentation: React.FC = () => {
         return;
       }
     }
-    setActiveSlide(1);
+    if (slide1Ref.current) {
+      const slide1Top = slide1Ref.current.offsetTop - 200;
+      if (containerTop >= slide1Top) {
+        setActiveSlide(1);
+        return;
+      }
+    }
+    setActiveSlide(0);
   };
 
   // Lắng nghe sự kiện đồng bộ tự động từ Ma trận DCRO & DCBG tức thời
@@ -318,13 +341,13 @@ export const TabPowerPointPresentation: React.FC = () => {
         setIsFullscreen(prev => !prev);
       } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === 'ArrowDown') {
         setActiveSlide(curr => {
-          const next = curr < 7 ? ((curr + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
+          const next = curr < 7 ? ((curr + 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
           scrollToSlide(next);
           return next;
         });
       } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') {
         setActiveSlide(curr => {
-          const prev = curr > 1 ? ((curr - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 1;
+          const prev = curr > 0 ? ((curr - 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 0;
           scrollToSlide(prev);
           return prev;
         });
@@ -523,6 +546,32 @@ export const TabPowerPointPresentation: React.FC = () => {
     }
   };
 
+  const handleExportPowerPoint = async () => {
+    setIsExporting(true);
+    showToast('Đang khởi tạo xuất file PowerPoint toàn bộ 8 slide...');
+    
+    try {
+      const slideIds = [
+        'powerpoint-slide-0',
+        'powerpoint-slide-1',
+        'powerpoint-slide-2',
+        'powerpoint-slide-3',
+        'powerpoint-slide-4',
+        'powerpoint-slide-5',
+        'powerpoint-slide-6',
+        'powerpoint-slide-7'
+      ];
+      
+      await exportToPowerPoint(slideIds, `Bao_Cao_San_Xuat_${currentMonthLabel}.pptx`);
+      showToast('Đã xuất file PowerPoint thành công!');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Có lỗi xảy ra khi xuất file PowerPoint. Vui lòng thử lại.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const handleValueChange = (
     section: 'pxlr' | 'ro' | 'bg',
     type: 'weekly' | 'monthly',
@@ -590,7 +639,7 @@ export const TabPowerPointPresentation: React.FC = () => {
         <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 shadow-xs flex flex-wrap items-center justify-between gap-3 sticky top-16 z-30 backdrop-blur-md bg-white/95">
           <div className="flex items-center gap-2.5 flex-wrap">
             <div className={`w-9 h-9 rounded-lg text-white flex items-center justify-center font-bold shadow-xs transition-colors ${
-              activeSlide === 1 ? 'bg-blue-600' : activeSlide === 2 ? 'bg-teal-600' : activeSlide === 3 ? 'bg-blue-600' : activeSlide === 4 ? 'bg-amber-600' : activeSlide === 5 ? 'bg-emerald-600' : activeSlide === 6 ? 'bg-blue-600' : 'bg-indigo-600'
+              activeSlide === 0 ? 'bg-[#cc0000]' : activeSlide === 1 ? 'bg-blue-600' : activeSlide === 2 ? 'bg-teal-600' : activeSlide === 3 ? 'bg-blue-600' : activeSlide === 4 ? 'bg-amber-600' : activeSlide === 5 ? 'bg-emerald-600' : activeSlide === 6 ? 'bg-blue-600' : 'bg-indigo-600'
             }`}>
               <Tv className="w-5 h-5" />
             </div>
@@ -598,13 +647,25 @@ export const TabPowerPointPresentation: React.FC = () => {
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 tracking-tight flex items-center gap-1.5">
                   <span>Báo Cáo PowerPoint:</span>
-                  <span className={activeSlide === 1 ? 'text-blue-700 font-black' : activeSlide === 2 ? 'text-teal-700 font-bold' : activeSlide === 3 ? 'text-blue-700 font-bold' : activeSlide === 4 ? 'text-amber-700 font-bold' : activeSlide === 5 ? 'text-emerald-700 font-bold' : activeSlide === 6 ? 'text-blue-700 font-bold' : 'text-indigo-700 font-bold'}>
-                    {activeSlide === 1 ? 'Slide 1 (Báo Cáo Tổng Thể)' : activeSlide === 2 ? 'Slide 2 (Năng Suất)' : activeSlide === 3 ? 'Slide 3 (Chất Lượng)' : activeSlide === 4 ? 'Slide 4 (Tỉ Lệ Hư Hỏng)' : activeSlide === 5 ? 'Slide 5 (Mục Tiêu)' : activeSlide === 6 ? 'Slide 6 (Kế Hoạch SX)' : 'Slide 7 (KH Công Việc)'}
+                  <span className={activeSlide === 0 ? 'text-[#cc0000] font-black' : activeSlide === 1 ? 'text-blue-700 font-black' : activeSlide === 2 ? 'text-teal-700 font-bold' : activeSlide === 3 ? 'text-blue-700 font-bold' : activeSlide === 4 ? 'text-amber-700 font-bold' : activeSlide === 5 ? 'text-emerald-700 font-bold' : activeSlide === 6 ? 'text-blue-700 font-bold' : 'text-indigo-700 font-bold'}>
+                    {activeSlide === 0 ? 'Slide Tiêu Đề' : activeSlide === 1 ? 'Slide 1 (Báo Cáo Tổng Thể)' : activeSlide === 2 ? 'Slide 2 (Năng Suất)' : activeSlide === 3 ? 'Slide 3 (Chất Lượng)' : activeSlide === 4 ? 'Slide 4 (Tỉ Lệ Hư Hỏng)' : activeSlide === 5 ? 'Slide 5 (Mục Tiêu)' : activeSlide === 6 ? 'Slide 6 (Kế Hoạch SX)' : 'Slide 7 (KH Công Việc)'}
                   </span>
                 </h2>
 
-                {/* Slide 1, 2, 3, 4, 5, 6 & 7 Switcher Tabs with Smooth Scroll */}
+                {/* Slide Switcher Tabs */}
                 <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200 flex-wrap gap-0.5">
+                  <button
+                    onClick={() => scrollToSlide(0)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                      activeSlide === 0
+                        ? 'bg-rose-700 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Slide Tiêu Đề Báo Cáo"
+                  >
+                    <Presentation className="w-3.5 h-3.5" />
+                    <span>Tiêu Đề</span>
+                  </button>
                   <button
                     onClick={() => scrollToSlide(1)}
                     className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
@@ -695,21 +756,21 @@ export const TabPowerPointPresentation: React.FC = () => {
                 <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5">
                   <button
                     onClick={() => {
-                      const prev = activeSlide > 1 ? ((activeSlide - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 1;
+                      const prev = activeSlide > 0 ? ((activeSlide - 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 0;
                       scrollToSlide(prev);
                     }}
-                    disabled={activeSlide === 1}
+                    disabled={activeSlide === 0}
                     className="p-1 hover:bg-slate-200/80 rounded disabled:opacity-30 text-slate-700 cursor-pointer"
                     title="Lên Slide trước (Phím ↑ hoặc ←)"
                   >
                     <ChevronUp className="w-3.5 h-3.5" />
                   </button>
                   <span className="text-[11px] font-bold font-mono px-1.5 text-slate-700">
-                    {activeSlide} / 7
+                    {activeSlide + 1} / 8
                   </span>
                   <button
                     onClick={() => {
-                      const next = activeSlide < 7 ? ((activeSlide + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
+                      const next = activeSlide < 7 ? ((activeSlide + 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
                       scrollToSlide(next);
                     }}
                     disabled={activeSlide === 7}
@@ -800,6 +861,31 @@ export const TabPowerPointPresentation: React.FC = () => {
               <span>Upfile Excel</span>
             </button>
 
+            {/* Xuất PowerPoint (.pptx) - NEW REQUEST */}
+            <button
+              onClick={handleExportPowerPoint}
+              disabled={isExporting}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-lg shadow-rose-900/20 transition-all cursor-pointer animate-pulse-subtle border border-rose-400/30"
+              title="Xuất toàn bộ 7 slide báo cáo ra định dạng PowerPoint (.pptx) để gửi mail"
+            >
+              {isExporting ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Presentation className="w-3.5 h-3.5" />
+              )}
+              <span>Xuất PowerPoint (.pptx)</span>
+            </button>
+
+            {/* Cài đặt Định mức & Mục tiêu - PROMINENT ACCESS */}
+            <button
+              onClick={() => setIsNormsModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg shadow-2xs transition-all cursor-pointer"
+              title="Điều chỉnh định mức NSLĐ, tỉ lệ đi làm, tỉ lệ lỗi và mục tiêu chi phí toàn hệ thống"
+            >
+              <Settings2 className="w-3.5 h-3.5 text-slate-500" />
+              <span>Định mức & Mục tiêu</span>
+            </button>
+
             {/* Sửa Slide 2 (Năng Suất) */}
             <button
               onClick={() => setIsEditorOpen(true)}
@@ -813,7 +899,7 @@ export const TabPowerPointPresentation: React.FC = () => {
             <button
               onClick={() => setIsFullscreen(prev => !prev)}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white rounded-lg shadow-xs transition-all cursor-pointer ${
-                activeSlide === 1 ? 'bg-teal-700 hover:bg-teal-800' : activeSlide === 2 ? 'bg-blue-700 hover:bg-blue-800' : activeSlide === 3 ? 'bg-amber-700 hover:bg-amber-800' : activeSlide === 4 ? 'bg-emerald-700 hover:bg-emerald-800' : activeSlide === 5 ? 'bg-blue-700 hover:bg-blue-800' : 'bg-[#4472c4] hover:bg-[#35589c]'
+                activeSlide === 0 ? 'bg-rose-700 hover:bg-rose-800' : activeSlide === 1 ? 'bg-teal-700 hover:bg-teal-800' : activeSlide === 2 ? 'bg-blue-700 hover:bg-blue-800' : activeSlide === 3 ? 'bg-amber-700 hover:bg-amber-800' : activeSlide === 4 ? 'bg-emerald-700 hover:bg-emerald-800' : activeSlide === 5 ? 'bg-blue-700 hover:bg-blue-800' : 'bg-[#4472c4] hover:bg-[#35589c]'
               }`}
               title="Chế độ chiếu toàn màn hình (F11 hoặc ESC để thoát)"
             >
@@ -848,18 +934,18 @@ export const TabPowerPointPresentation: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
-                const prev = activeSlide > 1 ? ((activeSlide - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 1;
+                const prev = activeSlide > 0 ? ((activeSlide - 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 0;
                 scrollToSlide(prev);
               }}
-              disabled={activeSlide === 1}
+              disabled={activeSlide === 0}
               className="p-1 disabled:opacity-30"
             >
               <ChevronUp className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold font-mono w-10 text-center">{activeSlide} / 7</span>
+            <span className="text-xs font-bold font-mono w-10 text-center">{activeSlide + 1} / 8</span>
             <button
               onClick={() => {
-                const next = activeSlide < 7 ? ((activeSlide + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
+                const next = activeSlide < 7 ? ((activeSlide + 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
                 scrollToSlide(next);
               }}
               disabled={activeSlide === 7}
@@ -956,8 +1042,13 @@ export const TabPowerPointPresentation: React.FC = () => {
       )}
 
       {/* ================= MAIN POWERPOINT PRESENTATION DECK ================= */}
-      {/* 7 Slide được bố trí liên tục từ trên xuống để người dùng có thể lăn chuột hoặc phím mũi tên mượt mà giống PowerPoint */}
+      {/* 8 Slide được bố trí liên tục từ trên xuống để người dùng có thể lăn chuột hoặc phím mũi tên mượt mà giống PowerPoint */}
       <div className="w-full space-y-8 print:space-y-0">
+
+        {/* ================= SLIDE 0 CONTAINER: TIÊU ĐỀ ================= */}
+        <section id="powerpoint-slide-0" ref={slide0Ref} className="scroll-mt-32 print:break-after-page">
+          <PowerPointCoverSlide />
+        </section>
 
         {/* ================= SLIDE 1 CONTAINER: BÁO CÁO TỔNG THỂ ================= */}
         <section id="powerpoint-slide-1" ref={slide1Ref} className="scroll-mt-32 print:break-after-page">
@@ -1344,6 +1435,18 @@ export const TabPowerPointPresentation: React.FC = () => {
           }`}>
             <button
               onClick={() => {
+                setActiveSlide(0);
+                slide0Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                activeSlide === 0 ? 'bg-rose-600 text-white shadow-sm' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <Presentation className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tiêu Đề</span>
+            </button>
+            <button
+              onClick={() => {
                 setActiveSlide(1);
                 slide1Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }}
@@ -1441,11 +1544,11 @@ export const TabPowerPointPresentation: React.FC = () => {
               <ChevronUp className="w-4 h-4" />
             </button>
             <span className="text-xs font-mono font-bold text-slate-300 px-1">
-              {activeSlide} / 7
+              {activeSlide + 1} / 8
             </span>
             <button
               onClick={() => {
-                const next = activeSlide < 7 ? ((activeSlide + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
+                const next = activeSlide < 7 ? ((activeSlide + 1) as 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7) : 7;
                 scrollToSlide(next);
               }}
               disabled={activeSlide === 7}
@@ -1460,6 +1563,13 @@ export const TabPowerPointPresentation: React.FC = () => {
               <Mouse className="w-3 h-3 text-slate-400" />
               <span>Lăn chuột để chuyển • ESC thoát</span>
             </span>
+          </div>
+
+          {/* Fullscreen Slide 0 View: Cover Slide */}
+          <div className="snap-start min-h-screen h-screen w-full flex items-center justify-center p-4 sm:p-8 shrink-0">
+             <div ref={slide0Ref} className="w-full max-w-6xl aspect-[16/9]">
+                <PowerPointCoverSlide />
+             </div>
           </div>
 
           {/* Fullscreen Slide 1 View: Executive Summary */}
@@ -1852,6 +1962,12 @@ export const TabPowerPointPresentation: React.FC = () => {
           productivityHistory={monthlyHistory}
         />
       )}
+
+      {/* Global Norms Editor Modal */}
+      <GlobalNormsEditorModal 
+        isOpen={isNormsModalOpen}
+        onClose={() => setIsNormsModalOpen(false)}
+      />
     </div>
   );
 };
