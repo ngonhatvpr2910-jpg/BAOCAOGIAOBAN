@@ -536,6 +536,35 @@ export const StorageService = {
     }
   },
 
+  addWeekToSlide1(weekNumOrLabel: number | string): Slide1NSLDData {
+    const current = this.getSlide1NSLD();
+    const cleanNum = typeof weekNumOrLabel === 'number' 
+      ? weekNumOrLabel 
+      : (parseInt(weekNumOrLabel.replace(/\D/g, ''), 10) || 41);
+    const label = `Tuần ${cleanNum}`;
+    const idSuffix = `w${cleanNum}`;
+
+    const appendIfMissing = (items: any[], prefix: string) => {
+      if (!items.some(i => i.label === label || i.id === `${prefix}-${idSuffix}`)) {
+        items.push({ id: `${prefix}-${idSuffix}`, label, value: 0 });
+      }
+      return items.sort((a, b) => {
+        const getNum = (s: string) => parseInt(s.replace(/\D/g, ''), 10) || 0;
+        return getNum(a.label) - getNum(b.label);
+      });
+    };
+
+    current.pxlr.weekly = appendIfMissing(current.pxlr.weekly, 'pxlr');
+    current.ro.weekly = appendIfMissing(current.ro.weekly, 'ro');
+    current.bg.weekly = appendIfMissing(current.bg.weekly, 'bg');
+
+    this.saveSlide1NSLD(current);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'slide1-weeks' } }));
+    }
+    return current;
+  },
+
   resetSlide1NSLD(): Slide1NSLDData {
     try {
       localStorage.removeItem(STORAGE_KEYS.SLIDE1_NSLD);

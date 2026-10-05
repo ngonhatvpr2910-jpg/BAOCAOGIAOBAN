@@ -284,12 +284,24 @@ export interface Slide5PlanRow {
   manpowerRma: string;
 }
 
+export interface Slide5WeekPlan {
+  id: string;
+  weekHeader: string; // e.g. "Tuần 38", "Tuần 39", "Tuần 40", "Tuần 41"
+  weekTitle?: string;
+  dateRange?: string; // e.g. "21/09 – 27/09/2026"
+  manpowerSummary: string;
+  rmaSummary: string;
+  rows: Slide5PlanRow[];
+}
+
 export interface Slide5ProductionPlanData {
   title: string;
   weekHeader: string;
   manpowerSummary: string;
   rmaSummary: string;
   rows: Slide5PlanRow[];
+  activeWeekIndex?: number;
+  weeks?: Slide5WeekPlan[];
 }
 
 export interface Slide6TaskRow {

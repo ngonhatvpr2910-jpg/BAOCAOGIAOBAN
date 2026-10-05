@@ -37,7 +37,7 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
       const totalSl = slGa + slRma;
       const khsx = Number(c.khsxNgay) || 0;
       // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
-      const khsxRate = khsx > 0 ? Number(((totalSl / khsx) * 100).toFixed(1)) : (Number(c.tiLeHoanThanhKhsx) || 0);
+      const khsxRate = khsx > 0 ? Number(((totalSl / khsx) * 100).toFixed(1)) : 0;
       const attendance = Number(c.tiLeDiLam) || 0;
       return {
         ...c,

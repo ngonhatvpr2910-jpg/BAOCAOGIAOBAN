@@ -137,6 +137,66 @@ export function autoComputeSlideDataFromInputs(
     }
   });
 
+  // Tự động đồng bộ các tuần tiếp theo (W40..W52) từ Ma Trận Tháng 9, 10, 11, 12 nếu có dữ liệu
+  try {
+    const monthsToCheck = [8, 9, 10, 11]; // T9 (8), T10 (9), T11 (10), T12 (11)
+    monthsToCheck.forEach(mIdx => {
+      const matRO = StorageService.getMatrixROForMonth(2026, mIdx);
+      const matBG = StorageService.getMatrixBGForMonth(2026, mIdx);
+      
+      const weeklyColsRO = matRO.filter(c => c.isWeeklyTotal);
+      weeklyColsRO.forEach(wColRO => {
+        const match = wColRO.label.match(/W(\d+)/i);
+        if (match) {
+          const wNum = parseInt(match[1], 10);
+          const wCode = `W${wNum}`;
+          const finalLabel = `Tuần ${wNum}`;
+          const wColBG = matBG.find(c => c.isWeeklyTotal && c.label.includes(wCode));
+          
+          const nsRO = Number(wColRO.nsldTheoNgay) || 0;
+          const nsBG = wColBG ? (Number(wColBG.nsldTheoNgay) || 0) : 0;
+          
+          if (nsRO > 0 || nsBG > 0) {
+            const slRO = Number(wColRO.sanLuongLineChinh) || 0;
+            const dmRO = Number(wColRO.dinhMucSlTheoNs) || 0;
+            const slBG = wColBG ? ((Number(wColBG.sanLuongBepGa) || 0) + (Number(wColBG.sanLuongRma) || 0)) : 0;
+            const dmBG = wColBG ? (Number(wColBG.dinhMucSlTheoNs) || 0) : 0;
+            const totalSL = slRO + slBG;
+            const totalDM = dmRO + dmBG;
+            const nsPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : (nsRO > 0 && nsBG > 0 ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) : (nsRO || nsBG));
+            
+            const updateItem = (items: SlideBarItem[], val: number, type: string) => {
+              const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
+              if (idx !== -1) {
+                if (!isHistoricalItem(items[idx].id) && (val > 0 || items[idx].value === 0)) {
+                  items[idx].value = val;
+                }
+              } else {
+                items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
+              }
+            };
+            if (nsRO > 0) updateItem(result.ro.weekly, nsRO, 'ro');
+            if (nsBG > 0) updateItem(result.bg.weekly, nsBG, 'bg');
+            if (nsPXLR > 0) updateItem(result.pxlr.weekly, nsPXLR, 'pxlr');
+          }
+        }
+      });
+    });
+  } catch {
+    // Continue if storage lookup fails
+  }
+
+  // Đảm bảo các tuần luôn sắp xếp theo thứ tự số tăng dần (W32 -> W52)
+  const sortWeeks = (items: SlideBarItem[]) => {
+    return items.sort((a, b) => {
+      const getNum = (s: string) => parseInt(s.replace(/\D/g, ''), 10) || 0;
+      return getNum(a.label) - getNum(b.label);
+    });
+  };
+  result.pxlr.weekly = sortWeeks(result.pxlr.weekly);
+  result.ro.weekly = sortWeeks(result.ro.weekly);
+  result.bg.weekly = sortWeeks(result.bg.weekly);
+
   // Cập nhật tháng
   const monthStats: Record<string, any> = {};
 

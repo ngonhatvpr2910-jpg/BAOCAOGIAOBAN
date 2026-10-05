@@ -103,6 +103,35 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
     handleSelectDayOfWeek(0); // Sunday = 0
   };
 
+  // Handler to adjust an individual cutoff day (flexible upcoming weeks)
+  const handleAdjustCutoff = (oldCutoff: number, newCutoff: number) => {
+    if (newCutoff < 1 || newCutoff > totalDays) return;
+    setCutoffMode('manual');
+    setSelectedCutoffs(prev => {
+      const filtered = prev.filter(d => d !== oldCutoff);
+      if (!filtered.includes(newCutoff)) {
+        filtered.push(newCutoff);
+      }
+      return filtered.sort((a, b) => a - b);
+    });
+  };
+
+  const handleAddCutoffAtDay = (day: number) => {
+    if (day < 1 || day > totalDays) return;
+    setCutoffMode('manual');
+    setSelectedCutoffs(prev => {
+      if (!prev.includes(day)) {
+        return [...prev, day].sort((a, b) => a - b);
+      }
+      return prev;
+    });
+  };
+
+  const handleRemoveCutoff = (cutoffToRemove: number) => {
+    setCutoffMode('manual');
+    setSelectedCutoffs(prev => prev.filter(d => d !== cutoffToRemove));
+  };
+
   // Calculate simulated week ranges based on selected cutoffs
   const sortedCutoffs = [...selectedCutoffs].sort((a, b) => a - b);
   const weekBreakdowns: { 
@@ -463,49 +492,102 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
                 Chưa chọn mốc chốt tuần nào.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                {weekBreakdowns.map((wb) => {
-                  const toDate = new Date(year, monthIndex0, wb.toDay);
-                  const dayName = FULL_DAY_NAMES_VN[toDate.getDay()];
+              <div>
+                <div className="text-[11px] text-blue-800 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-200 mb-2.5 flex items-center justify-between">
+                  <span className="font-semibold">💡 Linh hoạt các tuần tiếp theo: Bạn có thể bấm nút [-1n] hoặc [+1n] ở từng tuần bên dưới để điều chỉnh mốc chốt tuần độc lập.</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  {weekBreakdowns.map((wb) => {
+                    const toDate = new Date(year, monthIndex0, wb.toDay);
+                    const dayName = FULL_DAY_NAMES_VN[toDate.getDay()];
+                    const isExplicitCutoff = sortedCutoffs.includes(wb.toDay);
 
-                  return (
-                    <div
-                      key={wb.weekIndex}
-                      className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
-                        wb.isCurrentWeek || wb.yearWeek === 38
-                          ? 'bg-amber-50/90 border-amber-300 shadow-sm ring-1 ring-amber-400'
-                          : 'bg-white border-slate-200 shadow-2xs'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className={`px-2.5 py-0.5 rounded-lg text-xs font-black shadow-2xs ${
+                    return (
+                      <div
+                        key={wb.weekIndex}
+                        className={`p-3 rounded-xl border transition-all flex flex-col justify-between ${
                           wb.isCurrentWeek || wb.yearWeek === 38
-                            ? 'bg-amber-500 text-slate-950 font-black'
-                            : `${primaryBg} text-white`
-                        }`}>
-                          {wb.weekLabel}
-                        </span>
-
-                        {(wb.isCurrentWeek || wb.yearWeek === 38) && (
-                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-200 text-amber-950 border border-amber-300">
-                            ⭐ Tuần Hiện Hữu
+                            ? 'bg-amber-50/90 border-amber-300 shadow-sm ring-1 ring-amber-400'
+                            : 'bg-white border-slate-200 shadow-2xs'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`px-2.5 py-0.5 rounded-lg text-xs font-black shadow-2xs ${
+                            wb.isCurrentWeek || wb.yearWeek === 38
+                              ? 'bg-amber-500 text-slate-950 font-black'
+                              : `${primaryBg} text-white`
+                          }`}>
+                            {wb.weekLabel}
                           </span>
-                        )}
-                      </div>
 
-                      <div className="text-xs font-bold text-slate-900">
-                        {String(wb.fromDay).padStart(2, '0')}/{monthFormatted} – {String(wb.toDay).padStart(2, '0')}/{monthFormatted}
-                      </div>
+                          {(wb.isCurrentWeek || wb.yearWeek === 38) && (
+                            <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-200 text-amber-950 border border-amber-300">
+                              ⭐ Tuần Hiện Hữu
+                            </span>
+                          )}
+                        </div>
 
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1 pt-1 border-t border-slate-100">
-                        <span>Gồm {wb.daysCount} ngày</span>
-                        <span className="font-semibold text-emerald-700">
-                          Chốt {dayName}, {String(wb.toDay).padStart(2, '0')}/{monthFormatted}
-                        </span>
+                        <div className="text-xs font-bold text-slate-900 mb-1">
+                          {String(wb.fromDay).padStart(2, '0')}/{monthFormatted} – {String(wb.toDay).padStart(2, '0')}/{monthFormatted}
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1 pt-1.5 border-t border-slate-100">
+                          {isExplicitCutoff ? (
+                            <>
+                              <div className="flex items-center gap-1">
+                                <span className="font-bold text-emerald-800">
+                                  Chốt {dayName}, {String(wb.toDay).padStart(2, '0')}/{monthFormatted}
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-semibold">({wb.daysCount} ngày)</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustCutoff(wb.toDay, wb.toDay - 1)}
+                                  disabled={wb.toDay <= wb.fromDay}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-800 disabled:opacity-30 border border-slate-300 transition cursor-pointer"
+                                  title="Lùi ngày chốt tuần này 1 ngày"
+                                >
+                                  -1n
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustCutoff(wb.toDay, wb.toDay + 1)}
+                                  disabled={wb.toDay >= totalDays}
+                                  className="px-1.5 py-0.5 rounded text-[10px] font-black bg-slate-100 hover:bg-blue-100 text-slate-700 hover:text-blue-800 disabled:opacity-30 border border-slate-300 transition cursor-pointer"
+                                  title="Tiến ngày chốt tuần này 1 ngày"
+                                >
+                                  +1n
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveCutoff(wb.toDay)}
+                                  className="p-1 rounded text-rose-500 hover:bg-rose-50 transition cursor-pointer"
+                                  title="Xóa mốc chốt tuần này"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[10px] italic text-slate-500">Còn lại cuối tháng ({wb.daysCount} ngày)</span>
+                              {wb.fromDay + 4 <= totalDays && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddCutoffAtDay(Math.min(totalDays - 1, wb.fromDay + 6))}
+                                  className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition cursor-pointer"
+                                >
+                                  + Chốt thêm tuần
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

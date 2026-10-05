@@ -1359,6 +1359,10 @@ export const TabPowerPointPresentation: React.FC = () => {
             isFullscreen={false} 
             onOpenEditor={() => setIsSlide5EditorOpen(true)}
             showNotes={showNotes}
+            onUpdateData={(newData) => {
+              StorageService.saveSlide5ProductionPlan(newData);
+              setSlide5Data(newData);
+            }}
           />
         </section>
 
@@ -1619,6 +1623,10 @@ export const TabPowerPointPresentation: React.FC = () => {
               isFullscreen={true} 
               onOpenEditor={() => setIsSlide5EditorOpen(true)}
               showNotes={false}
+              onUpdateData={(newData) => {
+                StorageService.saveSlide5ProductionPlan(newData);
+                setSlide5Data(newData);
+              }}
             />
           </div>
 
