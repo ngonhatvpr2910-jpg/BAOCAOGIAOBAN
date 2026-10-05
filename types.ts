@@ -312,10 +312,20 @@ export interface Slide6TaskRow {
   highlightedText?: string;
 }
 
+export interface Slide6WeekTaskPlan {
+  id: string;
+  weekHeader: string;
+  weekTitle?: string;
+  dateRange?: string;
+  rows: Slide6TaskRow[];
+}
+
 export interface Slide6TaskPlanData {
   title: string;
   weekHeader: string;
+  activeWeekIndex?: number;
   rows: Slide6TaskRow[];
+  weeks?: Slide6WeekTaskPlan[];
 }
 
 export interface SlideDefectCostData {

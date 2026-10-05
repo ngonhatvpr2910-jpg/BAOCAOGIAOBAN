@@ -480,9 +480,35 @@ export const StorageService = {
           });
         };
 
+        // Helper to ensure all months from INITIAL are present in stored data
+        const ensureAllMonths = (stored: any[], initial: any[], prefix: string) => {
+          const combined = [...(stored || [])];
+          const storedLabels = new Set(combined.map(i => i.label));
+          
+          initial.forEach(initItem => {
+            if (!storedLabels.has(initItem.label)) {
+              combined.push(initItem);
+            }
+          });
+
+          // Ensure Tháng 10 is definitely present
+          if (!combined.some(i => i.label === 'Tháng 10')) {
+            combined.push({ id: `${prefix}-m10`, label: 'Tháng 10', value: 0 });
+          }
+          
+          return combined.sort((a, b) => {
+            const getNum = (s: string) => parseInt(s.replace(/\D/g, ''), 10) || 0;
+            return getNum(a.label) - getNum(b.label);
+          });
+        };
+
         parsed.pxlr.weekly = ensureAllWeeks(parsed.pxlr.weekly, INITIAL_SLIDE1_NSLD.pxlr.weekly, 'pxlr');
         parsed.ro.weekly = ensureAllWeeks(parsed.ro.weekly, INITIAL_SLIDE1_NSLD.ro.weekly, 'ro');
         parsed.bg.weekly = ensureAllWeeks(parsed.bg.weekly, INITIAL_SLIDE1_NSLD.bg.weekly, 'bg');
+
+        parsed.pxlr.monthly = ensureAllMonths(parsed.pxlr.monthly, INITIAL_SLIDE1_NSLD.pxlr.monthly, 'pxlr');
+        parsed.ro.monthly = ensureAllMonths(parsed.ro.monthly, INITIAL_SLIDE1_NSLD.ro.monthly, 'ro');
+        parsed.bg.monthly = ensureAllMonths(parsed.bg.monthly, INITIAL_SLIDE1_NSLD.bg.monthly, 'bg');
 
         // Fix historical values (W32-W35)
         const fixValues = (items: any[], prefix: string, values: Record<string, number>) => {
@@ -504,18 +530,21 @@ export const StorageService = {
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
           if (m.id === 'pxlr-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
+          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 118.5 };
           return m;
         });
         parsed.ro.monthly = parsed.ro.monthly.map(m => {
           if (m.id === 'ro-m07') return { ...m, value: 117.1 };
           if (m.id === 'ro-m08') return { ...m, value: 111.2 };
           if (m.id === 'ro-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
+          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 120.0 };
           return m;
         });
         parsed.bg.monthly = parsed.bg.monthly.map(m => {
           if (m.id === 'bg-m07') return { ...m, value: 87.1 };
           if (m.id === 'bg-m08') return { ...m, value: 108.2 };
           if (m.id === 'bg-m09' && (!m.value || m.value <= 0)) return { ...m, value: 97.0 };
+          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 108.5 };
           return m;
         });
 
@@ -592,14 +621,29 @@ export const StorageService = {
         if (parsed.monthly) {
           if (!parsed.monthly.pxlr.items || parsed.monthly.pxlr.items.length === 0) {
             parsed.monthly.pxlr.items = INITIAL_SLIDE2_QUALITY.monthly.pxlr.items;
+          } else if (!parsed.monthly.pxlr.items.some(i => i.month === 'T10')) {
+            parsed.monthly.pxlr.items.push({ id: 'pxlr-q-t10', month: 'T10', dmVatTu: 3.69, vatTu: 1.25, totalLoi4M: 3.42 });
           }
           if (!parsed.monthly.ro.items || parsed.monthly.ro.items.length === 0) {
             parsed.monthly.ro.items = INITIAL_SLIDE2_QUALITY.monthly.ro.items;
+          } else if (!parsed.monthly.ro.items.some(i => i.month === 'T10')) {
+            parsed.monthly.ro.items.push({ id: 'ro-q-t10', month: 'T10', dmVatTu: 2.4, vatTu: 0.9, totalLoi4M: 2.8 });
           }
           if (!parsed.monthly.bg.items || parsed.monthly.bg.items.length === 0) {
             parsed.monthly.bg.items = INITIAL_SLIDE2_QUALITY.monthly.bg.items;
+          } else if (!parsed.monthly.bg.items.some(i => i.month === 'T10')) {
+            parsed.monthly.bg.items.push({ id: 'bg-q-t10', month: 'T10', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 5.80 });
           }
           parsed.monthly.bg.benchmarkDmLoi = 7.74;
+        }
+        if (parsed.pxlr?.items && !parsed.pxlr.items.some(i => i.month === 'T10')) {
+          parsed.pxlr.items.push({ id: 'pxlr-q-t10', month: 'T10', dmVatTu: 3.69, vatTu: 1.25, totalLoi4M: 3.42 });
+        }
+        if (parsed.ro?.items && !parsed.ro.items.some(i => i.month === 'T10')) {
+          parsed.ro.items.push({ id: 'ro-q-t10', month: 'T10', dmVatTu: 2.4, vatTu: 0.9, totalLoi4M: 2.8 });
+        }
+        if (parsed.bg?.items && !parsed.bg.items.some(i => i.month === 'T10')) {
+          parsed.bg.items.push({ id: 'bg-q-t10', month: 'T10', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 5.80 });
         }
         if (parsed.weekly) {
           parsed.weekly.pxlr.title = INITIAL_SLIDE2_QUALITY.weekly.pxlr.title;
@@ -720,6 +764,10 @@ export const StorageService = {
               preservedMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
             }
           });
+          // Bổ sung Tháng 10 nếu chưa có
+          if (!preservedMonthly.some((m: any) => m.label === 'Tháng 10')) {
+            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 4.5, displayLabel: '4.5M' });
+          }
           preservedMonthly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
 
           const preservedWeekly = rawWeekly.map((w: any) => {
@@ -880,7 +928,14 @@ export const StorageService = {
   getSlide5ProductionPlan(): Slide5ProductionPlanData {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SLIDE5_PRODUCTION_PLAN);
-      return data ? JSON.parse(data) : INITIAL_SLIDE5_PRODUCTION_PLAN;
+      if (data) {
+        const parsed: Slide5ProductionPlanData = JSON.parse(data);
+        if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length < 2) {
+          parsed.weeks = INITIAL_SLIDE5_PRODUCTION_PLAN.weeks;
+        }
+        return parsed;
+      }
+      return INITIAL_SLIDE5_PRODUCTION_PLAN;
     } catch {
       return INITIAL_SLIDE5_PRODUCTION_PLAN;
     }
@@ -904,7 +959,14 @@ export const StorageService = {
   getSlide6TaskPlan(): Slide6TaskPlanData {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SLIDE6_TASK_PLAN);
-      return data ? JSON.parse(data) : INITIAL_SLIDE6_TASK_PLAN;
+      if (data) {
+        const parsed: Slide6TaskPlanData = JSON.parse(data);
+        if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length < 2) {
+          parsed.weeks = INITIAL_SLIDE6_TASK_PLAN.weeks;
+        }
+        return parsed;
+      }
+      return INITIAL_SLIDE6_TASK_PLAN;
     } catch {
       return INITIAL_SLIDE6_TASK_PLAN;
     }

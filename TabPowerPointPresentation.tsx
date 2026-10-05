@@ -1411,6 +1411,7 @@ export const TabPowerPointPresentation: React.FC = () => {
             data={slide6Data} 
             isFullscreen={false} 
             onOpenEditor={() => setIsSlide6EditorOpen(true)}
+            onUpdateData={(newData) => setSlide6Data(newData)}
           />
         </section>
       </div>
@@ -1636,6 +1637,7 @@ export const TabPowerPointPresentation: React.FC = () => {
               data={slide6Data} 
               isFullscreen={true} 
               onOpenEditor={() => setIsSlide6EditorOpen(true)}
+              onUpdateData={(newData) => setSlide6Data(newData)}
             />
           </div>
         </div>

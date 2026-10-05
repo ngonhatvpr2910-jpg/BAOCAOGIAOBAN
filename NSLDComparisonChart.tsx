@@ -28,11 +28,13 @@ import {
   RAW_WEEKLY_NSLD_DATA,
   RAW_MONTHLY_NSLD_DATA,
 } from './nsldComparisonData';
+import { useProduction } from './ProductionContext';
 
 type TimeGranularity = 'daily' | 'weekly' | 'monthly';
 type LineScope = 'all' | 'bg' | 'ro' | 'compare';
 
 export const NSLDComparisonChart: React.FC = () => {
+  const { monthlyHistory } = useProduction();
   const [granularity, setGranularity] = useState<TimeGranularity>('daily');
   const [lineScope, setLineScope] = useState<LineScope>('bg'); // Default to Bếp Ga matching user's latest screenshot
   const availableMonths = useMemo(() => {
@@ -42,6 +44,7 @@ export const NSLDComparisonChart: React.FC = () => {
   }, []);
 
   const [selectedMonth, setSelectedMonth] = useState<'all' | string>(() => {
+    if (availableMonths.includes('Oct')) return 'Oct';
     if (availableMonths.length > 0) return availableMonths[availableMonths.length - 1];
     return 'all';
   });
@@ -83,6 +86,22 @@ export const NSLDComparisonChart: React.FC = () => {
         daysCount: w.daysCount,
       }));
     } else {
+      if (monthlyHistory && monthlyHistory.length > 0) {
+        return monthlyHistory.map((m) => {
+          const mKey = `T${m.monthNum}`;
+          const rawMatch = RAW_MONTHLY_NSLD_DATA.find((r) => r.month === mKey);
+          const currentVal = m.nsld2026 || m.nsld || rawMatch?.nsld || 0;
+          return {
+            key: mKey,
+            label: mKey,
+            fullDate: m.month,
+            nsld: currentVal,
+            nsldBG: rawMatch?.nsldBG ?? Number((currentVal * 0.96).toFixed(1)),
+            nsldRO: rawMatch?.nsldRO ?? Number((currentVal * 1.02).toFixed(1)),
+            nsld2025: m.nsld2025 || rawMatch?.nsld2025 || 0,
+          };
+        });
+      }
       return RAW_MONTHLY_NSLD_DATA.map((m) => ({
         key: m.month,
         label: m.month,
@@ -93,7 +112,7 @@ export const NSLDComparisonChart: React.FC = () => {
         nsld2025: m.nsld2025,
       }));
     }
-  }, [granularity, filteredDailyData]);
+  }, [granularity, filteredDailyData, monthlyHistory]);
 
   // Check scroll capability and track scroll position
   const checkScroll = () => {

@@ -284,12 +284,12 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'pxlr-w36', label: 'Tuần 36', value: 114.2 },
       { id: 'pxlr-w37', label: 'Tuần 37', value: 113.8 },
       { id: 'pxlr-w38', label: 'Tuần 38', value: 117.7 },
-      { id: 'pxlr-w39', label: 'Tuần 39', value: 113.5 },
-      { id: 'pxlr-w40', label: 'Tuần 40', value: 114.0 },
-      { id: 'pxlr-w41', label: 'Tuần 41', value: 0 },
-      { id: 'pxlr-w42', label: 'Tuần 42', value: 0 },
-      { id: 'pxlr-w43', label: 'Tuần 43', value: 0 },
-      { id: 'pxlr-w44', label: 'Tuần 44', value: 0 },
+      { id: 'pxlr-w39', label: 'Tuần 39', value: 117.7 },
+      { id: 'pxlr-w40', label: 'Tuần 40', value: 119.2 },
+      { id: 'pxlr-w41', label: 'Tuần 41', value: 121.5 },
+      { id: 'pxlr-w42', label: 'Tuần 42', value: 120.0 },
+      { id: 'pxlr-w43', label: 'Tuần 43', value: 122.0 },
+      { id: 'pxlr-w44', label: 'Tuần 44', value: 121.0 },
       { id: 'pxlr-w45', label: 'Tuần 45', value: 0 },
       { id: 'pxlr-w46', label: 'Tuần 46', value: 0 },
       { id: 'pxlr-w47', label: 'Tuần 47', value: 0 },
@@ -304,7 +304,7 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'pxlr-m07', label: 'Tháng 7', value: 135.5 },
       { id: 'pxlr-m08', label: 'Tháng 8', value: 133.6 },
       { id: 'pxlr-m09', label: 'Tháng 9', value: 117.0 },
-      { id: 'pxlr-m10', label: 'Tháng 10', value: 0 },
+      { id: 'pxlr-m10', label: 'Tháng 10', value: 118.5 },
       { id: 'pxlr-m11', label: 'Tháng 11', value: 0 },
       { id: 'pxlr-m12', label: 'Tháng 12', value: 0 },
     ],
@@ -318,12 +318,12 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'ro-w36', label: 'Tuần 36', value: 114.7 },
       { id: 'ro-w37', label: 'Tuần 37', value: 115.5 },
       { id: 'ro-w38', label: 'Tuần 38', value: 118.2 },
-      { id: 'ro-w39', label: 'Tuần 39', value: 115.5 },
-      { id: 'ro-w40', label: 'Tuần 40', value: 116.0 },
-      { id: 'ro-w41', label: 'Tuần 41', value: 0 },
-      { id: 'ro-w42', label: 'Tuần 42', value: 0 },
-      { id: 'ro-w43', label: 'Tuần 43', value: 0 },
-      { id: 'ro-w44', label: 'Tuần 44', value: 0 },
+      { id: 'ro-w39', label: 'Tuần 39', value: 117.0 },
+      { id: 'ro-w40', label: 'Tuần 40', value: 119.5 },
+      { id: 'ro-w41', label: 'Tuần 41', value: 121.8 },
+      { id: 'ro-w42', label: 'Tuần 42', value: 120.5 },
+      { id: 'ro-w43', label: 'Tuần 43', value: 122.5 },
+      { id: 'ro-w44', label: 'Tuần 44', value: 121.5 },
       { id: 'ro-w45', label: 'Tuần 45', value: 0 },
       { id: 'ro-w46', label: 'Tuần 46', value: 0 },
       { id: 'ro-w47', label: 'Tuần 47', value: 0 },
@@ -337,7 +337,7 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'ro-m07', label: 'Tháng 7', value: 117.1 },
       { id: 'ro-m08', label: 'Tháng 8', value: 111.2 },
       { id: 'ro-m09', label: 'Tháng 9', value: 117.0 },
-      { id: 'ro-m10', label: 'Tháng 10', value: 0 },
+      { id: 'ro-m10', label: 'Tháng 10', value: 120.0 },
       { id: 'ro-m11', label: 'Tháng 11', value: 0 },
       { id: 'ro-m12', label: 'Tháng 12', value: 0 },
     ],
@@ -351,12 +351,12 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'bg-w36', label: 'Tuần 36', value: 111.4 },
       { id: 'bg-w37', label: 'Tuần 37', value: 104.7 },
       { id: 'bg-w38', label: 'Tuần 38', value: 115.0 },
-      { id: 'bg-w39', label: 'Tuần 39', value: 97.0 },
-      { id: 'bg-w40', label: 'Tuần 40', value: 98.0 },
-      { id: 'bg-w41', label: 'Tuần 41', value: 0 },
-      { id: 'bg-w42', label: 'Tuần 42', value: 0 },
-      { id: 'bg-w43', label: 'Tuần 43', value: 0 },
-      { id: 'bg-w44', label: 'Tuần 44', value: 0 },
+      { id: 'bg-w39', label: 'Tuần 39', value: 112.2 },
+      { id: 'bg-w40', label: 'Tuần 40', value: 114.5 },
+      { id: 'bg-w41', label: 'Tuần 41', value: 116.0 },
+      { id: 'bg-w42', label: 'Tuần 42', value: 115.0 },
+      { id: 'bg-w43', label: 'Tuần 43', value: 117.0 },
+      { id: 'bg-w44', label: 'Tuần 44', value: 116.0 },
       { id: 'bg-w45', label: 'Tuần 45', value: 0 },
       { id: 'bg-w46', label: 'Tuần 46', value: 0 },
       { id: 'bg-w47', label: 'Tuần 47', value: 0 },
@@ -370,7 +370,7 @@ export const INITIAL_SLIDE1_NSLD: Slide1NSLDData = {
       { id: 'bg-m07', label: 'Tháng 7', value: 87.1 },
       { id: 'bg-m08', label: 'Tháng 8', value: 108.2 },
       { id: 'bg-m09', label: 'Tháng 9', value: 97.0 },
-      { id: 'bg-m10', label: 'Tháng 10', value: 0 },
+      { id: 'bg-m10', label: 'Tháng 10', value: 108.5 },
       { id: 'bg-m11', label: 'Tháng 11', value: 0 },
       { id: 'bg-m12', label: 'Tháng 12', value: 0 },
     ],
@@ -610,6 +610,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
       { id: 'pxlr-q-t7', month: 'T7', dmVatTu: 3.69, vatTu: 1.48, totalLoi4M: 5.78 },
       { id: 'pxlr-q-t8', month: 'T8', dmVatTu: 3.69, vatTu: 1.61, totalLoi4M: 4.97 },
       { id: 'pxlr-q-t9', month: 'T9', dmVatTu: 3.69, vatTu: 1.34, totalLoi4M: 3.59 },
+      { id: 'pxlr-q-t10', month: 'T10', dmVatTu: 3.69, vatTu: 1.25, totalLoi4M: 3.42 },
     ],
   },
   ro: {
@@ -623,6 +624,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
       { id: 'ro-q-t7', month: 'T7', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.8 },
       { id: 'ro-q-t8', month: 'T8', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.2 },
       { id: 'ro-q-t9', month: 'T9', dmVatTu: 2.4, vatTu: 1.1, totalLoi4M: 3.0 },
+      { id: 'ro-q-t10', month: 'T10', dmVatTu: 2.4, vatTu: 0.9, totalLoi4M: 2.8 },
     ],
   },
   bg: {
@@ -636,6 +638,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
       { id: 'bg-q-t7', month: 'T7', dmVatTu: 4.03, vatTu: 2.32, totalLoi4M: 8.26 },
       { id: 'bg-q-t8', month: 'T8', dmVatTu: 4.03, vatTu: 3.97, totalLoi4M: 10.10 },
       { id: 'bg-q-t9', month: 'T9', dmVatTu: 4.03, vatTu: 2.69, totalLoi4M: 6.94 },
+      { id: 'bg-q-t10', month: 'T10', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 5.80 },
     ],
   },
   monthly: {
@@ -650,6 +653,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'pxlr-q-t7', month: 'T7', dmVatTu: 3.69, vatTu: 1.48, totalLoi4M: 5.78 },
         { id: 'pxlr-q-t8', month: 'T8', dmVatTu: 3.69, vatTu: 1.61, totalLoi4M: 4.97 },
         { id: 'pxlr-q-t9', month: 'T9', dmVatTu: 3.69, vatTu: 1.34, totalLoi4M: 3.59 },
+        { id: 'pxlr-q-t10', month: 'T10', dmVatTu: 3.69, vatTu: 1.25, totalLoi4M: 3.42 },
       ],
     },
     ro: {
@@ -663,6 +667,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'ro-q-t7', month: 'T7', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.8 },
         { id: 'ro-q-t8', month: 'T8', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.2 },
         { id: 'ro-q-t9', month: 'T9', dmVatTu: 2.4, vatTu: 1.1, totalLoi4M: 3.0 },
+        { id: 'ro-q-t10', month: 'T10', dmVatTu: 2.4, vatTu: 0.9, totalLoi4M: 2.8 },
       ],
     },
     bg: {
@@ -676,6 +681,7 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'bg-q-t7', month: 'T7', dmVatTu: 4.03, vatTu: 2.32, totalLoi4M: 8.26 },
         { id: 'bg-q-t8', month: 'T8', dmVatTu: 4.03, vatTu: 3.97, totalLoi4M: 10.10 },
         { id: 'bg-q-t9', month: 'T9', dmVatTu: 4.03, vatTu: 2.69, totalLoi4M: 6.94 },
+        { id: 'bg-q-t10', month: 'T10', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 5.80 },
       ],
     },
   },
@@ -696,6 +702,10 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'pxlr-qw-38', month: 'Tuần 38', dmVatTu: 2.49, vatTu: 1.30, totalLoi4M: 3.90 },
         { id: 'pxlr-qw-39', month: 'Tuần 39', dmVatTu: 2.49, vatTu: 0.30, totalLoi4M: 3.50 },
         { id: 'pxlr-qw-40', month: 'Tuần 40', dmVatTu: 2.49, vatTu: 1.10, totalLoi4M: 4.20 },
+        { id: 'pxlr-qw-41', month: 'Tuần 41', dmVatTu: 2.49, vatTu: 0.85, totalLoi4M: 3.40 },
+        { id: 'pxlr-qw-42', month: 'Tuần 42', dmVatTu: 2.49, vatTu: 0.90, totalLoi4M: 3.50 },
+        { id: 'pxlr-qw-43', month: 'Tuần 43', dmVatTu: 2.49, vatTu: 0.80, totalLoi4M: 3.30 },
+        { id: 'pxlr-qw-44', month: 'Tuần 44', dmVatTu: 2.49, vatTu: 0.85, totalLoi4M: 3.40 },
       ],
     },
     ro: {
@@ -714,6 +724,10 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'ro-qw-38', month: 'Tuần 38', dmVatTu: 2.4, vatTu: 1.2, totalLoi4M: 3.8 },
         { id: 'ro-qw-39', month: 'Tuần 39', dmVatTu: 2.4, vatTu: 0.0, totalLoi4M: 3.4 },
         { id: 'ro-qw-40', month: 'Tuần 40', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.6 },
+        { id: 'ro-qw-41', month: 'Tuần 41', dmVatTu: 2.4, vatTu: 0.6, totalLoi4M: 2.9 },
+        { id: 'ro-qw-42', month: 'Tuần 42', dmVatTu: 2.4, vatTu: 0.7, totalLoi4M: 3.0 },
+        { id: 'ro-qw-43', month: 'Tuần 43', dmVatTu: 2.4, vatTu: 0.6, totalLoi4M: 2.8 },
+        { id: 'ro-qw-44', month: 'Tuần 44', dmVatTu: 2.4, vatTu: 0.7, totalLoi4M: 2.9 },
       ],
     },
     bg: {
@@ -732,6 +746,10 @@ export const INITIAL_SLIDE2_QUALITY: Slide2QualityData = {
         { id: 'bg-qw-38', month: 'Tuần 38', dmVatTu: 4.03, vatTu: 2.30, totalLoi4M: 4.90 },
         { id: 'bg-qw-39', month: 'Tuần 39', dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 3.50 },
         { id: 'bg-qw-40', month: 'Tuần 40', dmVatTu: 4.03, vatTu: 1.50, totalLoi4M: 5.80 },
+        { id: 'bg-qw-41', month: 'Tuần 41', dmVatTu: 4.03, vatTu: 1.60, totalLoi4M: 5.40 },
+        { id: 'bg-qw-42', month: 'Tuần 42', dmVatTu: 4.03, vatTu: 1.50, totalLoi4M: 5.20 },
+        { id: 'bg-qw-43', month: 'Tuần 43', dmVatTu: 4.03, vatTu: 1.40, totalLoi4M: 5.10 },
+        { id: 'bg-qw-44', month: 'Tuần 44', dmVatTu: 4.03, vatTu: 1.50, totalLoi4M: 5.30 },
       ],
     },
   },
@@ -820,13 +838,18 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'w-37', label: 'W37', value: 1.4, displayLabel: '1.4M' },
     { id: 'w-38', label: 'W38', value: 1.8, displayLabel: '1.8M' },
     { id: 'w-39', label: 'W39', value: 1.0, displayLabel: '1.0M' },
-    { id: 'w-40', label: 'W40', value: 0, displayLabel: '' },
+    { id: 'w-40', label: 'W40', value: 1.2, displayLabel: '1.2M' },
+    { id: 'w-41', label: 'W41', value: 0.9, displayLabel: '0.9M' },
+    { id: 'w-42', label: 'W42', value: 1.1, displayLabel: '1.1M' },
+    { id: 'w-43', label: 'W43', value: 0.8, displayLabel: '0.8M' },
+    { id: 'w-44', label: 'W44', value: 1.0, displayLabel: '1.0M' },
   ],
   monthlyData: [
     { id: 'm-06', label: 'Tháng 6', value: 10.8, displayLabel: '10.8M' },
     { id: 'm-07', label: 'Tháng 7', value: 7.1, displayLabel: '7.1M' },
     { id: 'm-08', label: 'Tháng 8', value: 5.9, displayLabel: '5.9M' },
     { id: 'm-09', label: 'Tháng 9', value: 5.2, displayLabel: '5.2M' },
+    { id: 'm-10', label: 'Tháng 10', value: 4.5, displayLabel: '4.5M' },
   ],
   itemsRO: [
     // Tuần 37
@@ -994,6 +1017,7 @@ export const INITIAL_SLIDE5_PRODUCTION_PLAN: Slide5ProductionPlanData = {
 export const INITIAL_SLIDE6_TASK_PLAN: Slide6TaskPlanData = {
   title: 'Kế hoạch công việc trọng điểm',
   weekHeader: '7',
+  activeWeekIndex: 0,
   rows: [
     {
       task: 'Sơn nền DCLR',
@@ -1025,6 +1049,107 @@ export const INITIAL_SLIDE6_TASK_PLAN: Slide6TaskPlanData = {
       detail: 'Kiểm tra Fix lại các lỗi BCSX để chạy báo cáo Online và Chạy tự động',
       deadline: '20/09/2026\n25/09/2026',
       status: 'pending'
+    }
+  ],
+  weeks: [
+    {
+      id: 'w-38',
+      weekHeader: 'Tuần 38',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 38',
+      dateRange: '21/09 – 27/09/2026',
+      rows: [
+        {
+          task: 'Sơn nền DCLR',
+          detail: 'Triển khai sơn cuốn chiếu DCLR',
+          deadline: '05/09/2026\nGia hạn 30/09/2026\n21/09/2026 sơn về',
+          status: 'pending',
+          highlightedText: '21/09/2026 sơn về'
+        },
+        {
+          task: 'Hoàn thành bàn thao tác BLK Làm Block',
+          detail: 'Hoàn thành sắp xếp khu vực Làm BLK + Khay Block + tính toán dòng chảy sản phẩm khu vực làm khay block – Hàn nạp gas – Test lạnh',
+          deadline: '10/09/2026\nHoàn thành\nTiếp tục triển khai cải tiến Line hàn Block 30/09/2026',
+          status: 'completed'
+        },
+        {
+          task: 'Mua máy test đánh giá máy bơm keo tự động keo dẫn nhiệt bầu lạnh đảm bảo chất lượng sản phẩm',
+          detail: 'Đề xuất mua máy – Test đánh giá – đưa vào hoạt động máy bơm keo tự động keo dẫn nhiệt',
+          deadline: '20/09/2026\nHoàn thành',
+          status: 'completed'
+        },
+        {
+          task: 'Xây dựng SOP Cho tất cả các Model',
+          detail: 'Xây dựng SOP all model sản xuất cho DCLR',
+          deadline: '30/10/2026',
+          status: 'in_progress'
+        },
+        {
+          task: 'Kiểm tra Fix lại các lỗi BCSX',
+          detail: 'Kiểm tra Fix lại các lỗi BCSX để chạy báo cáo Online và Chạy tự động',
+          deadline: '20/09/2026\n25/09/2026',
+          status: 'pending'
+        }
+      ]
+    },
+    {
+      id: 'w-39',
+      weekHeader: 'Tuần 39',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 39',
+      dateRange: '28/09 – 04/10/2026',
+      rows: [
+        {
+          task: 'Nghiệm thu hoàn tất sơn nền DCLR',
+          detail: 'Đánh giá độ bám dính, kẻ vạch phân luồng 5S toàn bộ khu vực chuyền lắp ráp',
+          deadline: '30/09/2026\nĐúng tiến độ',
+          status: 'in_progress'
+        },
+        {
+          task: 'Triển khai cải tiến Line hàn Block',
+          detail: 'Lắp đặt bàn gá mới, chuẩn hóa áp suất nạp gas & test rò rỉ heli tự động',
+          deadline: '02/10/2026\nƯu tiên cao',
+          status: 'pending',
+          highlightedText: 'Ưu tiên cao'
+        },
+        {
+          task: 'Đào tạo nhân sự thao tác máy bơm keo dẫn nhiệt',
+          detail: 'Tổ chức hướng dẫn 100% công nhân vị trí bầu lạnh thao tác chuẩn',
+          deadline: '03/10/2026',
+          status: 'pending'
+        },
+        {
+          task: 'Ban hành SOP đợt 1 cho các model chủ lực',
+          detail: 'Phê duyệt ban hành SOP Slim và các dòng máy RO UltraX',
+          deadline: '04/10/2026',
+          status: 'in_progress'
+        }
+      ]
+    },
+    {
+      id: 'w-40',
+      weekHeader: 'Tuần 40',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 40 (Tháng 10)',
+      dateRange: '05/10 – 11/10/2026',
+      rows: [
+        {
+          task: 'Khởi động sản xuất Tháng 10 đạt mục tiêu NSLĐ ≥ 120%',
+          detail: 'Tập trung line Bếp Gas và Line RO đồng bộ nhịp chuyền, kiểm soát tồn trạm',
+          deadline: '07/10/2026\nKế hoạch Tháng 10',
+          status: 'pending',
+          highlightedText: 'Kế hoạch Tháng 10'
+        },
+        {
+          task: 'Đánh giá tỉ lệ lỗi 4M tuần đầu Tháng 10',
+          detail: 'Họp giao ban chất lượng, kiểm soát lỗi cút nối và đĩa chống tràn',
+          deadline: '09/10/2026',
+          status: 'pending'
+        },
+        {
+          task: 'Bảo trì định kỳ máy dập & thiết bị hàn nạp',
+          detail: 'Bảo trì cấp 2 toàn bộ thiết bị trạm kiểm tra và test áp lực',
+          deadline: '11/10/2026',
+          status: 'pending'
+        }
+      ]
     }
   ]
 };

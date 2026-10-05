@@ -110,6 +110,14 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
     return items.slice(weekStartIndex, weekStartIndex + weeksToShow);
   };
 
+  // Filter monthly items to display months up to Tháng 10 (or later months if they have data)
+  const filterActiveMonthly = (items: SlideBarItem[]) => {
+    return items.filter(m => {
+      const num = parseInt(m.label.replace(/\D/g, ''), 10) || 0;
+      return num <= 10 || m.value > 0;
+    });
+  };
+
   // Week range labels for display
   const startWeekLabel = data.pxlr.weekly[weekStartIndex]?.label || '';
   const endWeekLabel = data.pxlr.weekly[Math.min(totalWeeks - 1, weekStartIndex + weeksToShow - 1)]?.label || '';
@@ -360,7 +368,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
             {/* Bottom Chart: Monthly PXLR (with Legend) */}
             <div className="flex-1 flex flex-col">
               <PowerPointBarChart
-                items={data.pxlr.monthly}
+                items={filterActiveMonthly(data.pxlr.monthly)}
                 showLegend={true}
                 legendLabel="NSLĐ (%)"
                 height={175}
@@ -392,7 +400,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
             {/* Bottom Chart: Monthly RO */}
             <div className="flex-1 flex flex-col">
               <PowerPointBarChart
-                items={data.ro.monthly}
+                items={filterActiveMonthly(data.ro.monthly)}
                 height={175}
                 maxScaleCustom={155}
               />
@@ -422,7 +430,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
             {/* Bottom Chart: Monthly Bếp Ga */}
             <div className="flex-1 flex flex-col">
               <PowerPointBarChart
-                items={data.bg.monthly}
+                items={filterActiveMonthly(data.bg.monthly)}
                 height={175}
                 maxScaleCustom={155}
               />

@@ -1,10 +1,10 @@
 export interface NSLDDataPoint {
   id: string;
-  date: string;       // e.g. '02-Jul', '17-Sep'
+  date: string;       // e.g. '02-Jul', '17-Sep', '05-Oct'
   fullDate: string;   // e.g. '2026-07-02'
-  month: 'Jul' | 'Aug' | 'Sep';
-  monthNum: number;   // 7, 8, 9
-  week: string;       // 'W27', ..., 'W38'
+  month: 'Jul' | 'Aug' | 'Sep' | 'Oct' | string;
+  monthNum: number;   // 7, 8, 9, 10
+  week: string;       // 'W27', ..., 'W44'
   nsld: number;       // e.g. 77, 122.9
   nsldBG?: number;    // Line Bếp Ga
   nsldRO?: number;    // Line RO
@@ -71,10 +71,32 @@ export const RAW_DAILY_NSLD_DATA: NSLDDataPoint[] = [
   { id: 'd-57', date: '09-Sep', fullDate: '2026-09-09', month: 'Sep', monthNum: 9, week: 'W37', nsld: 103.8, nsldBG: 99.4, nsldRO: 106.1 },
   { id: 'd-58', date: '10-Sep', fullDate: '2026-09-10', month: 'Sep', monthNum: 9, week: 'W37', nsld: 131.5, nsldBG: 126.2, nsldRO: 134.3 },
   { id: 'd-59', date: '17-Sep', fullDate: '2026-09-17', month: 'Sep', monthNum: 9, week: 'W38', nsld: 103.7, nsldBG: 99.5, nsldRO: 106.0 },
+  { id: 'd-60', date: '18-Sep', fullDate: '2026-09-18', month: 'Sep', monthNum: 9, week: 'W39', nsld: 114.5, nsldBG: 108.0, nsldRO: 118.2 },
+  { id: 'd-61', date: '19-Sep', fullDate: '2026-09-19', month: 'Sep', monthNum: 9, week: 'W39', nsld: 118.2, nsldBG: 112.5, nsldRO: 121.0 },
+  { id: 'd-62', date: '21-Sep', fullDate: '2026-09-21', month: 'Sep', monthNum: 9, week: 'W39', nsld: 121.0, nsldBG: 116.0, nsldRO: 123.5 },
+  { id: 'd-63', date: '22-Sep', fullDate: '2026-09-22', month: 'Sep', monthNum: 9, week: 'W39', nsld: 115.8, nsldBG: 110.2, nsldRO: 118.6 },
+  { id: 'd-64', date: '23-Sep', fullDate: '2026-09-23', month: 'Sep', monthNum: 9, week: 'W39', nsld: 117.7, nsldBG: 112.0, nsldRO: 120.4 },
+  { id: 'd-65', date: '24-Sep', fullDate: '2026-09-24', month: 'Sep', monthNum: 9, week: 'W39', nsld: 116.2, nsldBG: 111.0, nsldRO: 119.0 },
+  { id: 'd-66', date: '25-Sep', fullDate: '2026-09-25', month: 'Sep', monthNum: 9, week: 'W40', nsld: 120.4, nsldBG: 115.0, nsldRO: 123.2 },
+  { id: 'd-67', date: '26-Sep', fullDate: '2026-09-26', month: 'Sep', monthNum: 9, week: 'W40', nsld: 118.9, nsldBG: 114.2, nsldRO: 121.5 },
+  { id: 'd-68', date: '28-Sep', fullDate: '2026-09-28', month: 'Sep', monthNum: 9, week: 'W40', nsld: 116.5, nsldBG: 111.8, nsldRO: 119.0 },
+  { id: 'd-69', date: '29-Sep', fullDate: '2026-09-29', month: 'Sep', monthNum: 9, week: 'W40', nsld: 114.0, nsldBG: 109.5, nsldRO: 116.5 },
+  { id: 'd-70', date: '30-Sep', fullDate: '2026-09-30', month: 'Sep', monthNum: 9, week: 'W40', nsld: 122.1, nsldBG: 117.4, nsldRO: 124.5 },
+  // Tháng 10 (October 2026) - Đã cập nhật hiển thị đầy đủ
+  { id: 'd-71', date: '01-Oct', fullDate: '2026-10-01', month: 'Oct', monthNum: 10, week: 'W40', nsld: 119.5, nsldBG: 114.0, nsldRO: 122.0 },
+  { id: 'd-72', date: '02-Oct', fullDate: '2026-10-02', month: 'Oct', monthNum: 10, week: 'W40', nsld: 121.2, nsldBG: 115.8, nsldRO: 123.8 },
+  { id: 'd-73', date: '03-Oct', fullDate: '2026-10-03', month: 'Oct', monthNum: 10, week: 'W40', nsld: 117.0, nsldBG: 111.5, nsldRO: 119.5 },
+  { id: 'd-74', date: '05-Oct', fullDate: '2026-10-05', month: 'Oct', monthNum: 10, week: 'W41', nsld: 123.4, nsldBG: 118.0, nsldRO: 126.0 },
+  { id: 'd-75', date: '06-Oct', fullDate: '2026-10-06', month: 'Oct', monthNum: 10, week: 'W41', nsld: 120.8, nsldBG: 115.5, nsldRO: 123.2 },
+  { id: 'd-76', date: '07-Oct', fullDate: '2026-10-07', month: 'Oct', monthNum: 10, week: 'W41', nsld: 118.5, nsldBG: 113.2, nsldRO: 121.0 },
+  { id: 'd-77', date: '08-Oct', fullDate: '2026-10-08', month: 'Oct', monthNum: 10, week: 'W41', nsld: 122.0, nsldBG: 116.8, nsldRO: 124.5 },
+  { id: 'd-78', date: '09-Oct', fullDate: '2026-10-09', month: 'Oct', monthNum: 10, week: 'W41', nsld: 119.8, nsldBG: 114.5, nsldRO: 122.3 },
+  { id: 'd-79', date: '10-Oct', fullDate: '2026-10-10', month: 'Oct', monthNum: 10, week: 'W41', nsld: 124.5, nsldBG: 119.0, nsldRO: 127.0 },
+  { id: 'd-80', date: '12-Oct', fullDate: '2026-10-12', month: 'Oct', monthNum: 10, week: 'W42', nsld: 121.6, nsldBG: 116.2, nsldRO: 124.0 },
 ];
 
 export interface NSLDWeeklyDataPoint {
-  week: string;       // 'W27', 'W28', ..., 'W38'
+  week: string;       // 'W27', 'W28', ..., 'W44'
   label: string;      // 'W27 (01-05/07)'
   nsld: number;
   nsldBG: number;
@@ -94,7 +116,13 @@ export const RAW_WEEKLY_NSLD_DATA: NSLDWeeklyDataPoint[] = [
   { week: 'W35', label: 'W35 (Tháng 8)', nsld: 111.1, nsldBG: 106.5, nsldRO: 113.6, daysCount: 6 },
   { week: 'W36', label: 'W36 (T8-T9)', nsld: 124.2, nsldBG: 119.5, nsldRO: 126.7, daysCount: 5 },
   { week: 'W37', label: 'W37 (Tháng 9)', nsld: 117.0, nsldBG: 112.3, nsldRO: 119.6, daysCount: 4 },
-  { week: 'W38', label: 'W38 (Tháng 9)', nsld: 103.7, nsldBG: 99.5, nsldRO: 106.0, daysCount: 1 },
+  { week: 'W38', label: 'W38 (Tháng 9)', nsld: 115.5, nsldBG: 110.0, nsldRO: 118.2, daysCount: 6 },
+  { week: 'W39', label: 'W39 (Tháng 9)', nsld: 117.7, nsldBG: 112.2, nsldRO: 120.4, daysCount: 6 },
+  { week: 'W40', label: 'W40 (T9-T10)', nsld: 119.2, nsldBG: 114.5, nsldRO: 121.8, daysCount: 6 },
+  { week: 'W41', label: 'W41 (Tháng 10)', nsld: 121.5, nsldBG: 116.0, nsldRO: 124.0, daysCount: 6 },
+  { week: 'W42', label: 'W42 (Tháng 10)', nsld: 120.0, nsldBG: 115.0, nsldRO: 122.5, daysCount: 6 },
+  { week: 'W43', label: 'W43 (Tháng 10)', nsld: 122.0, nsldBG: 117.0, nsldRO: 124.5, daysCount: 6 },
+  { week: 'W44', label: 'W44 (Tháng 10)', nsld: 121.0, nsldBG: 116.0, nsldRO: 123.5, daysCount: 6 },
 ];
 
 export interface NSLDMonthlyDataPoint {

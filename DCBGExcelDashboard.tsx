@@ -461,13 +461,42 @@ export const DCBGExcelDashboard: React.FC = () => {
                 setSelectedYear(2026);
                 setSelectedMonthIndex0(5); // June (index 5)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 selectedMonthIndex0 === 5 && selectedYear === 2026
                   ? 'bg-blue-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tháng 6 (Mẫu Excel)
+              Tháng 6
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedYear(2026);
+                setSelectedMonthIndex0(8); // September (index 8)
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedMonthIndex0 === 8 && selectedYear === 2026
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Tháng 9
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedYear(2026);
+                setSelectedMonthIndex0(9); // October (index 9)
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                selectedMonthIndex0 === 9 && selectedYear === 2026
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 font-extrabold'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Tháng 10</span>
             </button>
 
             {/* Dropdown for any month */}

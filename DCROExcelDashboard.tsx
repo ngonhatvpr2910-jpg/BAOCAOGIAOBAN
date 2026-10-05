@@ -388,31 +388,45 @@ export const DCROExcelDashboard: React.FC = () => {
           <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
             <button
               onClick={() => {
-                setSelectedYear(sysYear);
-                setSelectedMonthIndex0(sysMonthIndex0);
-              }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                isCurrentMonth
-                  ? 'bg-purple-700 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Tháng Hiện Hữu (T{sysMonthIndex0 + 1})</span>
-            </button>
-
-            <button
-              onClick={() => {
                 setSelectedYear(2026);
                 setSelectedMonthIndex0(5); // June (index 5)
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
                 selectedMonthIndex0 === 5 && selectedYear === 2026
                   ? 'bg-amber-600 text-white shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Tháng 6 (Mẫu Excel)
+              Tháng 6
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedYear(2026);
+                setSelectedMonthIndex0(8); // September (index 8)
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                selectedMonthIndex0 === 8 && selectedYear === 2026
+                  ? 'bg-purple-700 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Tháng 9
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedYear(2026);
+                setSelectedMonthIndex0(9); // October (index 9)
+              }}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                selectedMonthIndex0 === 9 && selectedYear === 2026
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 font-extrabold'
+              }`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>Tháng 10</span>
             </button>
 
             <select
