@@ -22,7 +22,10 @@ import {
   Calendar,
   Layers,
   ArrowRight,
-  Edit3
+  Edit3,
+  ChevronLeft,
+  ChevronRight,
+  Zap
 } from 'lucide-react';
 
 interface ExecutiveSummaryCardProps {
@@ -78,12 +81,22 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     });
   }, [slide1Data]);
 
-  const [selectedWeek, setSelectedWeek] = useState<string>(() => {
-    return dynamicAvailableWeeks[dynamicAvailableWeeks.length - 1] || '';
-  });
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    return dynamicAvailableMonths[dynamicAvailableMonths.length - 1] || '';
-  });
+  // Mặc định chọn Tuần 41 (W41) - Tuần hiện tại của hệ thống điều hành sản xuất
+  const [selectedWeek, setSelectedWeek] = useState<string>('W41');
+  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
+
+  // Danh sách các tuần trọng tâm xung quanh tuần hiện tại W41
+  const visibleWeeks = useMemo(() => {
+    const focusWeeks = ['W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'];
+    if (!focusWeeks.includes(selectedWeek) && dynamicAvailableWeeks.includes(selectedWeek)) {
+      return [...focusWeeks, selectedWeek].sort((a, b) => {
+        const nA = parseInt(a.replace(/\D/g, ''), 10);
+        const nB = parseInt(b.replace(/\D/g, ''), 10);
+        return nA - nB;
+      });
+    }
+    return focusWeeks;
+  }, [selectedWeek, dynamicAvailableWeeks]);
 
   // Tổng hợp dữ liệu điều hành theo tuần hoặc theo tháng dựa trên data
   const summaryData = useMemo(() => {
@@ -167,54 +180,167 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             </button>
           </div>
 
+          {/* Quick jump to Current W41 or Current Month */}
+          {timeFrame === 'week' && selectedWeek !== 'W41' && (
+            <button
+              onClick={() => setSelectedWeek('W41')}
+              className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
+              title="Chuyển ngay đến Tuần 41 (Hiện tại)"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <span>Xem W41 (Hiện tại)</span>
+            </button>
+          )}
+
+          {timeFrame === 'month' && selectedMonth !== 'Tháng 10' && (
+            <button
+              onClick={() => setSelectedMonth('Tháng 10')}
+              className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
+              title="Chuyển ngay đến Tháng 10 (Hiện tại)"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <span>Xem Tháng 10</span>
+            </button>
+          )}
+
           {/* Period Selector */}
           <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-xl border border-slate-700 text-xs">
             {timeFrame === 'week' ? (
-              dynamicAvailableWeeks.slice(-5).map(w => {
-                const isSelected = selectedWeek === w;
-                const isLatest = w === dynamicAvailableWeeks[dynamicAvailableWeeks.length - 1];
-                return (
-                  <button
-                    key={`btn-week-${w}`}
-                    onClick={() => setSelectedWeek(w)}
-                    className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                    }`}
-                  >
-                    <span>{w}</span>
-                    {isLatest && (
-                      <span className="text-[9px] px-1 py-0.1 bg-rose-600 text-white rounded font-sans">
-                        Mới
-                      </span>
-                    )}
-                  </button>
-                );
-              })
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = dynamicAvailableWeeks.indexOf(selectedWeek);
+                    if (idx > 0) setSelectedWeek(dynamicAvailableWeeks[idx - 1]);
+                  }}
+                  className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
+                  title="Tuần trước"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+
+                {visibleWeeks.map(w => {
+                  const isSelected = selectedWeek === w;
+                  const isCurrent = w === 'W41';
+                  return (
+                    <button
+                      key={`btn-week-${w}`}
+                      onClick={() => setSelectedWeek(w)}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                        isSelected
+                          ? isCurrent
+                            ? 'bg-emerald-500 text-slate-950 font-black shadow-xs ring-2 ring-emerald-300'
+                            : 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                          : isCurrent
+                            ? 'bg-emerald-800/70 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-700'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span>{w}</span>
+                      {isCurrent && (
+                        <span className="text-[9px] px-1 py-0.2 bg-emerald-600 text-white rounded font-sans font-extrabold">
+                          Hiện tại
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = dynamicAvailableWeeks.indexOf(selectedWeek);
+                    if (idx >= 0 && idx < dynamicAvailableWeeks.length - 1) {
+                      setSelectedWeek(dynamicAvailableWeeks[idx + 1]);
+                    }
+                  }}
+                  className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
+                  title="Tuần sau"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+
+                <select
+                  value={selectedWeek}
+                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  aria-label="Chọn tuần làm việc"
+                  className="bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-700 cursor-pointer outline-hidden ml-0.5"
+                >
+                  {dynamicAvailableWeeks.map(w => (
+                    <option key={`opt-w-${w}`} value={w}>
+                      {w} {w === 'W41' ? '(Tuần hiện tại)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </>
             ) : (
-              dynamicAvailableMonths.slice(-4).map(m => {
-                const isSelected = selectedMonth === m;
-                const isLatest = m === dynamicAvailableMonths[dynamicAvailableMonths.length - 1];
-                return (
-                  <button
-                    key={`btn-month-${m}`}
-                    onClick={() => setSelectedMonth(m)}
-                    className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-                      isSelected
-                        ? 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                    }`}
-                  >
-                    <span>{m.replace('Tháng ', 'T')}</span>
-                    {isLatest && (
-                      <span className="text-[9px] px-1 py-0.1 bg-rose-600 text-white rounded font-sans">
-                        Mới
-                      </span>
-                    )}
-                  </button>
-                );
-              })
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = dynamicAvailableMonths.indexOf(selectedMonth);
+                    if (idx > 0) setSelectedMonth(dynamicAvailableMonths[idx - 1]);
+                  }}
+                  className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
+                  title="Tháng trước"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+
+                {dynamicAvailableMonths.map(m => {
+                  const isSelected = selectedMonth === m;
+                  const isCurrent = m === 'Tháng 10';
+                  return (
+                    <button
+                      key={`btn-month-${m}`}
+                      onClick={() => setSelectedMonth(m)}
+                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
+                        isSelected
+                          ? isCurrent
+                            ? 'bg-emerald-500 text-slate-950 font-black shadow-xs ring-2 ring-emerald-300'
+                            : 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                          : isCurrent
+                            ? 'bg-emerald-800/70 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-700'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                      }`}
+                    >
+                      <span>{m.replace('Tháng ', 'T')}</span>
+                      {isCurrent && (
+                        <span className="text-[9px] px-1 py-0.2 bg-emerald-600 text-white rounded font-sans font-extrabold">
+                          Hiện tại
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const idx = dynamicAvailableMonths.indexOf(selectedMonth);
+                    if (idx >= 0 && idx < dynamicAvailableMonths.length - 1) {
+                      setSelectedMonth(dynamicAvailableMonths[idx + 1]);
+                    }
+                  }}
+                  className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
+                  title="Tháng sau"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  aria-label="Chọn tháng làm việc"
+                  className="bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-700 cursor-pointer outline-hidden ml-0.5"
+                >
+                  {dynamicAvailableMonths.map(m => (
+                    <option key={`opt-m-${m}`} value={m}>
+                      {m} {m === 'Tháng 10' ? '(Tháng hiện tại)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </>
             )}
           </div>
 

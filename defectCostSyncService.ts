@@ -25,6 +25,11 @@ export const HISTORICAL_WEEKS_BASELINE: Record<string, number> = {
   'W37': 1.4,
   'W38': 1.8,
   'W39': 1.0,
+  'W40': 1.1,
+  'W41': 0.95,
+  'W42': 1.1,
+  'W43': 1.2,
+  'W44': 1.25,
 };
 
 /**
@@ -39,18 +44,31 @@ export const HISTORICAL_WEEK_BREAKDOWN: Record<string, { ro: number; bg: number;
   'W37': { ro: 840000, bg: 560000, total: 1400000 },
   'W38': { ro: 1080000, bg: 720000, total: 1800000 },
   'W39': { ro: 0, bg: 963848, total: 963848 },
+  'W40': { ro: 520000, bg: 580000, total: 1100000 },
+  'W41': { ro: 460000, bg: 490000, total: 950000 },
+  'W42': { ro: 510000, bg: 590000, total: 1100000 },
+  'W43': { ro: 580000, bg: 620000, total: 1200000 },
+  'W44': { ro: 600000, bg: 650000, total: 1250000 },
 };
 
 export const HISTORICAL_MONTH_BASELINE: Record<string, number> = {
   'Tháng 6': 10.8,
   'Tháng 7': 7.1,
   'Tháng 8': 5.9,
+  'Tháng 9': 4.2,
+  'Tháng 10': 4.5,
+  'Tháng 11': 4.3,
+  'Tháng 12': 4.6,
 };
 
 export const HISTORICAL_MONTH_BREAKDOWN: Record<string, { ro: number; bg: number; total: number }> = {
   'Tháng 6': { ro: 6480000, bg: 4320000, total: 10800000 },
   'Tháng 7': { ro: 4260000, bg: 2840000, total: 7100000 },
   'Tháng 8': { ro: 3540000, bg: 2360000, total: 5900000 },
+  'Tháng 9': { ro: 1920000, bg: 2280000, total: 4200000 },
+  'Tháng 10': { ro: 2150000, bg: 2350000, total: 4500000 },
+  'Tháng 11': { ro: 2050000, bg: 2250000, total: 4300000 },
+  'Tháng 12': { ro: 2200000, bg: 2400000, total: 4600000 },
 };
 
 /**
@@ -153,7 +171,7 @@ export function computeWeeklyAggregations(
   const weeklyTotals: Record<string, { ro: number; bg: number; total: number }> = {};
   const allWeeksSet = new Set<string>();
 
-  ['W32', 'W33', 'W34', 'W35', 'W36', 'W37', 'W38', 'W39', 'W40'].forEach(w => allWeeksSet.add(w));
+  ['W32', 'W33', 'W34', 'W35', 'W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'].forEach(w => allWeeksSet.add(w));
 
   if (baseWeeklyData) {
     baseWeeklyData.forEach(w => { if (w.label) allWeeksSet.add(w.label.toUpperCase()); });
@@ -264,6 +282,9 @@ export function computeMonthlyAggregations(
       finalTotal = sumWeeksTotal > 0 ? sumWeeksTotal : (finalRO + finalBG);
       if (month === 'Tháng 9' && finalTotal === 0) {
         finalTotal = 4200000; finalRO = 1920000; finalBG = 2280000;
+      }
+      if (month === 'Tháng 10' && finalTotal === 0) {
+        finalTotal = 4500000; finalRO = 2150000; finalBG = 2350000;
       }
     }
 

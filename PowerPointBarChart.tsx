@@ -8,6 +8,7 @@ interface PowerPointBarChartProps {
   maxScaleCustom?: number;
   highlightThreshold?: number; // e.g. 100%
   height?: number;
+  highlightWeek?: string;
 }
 
 export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
@@ -16,6 +17,7 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
   legendLabel = 'NSLĐ (%)',
   maxScaleCustom,
   height = 220,
+  highlightWeek,
 }) => {
   // Compute nice scale ceiling (with headroom for labels on top of bars)
   const maxVal = Math.max(...items.map(i => i.value), 100);
@@ -86,9 +88,23 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
             // Tick mark on X-axis
             const tickY1 = padTop + chartHeight;
             const tickY2 = tickY1 + 5;
+            const isHighlighted = (item as any).isHighlighted || (highlightWeek && (item.label.includes(highlightWeek) || item.label.replace('Tuần ', 'W') === highlightWeek));
 
             return (
               <g key={item.id || idx} className="group cursor-default">
+                {/* Highlight Background Glow */}
+                {isHighlighted && !isZero && (
+                  <rect
+                    x={x - 3}
+                    y={y - 3}
+                    width={barWidth + 6}
+                    height={barHeight + 6}
+                    fill="#0284c7"
+                    opacity={0.15}
+                    rx={2}
+                  />
+                )}
+
                 {/* Bar */}
                 {!isZero && (
                   <rect
@@ -96,7 +112,9 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
                     y={y}
                     width={barWidth}
                     height={barHeight}
-                    fill="#00b074"
+                    fill={isHighlighted ? '#0284c7' : '#00b074'}
+                    stroke={isHighlighted ? '#0369a1' : 'none'}
+                    strokeWidth={isHighlighted ? 1.5 : 0}
                     className="transition-all duration-300 hover:brightness-105"
                   />
                 )}
@@ -107,8 +125,8 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
                   y1={tickY1}
                   x2={centerX}
                   y2={tickY2}
-                  stroke="#334155"
-                  strokeWidth="1.5"
+                  stroke={isHighlighted ? '#0284c7' : '#334155'}
+                  strokeWidth={isHighlighted ? 2 : 1.5}
                 />
 
                 {/* Value on top of bar - Large font (17px) for projector */}
@@ -120,7 +138,7 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
                   fontSize="17"
                   fontWeight="bold"
                   className={`select-none tracking-tight ${
-                    isZero ? 'fill-slate-400' : 'fill-slate-950 font-black'
+                    isZero ? 'fill-slate-400' : isHighlighted ? 'fill-blue-700 font-black' : 'fill-slate-950 font-black'
                   }`}
                 >
                   {isZero ? '0%' : `${Number(item.value.toFixed(1))}%`}
@@ -134,7 +152,7 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
                   style={{ fontFamily: '"Times New Roman", Times, serif' }}
                   fontSize="16"
                   fontWeight="bold"
-                  className="fill-slate-950 select-none"
+                  className={`select-none ${isHighlighted ? 'fill-blue-700 font-black' : 'fill-slate-950'}`}
                 >
                   {item.label}
                 </text>

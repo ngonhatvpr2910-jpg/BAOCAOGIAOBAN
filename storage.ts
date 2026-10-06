@@ -258,6 +258,15 @@ export const StorageService = {
 
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
+
+        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, re-initialize with fresh synchronized data
+        const allZeroProduction = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongLineChinh) || 0) === 0 && (Number(c.congChinhThuc) || 0) === 0);
+        if (allZeroProduction && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
+          const fresh = generateMonthROMatrix(year, monthIndex0);
+          localStorage.setItem(key, JSON.stringify(fresh));
+          return fresh;
+        }
+
         // Only run legacy isOff migration for historical June (monthIndex0 === 5)
         if (monthIndex0 === 5 && year === 2026) {
           parsed = parsed.map((col) => {
@@ -338,6 +347,15 @@ export const StorageService = {
 
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
+
+        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, re-initialize with fresh synchronized data
+        const allZeroBG = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongBepGa) || 0) === 0 && (Number(c.congBepGa) || 0) === 0);
+        if (allZeroBG && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
+          const fresh = generateMonthBGMatrix(year, monthIndex0);
+          localStorage.setItem(key, JSON.stringify(fresh));
+          return fresh;
+        }
+
         parsed = parsed.map((col) => {
           let updatedCol = { ...col };
           if (updatedCol.khsxNgay === undefined || updatedCol.tiLeHoanThanhKhsx === undefined) {
@@ -510,20 +528,38 @@ export const StorageService = {
         parsed.ro.monthly = ensureAllMonths(parsed.ro.monthly, INITIAL_SLIDE1_NSLD.ro.monthly, 'ro');
         parsed.bg.monthly = ensureAllMonths(parsed.bg.monthly, INITIAL_SLIDE1_NSLD.bg.monthly, 'bg');
 
-        // Fix historical values (W32-W35)
+        // Fix historical and standard operational values (W32-W44)
         const fixValues = (items: any[], prefix: string, values: Record<string, number>) => {
           return items.map(w => {
             const weekId = w.id.replace(`${prefix}-`, '');
             if (values[weekId] !== undefined) {
-              return { ...w, value: values[weekId] };
+              if (w.value === undefined || w.value === null || w.value <= 0 || ['w32', 'w33', 'w34', 'w35', 'w40', 'w41'].includes(weekId)) {
+                return { ...w, value: values[weekId] };
+              }
             }
             return w;
           });
         };
 
-        parsed.pxlr.weekly = fixValues(parsed.pxlr.weekly, 'pxlr', { 'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8 });
-        parsed.ro.weekly = fixValues(parsed.ro.weekly, 'ro', { 'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2 });
-        parsed.bg.weekly = fixValues(parsed.bg.weekly, 'bg', { 'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7 });
+        const standardValuesPXLR: Record<string, number> = {
+          'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8,
+          'w36': 114.2, 'w37': 113.8, 'w38': 117.7, 'w39': 117.7,
+          'w40': 119.2, 'w41': 121.5, 'w42': 120.0, 'w43': 122.0, 'w44': 121.0
+        };
+        const standardValuesRO: Record<string, number> = {
+          'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2,
+          'w36': 114.7, 'w37': 115.5, 'w38': 118.2, 'w39': 117.0,
+          'w40': 119.5, 'w41': 121.8, 'w42': 120.5, 'w43': 122.5, 'w44': 121.5
+        };
+        const standardValuesBG: Record<string, number> = {
+          'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7,
+          'w36': 111.4, 'w37': 104.7, 'w38': 115.0, 'w39': 112.2,
+          'w40': 114.5, 'w41': 116.0, 'w42': 115.0, 'w43': 117.0, 'w44': 116.0
+        };
+
+        parsed.pxlr.weekly = fixValues(parsed.pxlr.weekly, 'pxlr', standardValuesPXLR);
+        parsed.ro.weekly = fixValues(parsed.ro.weekly, 'ro', standardValuesRO);
+        parsed.bg.weekly = fixValues(parsed.bg.weekly, 'bg', standardValuesBG);
 
         parsed.pxlr.monthly = parsed.pxlr.monthly.map(m => {
           if (m.id === 'pxlr-m06') return { ...m, value: 131.6 };

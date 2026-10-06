@@ -863,6 +863,17 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'ro-dam-7', itemCode: '04-29-06-SHA76601S-0007', itemName: 'Vỏ carton máy lọc nước R.O Slim UltraX', quantity: 3, unitPrice: 21135.54, amount: 63406.62, category: 'RO', isHighlighted: false, week: 'W38' },
     { id: 'ro-dam-8', itemCode: '04-28-01-SHA8820KL-0000', itemName: 'Mặt kính trước SHA8820KL', quantity: 3, unitPrice: 95000.00, amount: 285000.00, category: 'RO', isHighlighted: true, week: 'W38' },
     // Tuần 39 (W39): Line RO KHÔNG CÓ LỖI (0 linh kiện hỏng, 0 VNĐ)
+    // Tuần 40 (W40)
+    { id: 'ro-dam-9', itemCode: '04-28-03-BRA590N-0009', itemName: 'Van 1 chiều nối nhanh MLN', quantity: 4, unitPrice: 18500.00, amount: 74000.00, category: 'RO', isHighlighted: false, week: 'W40' },
+    { id: 'ro-dam-10', itemCode: '04-29-06-SHA76622KL-0008', itemName: 'Bộ lõi lọc chức năng số 5 UltraX', quantity: 2, unitPrice: 115000.00, amount: 230000.00, category: 'RO', isHighlighted: true, week: 'W40' },
+    { id: 'ro-dam-11', itemCode: '04-29-03-SHA76218CK-0019', itemName: 'Cút nối góc chia nước 1/4"', quantity: 6, unitPrice: 3600.00, amount: 21600.00, category: 'RO', isHighlighted: false, week: 'W40' },
+    { id: 'ro-dam-12', itemCode: '04-29-06-SHA76601S-0010', itemName: 'Vỏ carton máy RO Slim', quantity: 8, unitPrice: 24300.00, amount: 194400.00, category: 'RO', isHighlighted: false, week: 'W40' },
+    // Tuần 41 (W41 - Tuần hiện tại)
+    { id: 'ro-dam-13', itemCode: '04-28-03-BRA590N-0012', itemName: 'Van điện từ 24V DCRO', quantity: 2, unitPrice: 85000.00, amount: 170000.00, category: 'RO', isHighlighted: true, week: 'W41' },
+    { id: 'ro-dam-14', itemCode: '04-29-03-SHA76218CK-0022', itemName: 'Cút nối tự hãm nước vào 3/8"', quantity: 8, unitPrice: 3450.00, amount: 27600.00, category: 'RO', isHighlighted: false, week: 'W41' },
+    { id: 'ro-dam-15', itemCode: '04-29-07-SHA76636KL-0008', itemName: 'Bộ dây nguồn tổng RO SHA', quantity: 3, unitPrice: 18500.00, amount: 55500.00, category: 'RO', isHighlighted: false, week: 'W41' },
+    { id: 'ro-dam-16', itemCode: '04-29-03-SHA76213CK-0020', itemName: 'Nhựa giá đỡ bơm MLN', quantity: 4, unitPrice: 22000.00, amount: 88000.00, category: 'RO', isHighlighted: false, week: 'W41' },
+    { id: 'ro-dam-17', itemCode: '04-29-06-SHA76601S-0015', itemName: 'Vỏ carton máy RO UltraX', quantity: 5, unitPrice: 23780.00, amount: 118900.00, category: 'RO', isHighlighted: false, week: 'W41' },
   ],
   itemsBG: [
     // Tuần 37
@@ -884,6 +895,17 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'bg-dam-14', itemCode: '02-33-08-SHB201MT-0008', itemName: 'Đĩa chống tràn SHB201MT-V2', quantity: 8, unitPrice: 6381.00, amount: 51048.00, category: 'BG', isHighlighted: false, week: 'W39' },
     { id: 'bg-dam-15', itemCode: '02-33-09-650X90-0001', itemName: 'Ống dẫn ga khung 650x90 siêu mỏng', quantity: 3, unitPrice: 13034.80, amount: 39104.40, category: 'BG', isHighlighted: false, week: 'W39' },
     { id: 'bg-dam-16', itemCode: '02-33-05-B160000-0001', itemName: 'Nút nhựa B16 đen xám', quantity: 15, unitPrice: 1480.52, amount: 22207.80, category: 'BG', isHighlighted: false, week: 'W39' },
+    // Tuần 40 (W40)
+    { id: 'bg-dam-17', itemCode: '02-33-07-MMB3569MT-0002', itemName: 'Cụm đánh lửa MMB3569MT', quantity: 10, unitPrice: 21900.00, amount: 219000.00, category: 'BG', isHighlighted: true, week: 'W40' },
+    { id: 'bg-dam-18', itemCode: '02-33-06-SHB32012VMC-0005', itemName: 'Vỏ hộp bếp ga SHB32012', quantity: 12, unitPrice: 15300.00, amount: 183600.00, category: 'BG', isHighlighted: false, week: 'W40' },
+    { id: 'bg-dam-19', itemCode: '02-33-08-SH0000-0005', itemName: 'Đĩa chống tràn Inox cuốn mép', quantity: 12, unitPrice: 7700.00, amount: 92400.00, category: 'BG', isHighlighted: false, week: 'W40' },
+    { id: 'bg-dam-20', itemCode: '02-33-05-B160000-0005', itemName: 'Nút vặn bếp ga đen xám', quantity: 45, unitPrice: 1900.00, amount: 85000.00, category: 'BG', isHighlighted: false, week: 'W40' },
+    // Tuần 41 (W41 - Tuần hiện tại)
+    { id: 'bg-dam-21', itemCode: '02-33-01-MKBD-0005', itemName: 'Mặt kính bếp gas đôi in hoa văn', quantity: 1, unitPrice: 145000.00, amount: 145000.00, category: 'BG', isHighlighted: true, week: 'W41' },
+    { id: 'bg-dam-22', itemCode: '02-33-07-MMB3569MT-0006', itemName: 'Cụm đánh lửa 3569MT(0.8)', quantity: 8, unitPrice: 21900.00, amount: 175200.00, category: 'BG', isHighlighted: true, week: 'W41' },
+    { id: 'bg-dam-23', itemCode: '02-33-06-MMBB0787B-0005', itemName: 'Vỏ hộp bếp ga MMBB0787B', quantity: 6, unitPrice: 15300.00, amount: 91800.00, category: 'BG', isHighlighted: false, week: 'W41' },
+    { id: 'bg-dam-24', itemCode: '02-33-08-SHB201MT-0012', itemName: 'Đĩa chống tràn SHB201MT', quantity: 7, unitPrice: 6400.00, amount: 44800.00, category: 'BG', isHighlighted: false, week: 'W41' },
+    { id: 'bg-dam-25', itemCode: '02-33-09-650X90-0005', itemName: 'Ống dẫn ga khung mỏng', quantity: 2, unitPrice: 16600.00, amount: 33200.00, category: 'BG', isHighlighted: false, week: 'W41' },
   ],
 };
 
@@ -980,35 +1002,49 @@ export const INITIAL_SLIDE5_PRODUCTION_PLAN: Slide5ProductionPlanData = {
     {
       id: 'w-40',
       weekHeader: 'Tuần 40',
-      weekTitle: 'Tuần tiếp theo (+2)',
-      dateRange: '05/10 – 11/10/2026',
+      weekTitle: 'Tuần 40 (01 - 04/10)',
+      dateRange: '01/10 – 04/10/2026',
       manpowerSummary: '55/57 NS Line',
       rmaSummary: 'RMA 12/14NS',
       rows: [
-        { date: '05/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '06/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '07/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '08/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '09/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '10/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '11/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '01/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '02/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '03/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '04/10/2026', planDCLR: 'MODEL MỚI + DCLR', rmaBg: 'RMA + BG', manpowerLine: '55 NS CT + 13TV', manpowerRma: '12 NS CT + 2TV' },
       ]
     },
     {
       id: 'w-41',
       weekHeader: 'Tuần 41',
-      weekTitle: 'Tuần tiếp theo (+3)',
+      weekTitle: 'Tuần hiện tại (W41)',
+      dateRange: '05/10 – 11/10/2026',
+      manpowerSummary: '56/57 NS Line',
+      rmaSummary: 'RMA 12/14NS',
+      rows: [
+        { date: '05/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '06/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '07/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '08/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '09/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '10/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '11/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+      ]
+    },
+    {
+      id: 'w-42',
+      weekHeader: 'Tuần 42',
+      weekTitle: 'Tuần tiếp theo (+1)',
       dateRange: '12/10 – 18/10/2026',
       manpowerSummary: '56/57 NS Line',
       rmaSummary: 'RMA 12/14NS',
       rows: [
-        { date: '12/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '13/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '14/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '15/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '16/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '17/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
-        { date: '18/10/2026', planDCLR: 'TOÀN BỘ MODEL DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '12/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '13/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '14/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '15/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '16/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '17/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '18/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
       ]
     }
   ]
@@ -1127,26 +1163,86 @@ export const INITIAL_SLIDE6_TASK_PLAN: Slide6TaskPlanData = {
     {
       id: 'w-40',
       weekHeader: 'Tuần 40',
-      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 40 (Tháng 10)',
-      dateRange: '05/10 – 11/10/2026',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 40 (01 - 04/10)',
+      dateRange: '01/10 – 04/10/2026',
       rows: [
         {
           task: 'Khởi động sản xuất Tháng 10 đạt mục tiêu NSLĐ ≥ 120%',
           detail: 'Tập trung line Bếp Gas và Line RO đồng bộ nhịp chuyền, kiểm soát tồn trạm',
-          deadline: '07/10/2026\nKế hoạch Tháng 10',
-          status: 'pending',
+          deadline: '03/10/2026\nKế hoạch Tháng 10',
+          status: 'completed',
           highlightedText: 'Kế hoạch Tháng 10'
         },
         {
           task: 'Đánh giá tỉ lệ lỗi 4M tuần đầu Tháng 10',
           detail: 'Họp giao ban chất lượng, kiểm soát lỗi cút nối và đĩa chống tràn',
-          deadline: '09/10/2026',
-          status: 'pending'
+          deadline: '04/10/2026',
+          status: 'completed'
         },
         {
           task: 'Bảo trì định kỳ máy dập & thiết bị hàn nạp',
           detail: 'Bảo trì cấp 2 toàn bộ thiết bị trạm kiểm tra và test áp lực',
+          deadline: '04/10/2026',
+          status: 'completed'
+        }
+      ]
+    },
+    {
+      id: 'w-41',
+      weekHeader: 'Tuần 41',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 41 (Hiện tại)',
+      dateRange: '05/10 – 11/10/2026',
+      rows: [
+        {
+          task: 'Duy trì đà tăng trưởng NSLĐ toàn xưởng ≥ 121%',
+          detail: 'Bám sát kế hoạch sản xuất 9.360 SP, tối ưu năng suất line RO (121.8%) và line BG (116%)',
+          deadline: '08/10/2026\nƯu tiên cao',
+          status: 'in_progress',
+          highlightedText: 'Ưu tiên cao'
+        },
+        {
+          task: 'Kiểm soát chặt chẽ chi phí tổn thất vật tư linh kiện',
+          detail: 'Mục tiêu hư hỏng vật tư dưới 1.0M/tuần (RO 460k, BG 490k), siết chặt lỗi cụm đánh lửa và mặt kính',
+          deadline: '09/10/2026\nTrọng điểm',
+          status: 'in_progress',
+          highlightedText: 'Trọng điểm'
+        },
+        {
+          task: 'Hoàn thiện triển khai SOP toàn diện các model DCLR',
+          detail: 'Đào tạo 100% công nhân thực hiện chuẩn thao tác theo bảng hướng dẫn công việc SOP mới',
           deadline: '11/10/2026',
+          status: 'in_progress'
+        },
+        {
+          task: 'Đánh giá và kiểm định thiết bị test lạnh tự động',
+          detail: 'Kiểm tra độ chính xác cảm biến nhiệt và cân chỉnh van nạp gas cho toàn chuyền',
+          deadline: '11/10/2026',
+          status: 'pending'
+        }
+      ]
+    },
+    {
+      id: 'w-42',
+      weekHeader: 'Tuần 42',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 42 (Tiếp theo)',
+      dateRange: '12/10 – 18/10/2026',
+      rows: [
+        {
+          task: 'Chuẩn bị sản xuất hàng loạt các model quý 4',
+          detail: 'Bố trí mặt bằng sản xuất và cân đối nhân lực 56 NS CT + 12 TV',
+          deadline: '14/10/2026',
+          status: 'pending'
+        },
+        {
+          task: 'Đánh giá nhà cung cấp linh kiện cụm đánh lửa & vỏ carton',
+          detail: 'Họp với bộ phận QA/QC đánh giá tỷ lệ đạt chất lượng linh kiện nhập kho',
+          deadline: '16/10/2026',
+          status: 'pending'
+        },
+        {
+          task: 'Kiểm tra định kỳ 5S và an toàn lao động toàn phân xưởng',
+          detail: 'Duy trì đánh giá 5S hàng tuần, gắn biển nhận diện chuyền kiểu mẫu',
+          deadline: '18/10/2026',
           status: 'pending'
         }
       ]

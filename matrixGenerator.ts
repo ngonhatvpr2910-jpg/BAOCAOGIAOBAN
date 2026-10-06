@@ -179,9 +179,11 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
   const daysCount = getDaysInMonth(year, monthIndex0);
   const monthShort = MONTH_NAMES_SHORT[monthIndex0];
   const cols: ExcelMatrixBGColumn[] = [];
-  const isNewInputMonth = monthIndex0 >= 8; // Tháng 9 trở đi là dữ liệu mới chạy tự động từ nhập liệu, khởi tạo bằng 0
   const isMonth9 = (year === 2026 && monthIndex0 === 8);
   const isMonth10 = (year === 2026 && monthIndex0 === 9);
+  const isMonth11 = (year === 2026 && monthIndex0 === 10);
+  const isMonth12 = (year === 2026 && monthIndex0 === 11);
+
   const month9Cutoffs = [3, 10, 17, 24];
   const month9Labels: Record<number, string> = {
     3: 'W36 01 - 03/Sep',
@@ -198,6 +200,23 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     25: 'W43 19 - 25/Oct',
     31: 'W44 26 - 31/Oct',
   };
+  const month11Cutoffs = [1, 8, 15, 22, 29];
+  const month11Labels: Record<number, string> = {
+    1: 'W44 01/Nov',
+    8: 'W45 02 - 08/Nov',
+    15: 'W46 09 - 15/Nov',
+    22: 'W47 16 - 22/Nov',
+    29: 'W48 23 - 29/Nov',
+    30: 'W49 30/Nov',
+  };
+  const month12Cutoffs = [6, 13, 20, 27];
+  const month12Labels: Record<number, string> = {
+    6: 'W49 01 - 06/Dec',
+    13: 'W50 07 - 13/Dec',
+    20: 'W51 14 - 20/Dec',
+    27: 'W52 21 - 27/Dec',
+    31: 'W53 28 - 31/Dec',
+  };
 
   let weekNum = 1;
   for (let day = 1; day <= daysCount; day++) {
@@ -208,20 +227,45 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     const label = `${dayStr}-${monthShort}`;
     const dateIso = `${year}-${String(monthIndex0 + 1).padStart(2, '0')}-${dayStr}`;
 
-    // All days are open online, never marked as OFF
-    const baseGa = isNewInputMonth ? 0 : (4 + Math.round((day % 5) * 1.5 * 10) / 10);
-    const baseTv = isNewInputMonth ? 0 : (3 + Math.round((day % 4) * 1.2 * 10) / 10);
-    const baseRma = isNewInputMonth ? 0 : (day % 3 === 0 ? 3.5 : 0);
-    const slGa = isNewInputMonth ? 0 : Math.round(baseGa * 14);
-    const slRma = isNewInputMonth ? 0 : (baseRma > 0 ? 35 : 0);
+    let baseGa = 0;
+    let baseTv = 0;
+    let baseRma = 0;
+    let slGa = 0;
+    let slRma = 0;
+    let baseKhsx = 0;
+    let nsLine = 8;
+    let nsNghi = 0;
+    let tiLe = 100;
+
+    if (!isSunday) {
+      if (isMonth10) {
+        // Đồng bộ dữ liệu Tháng 10 chuẩn NSLĐ: W40-W44 (hiện tại W41 ~ 116%)
+        baseGa = 4.8 + ((day % 4) * 0.2);
+        baseTv = 3.2 + ((day % 3) * 0.3);
+        baseRma = day % 2 === 0 ? 3.0 : 0;
+        slGa = day <= 11 ? Math.round(baseGa * 15.2 + (day % 3) * 2) : Math.round(baseGa * 14.5);
+        slRma = baseRma > 0 ? (day <= 11 ? 38 : 35) : 0;
+        baseKhsx = 720;
+      } else if (isMonth9) {
+        baseGa = 4.8 + ((day % 4) * 0.2);
+        baseTv = 3.2 + ((day % 3) * 0.3);
+        baseRma = day % 2 === 0 ? 3.0 : 0;
+        slGa = Math.round(baseGa * 14.5 + (day % 3) * 3);
+        slRma = baseRma > 0 ? 35 : 0;
+        baseKhsx = 720;
+      } else {
+        baseGa = 4.8 + ((day % 4) * 0.2);
+        baseTv = 3.2 + ((day % 3) * 0.3);
+        baseRma = day % 2 === 0 ? 3.0 : 0;
+        slGa = Math.round(baseGa * 14.5);
+        slRma = baseRma > 0 ? 35 : 0;
+        baseKhsx = 720;
+      }
+    }
     const totalCong = baseGa + baseTv + baseRma;
     const dm = isSunday ? 0 : Number((totalCong * 9.03).toFixed(1));
     const totalSl = slGa + slRma;
     const nsld = dm > 0 ? Number(((totalSl / dm) * 100).toFixed(1)) : 0;
-    const nsLine = 8;
-    const nsNghi = isNewInputMonth ? 0 : (day % 6 === 0 ? 1 : 0);
-    const tiLe = 100;
-    const baseKhsx = isNewInputMonth ? 0 : (700 + (day % 5) * 20);
 
     cols.push({
       id: `bg-${year}-${monthIndex0 + 1}-${dayStr}`,
@@ -242,31 +286,58 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     });
 
     // Check cutoff
-    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+    const isCutoff = isMonth9
+      ? month9Cutoffs.includes(day)
+      : (isMonth10
+        ? month10Cutoffs.includes(day)
+        : (isMonth11
+          ? month11Cutoffs.includes(day)
+          : (isMonth12
+            ? month12Cutoffs.includes(day)
+            : isSunday)));
+
     if (isCutoff || (day === daysCount)) {
-      const isActuallyCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+      const isActuallyCutoff = isMonth9
+        ? month9Cutoffs.includes(day)
+        : (isMonth10
+          ? month10Cutoffs.includes(day)
+          : (isMonth11
+            ? month11Cutoffs.includes(day)
+            : (isMonth12
+              ? month12Cutoffs.includes(day)
+              : isSunday)));
+
       if (!isActuallyCutoff && day === daysCount && cols.length > 0 && cols[cols.length-1].isWeeklyTotal) {
           // don't add extra weekly total if already added
       } else {
-        const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : (isMonth10 ? (month10Labels[day] || `W${40 + weekNum}`) : `W${weekNum}`);
+        const wLabel = isMonth9
+          ? (month9Labels[day] || `W${35 + weekNum}`)
+          : (isMonth10
+            ? (month10Labels[day] || `W${40 + weekNum}`)
+            : (isMonth11
+              ? (month11Labels[day] || `W${44 + weekNum}`)
+              : (isMonth12
+                ? (month12Labels[day] || `W${49 + weekNum}`)
+                : `W${weekNum}`)));
+
         cols.push({
-        id: `bg-w${weekNum}-${monthIndex0 + 1}-${day}`,
-        label: wLabel,
-        isWeeklyTotal: true,
-        congBepGa: 0,
-        congThoiVu: 0,
-        congRma: 0,
-        sanLuongBepGa: 0,
-        sanLuongRma: 0,
-        dinhMucSlTheoNs: 0,
-        nsldTheoNgay: 0,
-        khsxNgay: 0,
-        tiLeHoanThanhKhsx: 0,
-        tongNhanSuLine: 0,
-        nhanSuNghi: 0,
-        tiLeDiLam: 0,
-      });
-      weekNum++;
+          id: `bg-w${weekNum}-${monthIndex0 + 1}-${day}`,
+          label: wLabel,
+          isWeeklyTotal: true,
+          congBepGa: 0,
+          congThoiVu: 0,
+          congRma: 0,
+          sanLuongBepGa: 0,
+          sanLuongRma: 0,
+          dinhMucSlTheoNs: 0,
+          nsldTheoNgay: 0,
+          khsxNgay: 0,
+          tiLeHoanThanhKhsx: 0,
+          tongNhanSuLine: 0,
+          nhanSuNghi: 0,
+          tiLeDiLam: 0,
+        });
+        weekNum++;
       }
     }
   }
@@ -449,9 +520,11 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
   const daysCount = getDaysInMonth(year, monthIndex0);
   const monthShort = MONTH_NAMES_SHORT[monthIndex0];
   const cols: ExcelMatrixROColumn[] = [];
-  const isNewInputMonth = monthIndex0 >= 8; // Tháng 9 trở đi là dữ liệu mới chạy tự động từ nhập liệu, khởi tạo bằng 0
   const isMonth9 = (year === 2026 && monthIndex0 === 8);
   const isMonth10 = (year === 2026 && monthIndex0 === 9);
+  const isMonth11 = (year === 2026 && monthIndex0 === 10);
+  const isMonth12 = (year === 2026 && monthIndex0 === 11);
+
   const month9Cutoffs = [3, 10, 17, 24];
   const month9Labels: Record<number, string> = {
     3: 'W36 01 - 03/Sep',
@@ -468,6 +541,23 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     25: 'W43 19 - 25/Oct',
     31: 'W44 26 - 31/Oct',
   };
+  const month11Cutoffs = [1, 8, 15, 22, 29];
+  const month11Labels: Record<number, string> = {
+    1: 'W44 01/Nov',
+    8: 'W45 02 - 08/Nov',
+    15: 'W46 09 - 15/Nov',
+    22: 'W47 16 - 22/Nov',
+    29: 'W48 23 - 29/Nov',
+    30: 'W49 30/Nov',
+  };
+  const month12Cutoffs = [6, 13, 20, 27];
+  const month12Labels: Record<number, string> = {
+    6: 'W49 01 - 06/Dec',
+    13: 'W50 07 - 13/Dec',
+    20: 'W51 14 - 20/Dec',
+    27: 'W52 21 - 27/Dec',
+    31: 'W53 28 - 31/Dec',
+  };
 
   let weekNum = 1;
   for (let day = 1; day <= daysCount; day++) {
@@ -478,18 +568,44 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     const label = `${dayStr}-${monthShort}`;
     const dateIso = `${year}-${String(monthIndex0 + 1).padStart(2, '0')}-${dayStr}`;
 
-    // All days are open online, never marked as OFF
-    const baseCt = isNewInputMonth ? 0 : (54 + (day % 4));
-    const baseTv = isNewInputMonth ? 0 : (15 + (day % 3));
+    let baseCt = 0;
+    let baseTv = 0;
+    let sl = 0;
+    let khsx = 0;
+    let nsLine = 56;
+    let nsNghi = 1;
+    let tiLe = 98.2;
+
+    if (!isSunday) {
+      if (isMonth10) {
+        // Đồng bộ dữ liệu Tháng 10 Line RO: W40-W44 (hiện tại W41 ~ 121.8% NSLĐ)
+        baseCt = 55 + (day % 3);
+        baseTv = 14 + (day % 2) * 2;
+        const totalCong = baseCt + baseTv;
+        const dm = Number((totalCong * 9.03).toFixed(1));
+        sl = day <= 11 ? Math.round(dm * 1.218 + (day % 4) * 6) : Math.round(dm * 1.20);
+        khsx = 720;
+      } else if (isMonth9) {
+        baseCt = 54 + (day % 4);
+        baseTv = 15 + (day % 3);
+        const totalCong = baseCt + baseTv;
+        const dm = Number((totalCong * 9.03).toFixed(1));
+        sl = Math.round(dm * 1.17 + (day % 5) * 6);
+        khsx = 700 + (day % 5) * 20;
+      } else {
+        baseCt = 55 + (day % 3);
+        baseTv = 14 + (day % 2) * 2;
+        const totalCong = baseCt + baseTv;
+        const dm = Number((totalCong * 9.03).toFixed(1));
+        sl = Math.round(dm * 1.20);
+        khsx = 720;
+      }
+    }
+
     const totalCong = baseCt + baseTv;
     const dm = isSunday ? 0 : Number((totalCong * 9.03).toFixed(1)); // Công thức chuẩn Excel nhóm RO: = (Công CT + Công TV) * 9.03
-    const sl = isNewInputMonth ? 0 : (680 + (day % 7) * 25);
     const nsld = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
-    const khsx = isNewInputMonth ? 0 : (700 + (day % 5) * 20);
     const tiLeKhsx = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : 0;
-    const nsLine = 55;
-    const nsNghi = isNewInputMonth ? 1 : (day % 5 === 0 ? 3 : 1);
-    const tiLe = 98.2;
 
     cols.push({
       id: `ro-${year}-${monthIndex0 + 1}-${dayStr}`,
@@ -507,29 +623,56 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
       tiLeDiLam: tiLe,
     });
 
-    const isCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+    const isCutoff = isMonth9
+      ? month9Cutoffs.includes(day)
+      : (isMonth10
+        ? month10Cutoffs.includes(day)
+        : (isMonth11
+          ? month11Cutoffs.includes(day)
+          : (isMonth12
+            ? month12Cutoffs.includes(day)
+            : isSunday)));
+
     if (isCutoff || (day === daysCount)) {
-      const isActuallyCutoff = isMonth9 ? month9Cutoffs.includes(day) : (isMonth10 ? month10Cutoffs.includes(day) : isSunday);
+      const isActuallyCutoff = isMonth9
+        ? month9Cutoffs.includes(day)
+        : (isMonth10
+          ? month10Cutoffs.includes(day)
+          : (isMonth11
+            ? month11Cutoffs.includes(day)
+            : (isMonth12
+              ? month12Cutoffs.includes(day)
+              : isSunday)));
+
       if (!isActuallyCutoff && day === daysCount && cols.length > 0 && cols[cols.length-1].isWeeklyTotal) {
           // skip
       } else {
-        const wLabel = isMonth9 ? (month9Labels[day] || `W${35 + weekNum}`) : (isMonth10 ? (month10Labels[day] || `W${40 + weekNum}`) : `W${weekNum}/T${monthIndex0 + 1}`);
+        const wLabel = isMonth9
+          ? (month9Labels[day] || `W${35 + weekNum}`)
+          : (isMonth10
+            ? (month10Labels[day] || `W${40 + weekNum}`)
+            : (isMonth11
+              ? (month11Labels[day] || `W${44 + weekNum}`)
+              : (isMonth12
+                ? (month12Labels[day] || `W${49 + weekNum}`)
+                : `W${weekNum}/T${monthIndex0 + 1}`)));
+
         cols.push({
-        id: `ro-w${weekNum}-${monthIndex0 + 1}-${day}`,
-        label: wLabel,
-        isWeeklyTotal: true,
-        congChinhThuc: 0,
-        congThoiVu: 0,
-        sanLuongLineChinh: 0,
-        dinhMucSlTheoNs: 0,
-        nsldTheoNgay: 0,
-        khsxNgay: 0,
-        tiLeHoanThanhKhsx: 0,
-        tongNhanSuLine: 0,
-        nhanSuNghi: 0,
-        tiLeDiLam: 0,
-      });
-      weekNum++;
+          id: `ro-w${weekNum}-${monthIndex0 + 1}-${day}`,
+          label: wLabel,
+          isWeeklyTotal: true,
+          congChinhThuc: 0,
+          congThoiVu: 0,
+          sanLuongLineChinh: 0,
+          dinhMucSlTheoNs: 0,
+          nsldTheoNgay: 0,
+          khsxNgay: 0,
+          tiLeHoanThanhKhsx: 0,
+          tongNhanSuLine: 0,
+          nhanSuNghi: 0,
+          tiLeDiLam: 0,
+        });
+        weekNum++;
       }
     }
   }
