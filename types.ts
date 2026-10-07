@@ -459,4 +459,24 @@ export interface Slide4ProductionTargetData {
   }
 }
 
+export interface LockedMonthInfo {
+  isLocked: boolean;
+  lockedAt: string;
+  lockedBy?: string;
+  year: number;
+  monthIndex0: number;
+  monthLabel: string;
+  nsldRO?: number;
+  nsldBG?: number;
+  nsldPXLR?: number;
+  defectCostTotal?: number;
+  defectCostRO?: number;
+  defectCostBG?: number;
+  outputRO?: number;
+  outputBG?: number;
+  congRO?: number;
+  congBG?: number;
+  note?: string;
+}
+
 

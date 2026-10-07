@@ -17,6 +17,7 @@ import {
   Slide5ProductionPlanData,
   Slide6TaskPlanData,
   GlobalNormsConfig,
+  LockedMonthInfo,
 } from './types';
 import { 
   INITIAL_DCBG_RECORDS, 
@@ -64,6 +65,7 @@ const STORAGE_KEYS = {
   SLIDE5_PRODUCTION_PLAN: 'pxlr_slide5_production_plan_v1',
   SLIDE6_TASK_PLAN: 'pxlr_slide6_task_plan_v1',
   GLOBAL_NORMS: 'pxlr_global_norms_v1',
+  LOCKED_MONTHS: 'pxlr_locked_months_v1',
 };
 
 
@@ -1042,6 +1044,157 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.GLOBAL_NORMS, JSON.stringify(norms));
     } catch (e) {
       console.error('Failed to save global norms', e);
+    }
+  },
+
+  getLockedMonths(): Record<string, LockedMonthInfo> {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.LOCKED_MONTHS);
+      const defaultLocked: Record<string, LockedMonthInfo> = {
+        '2026_6': {
+          isLocked: true,
+          lockedAt: '2026-06-30T23:59:59',
+          lockedBy: 'Quản đốc PXLR',
+          year: 2026,
+          monthIndex0: 5,
+          monthLabel: 'Tháng 6',
+          nsldRO: 108.5,
+          nsldBG: 104.2,
+          nsldPXLR: 107.9,
+          note: 'Đã hoàn thành và chốt sổ Tháng 6/2026'
+        },
+        '2026_7': {
+          isLocked: true,
+          lockedAt: '2026-07-31T23:59:59',
+          lockedBy: 'Quản đốc PXLR',
+          year: 2026,
+          monthIndex0: 6,
+          monthLabel: 'Tháng 7',
+          nsldRO: 112.0,
+          nsldBG: 105.8,
+          nsldPXLR: 111.2,
+          note: 'Đã hoàn thành và chốt sổ Tháng 7/2026'
+        },
+        '2026_8': {
+          isLocked: true,
+          lockedAt: '2026-08-31T23:59:59',
+          lockedBy: 'Quản đốc PXLR',
+          year: 2026,
+          monthIndex0: 7,
+          monthLabel: 'Tháng 8',
+          nsldRO: 115.4,
+          nsldBG: 106.1,
+          nsldPXLR: 114.2,
+          note: 'Đã hoàn thành và chốt sổ Tháng 8/2026'
+        },
+        '2026_9': {
+          isLocked: true,
+          lockedAt: '2026-09-30T23:59:59',
+          lockedBy: 'Quản đốc PXLR',
+          year: 2026,
+          monthIndex0: 8,
+          monthLabel: 'Tháng 9',
+          nsldRO: 119.5,
+          nsldBG: 106.9,
+          nsldPXLR: 117.8,
+          defectCostTotal: 5263848,
+          note: 'Đã hoàn thành và chốt sổ Tháng 9/2026'
+        },
+      };
+
+      if (!data) return defaultLocked;
+      const parsed = JSON.parse(data);
+      return { ...defaultLocked, ...parsed };
+    } catch {
+      return {};
+    }
+  },
+
+  saveLockedMonths(lockedMap: Record<string, LockedMonthInfo>) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.LOCKED_MONTHS, JSON.stringify(lockedMap));
+    } catch (e) {
+      console.error('Failed to save locked months', e);
+    }
+  },
+
+  isMonthLocked(year: number, monthIndex0: number): boolean {
+    const key = `${year}_${monthIndex0 + 1}`;
+    const all = this.getLockedMonths();
+    return Boolean(all[key]?.isLocked);
+  },
+
+  lockMonth(year: number, monthIndex0: number, summary?: Partial<LockedMonthInfo>, lockedBy?: string): LockedMonthInfo {
+    const key = `${year}_${monthIndex0 + 1}`;
+    const all = this.getLockedMonths();
+    const monthNum = monthIndex0 + 1;
+    
+    // 1. Finalize matrix for this month
+    const roCols = this.getMatrixROForMonth(year, monthIndex0);
+    const bgCols = this.getMatrixBGForMonth(year, monthIndex0);
+    const recalculatedRO = recalculateROMatrix(roCols);
+    const recalculatedBG = recalculateBGMatrix(bgCols);
+    this.saveMatrixROForMonth(year, monthIndex0, recalculatedRO);
+    this.saveMatrixBGForMonth(year, monthIndex0, recalculatedBG);
+
+    // Extract exact monthly totals from matrix
+    const roMonthlyCol = recalculatedRO.find(c => c.isMonthlyTotal);
+    const bgMonthlyCol = recalculatedBG.find(c => c.isMonthlyTotal);
+    const nsldRO = Number(roMonthlyCol?.nsldTheoNgay) || summary?.nsldRO || (monthNum === 9 ? 119.5 : monthNum === 10 ? 121.1 : 100);
+    const nsldBG = Number(bgMonthlyCol?.nsldTheoNgay) || summary?.nsldBG || (monthNum === 9 ? 106.9 : monthNum === 10 ? 102.7 : 100);
+    const nsldPXLR = Number(((nsldRO * 0.87) + (nsldBG * 0.13)).toFixed(1));
+
+    const info: LockedMonthInfo = {
+      isLocked: true,
+      lockedAt: new Date().toISOString(),
+      lockedBy: lockedBy || 'Quản đốc PXLR',
+      year,
+      monthIndex0,
+      monthLabel: `Tháng ${monthNum}`,
+      nsldRO,
+      nsldBG,
+      nsldPXLR,
+      outputRO: Number(roMonthlyCol?.sanLuongLineChinh) || summary?.outputRO || 0,
+      outputBG: Number((bgMonthlyCol?.sanLuongBepGa || 0) + (bgMonthlyCol?.sanLuongRma || 0)) || summary?.outputBG || 0,
+      congRO: Number((roMonthlyCol?.congChinhThuc || 0) + (roMonthlyCol?.congThoiVu || 0)) || summary?.congRO || 0,
+      congBG: Number((bgMonthlyCol?.congBepGa || 0) + (bgMonthlyCol?.congThoiVu || 0) + (bgMonthlyCol?.congRma || 0)) || summary?.congBG || 0,
+      note: `Đã chốt và khóa thành công dữ liệu Tháng ${monthNum}/${year}`,
+      ...summary,
+    };
+
+    all[key] = info;
+    this.saveLockedMonths(all);
+
+    // 2. Lock & sync into Slide 1 NSLD
+    try {
+      const slide1 = this.getSlide1NSLD();
+      const updateBar = (items: any[], val: number, idPrefix: string) => {
+        const idx = items.findIndex(i => i.label === `Tháng ${monthNum}` || i.id === `${idPrefix}-m${monthNum}`);
+        if (idx !== -1) {
+          items[idx] = { ...items[idx], value: val, isLocked: true };
+        } else {
+          items.push({ id: `${idPrefix}-m${monthNum}`, label: `Tháng ${monthNum}`, value: val, isLocked: true });
+        }
+      };
+      updateBar(slide1.ro.data, nsldRO, 'ro');
+      updateBar(slide1.bg.data, nsldBG, 'bg');
+      updateBar(slide1.pxlr.data, nsldPXLR, 'pxlr');
+      this.saveSlide1NSLD(slide1);
+    } catch {}
+
+    return info;
+  },
+
+  unlockMonth(year: number, monthIndex0: number) {
+    const key = `${year}_${monthIndex0 + 1}`;
+    const all = this.getLockedMonths();
+    if (all[key]) {
+      all[key] = {
+        ...all[key],
+        isLocked: false,
+        note: `Đã mở khóa chỉnh sửa dữ liệu Tháng ${monthIndex0 + 1}/${year}`
+      };
+      this.saveLockedMonths(all);
     }
   },
 
