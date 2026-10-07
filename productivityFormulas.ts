@@ -211,7 +211,7 @@ export function autoComputeSlideDataFromInputs(
     const congRO = recsRO.reduce((s, r) => s + (Number(r.tongCong) || 0), 0);
     const slBG = recsBG.reduce((s, r) => s + ((Number(r.sanLuongBepGa) || 0) + (Number(r.sanLuongRma) || 0)), 0);
     const dmBG = recsBG.reduce((s, r) => s + (Number(r.dinhMucSlTheoNs) || 0), 0);
-    const congBG = recsBG.reduce((s, r) => s + (Number(r.tongCong) || 0), 0);
+    const congBG = recsBG.reduce((s, r) => s + ((Number(r.congBepGa) || 0) + (Number(r.congThoiVu) || 0) + (Number(r.congRma) || 0) || (Number(r.tongCong) || 0)), 0);
 
     monthStats[mLabel] = {
       nsldRO: calc.nsRO,

@@ -1008,13 +1008,13 @@ export const TabPowerPointPresentation: React.FC = () => {
               </div>
 
               <div className="bg-white p-2.5 rounded-lg border border-indigo-100 space-y-1">
-                <div className="font-bold text-slate-800">2. Nhóm Lắp Ráp Bếp Gas (DCBG)</div>
+                <div className="font-bold text-slate-800">2. Nhóm Lắp Ráp Bếp Gas & RMA (DCBG)</div>
                 <div className="text-slate-600">Số bản ghi {currentMonthLabel}: <span className="font-bold text-indigo-700">{liveSyncSummary.monthStats[currentMonthLabel].recordCountBG} ngày</span></div>
-                <div className="text-slate-600">Tổng công nhân sự: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalCong_BG ?? 0} công</span></div>
-                <div className="text-slate-600">Tổng SL quy đổi: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG.toLocaleString()} SP</span></div>
-                <div className="text-slate-600">Tổng Định mức: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG.toLocaleString()} SP</span></div>
+                <div className="text-slate-600">Tổng công (BG + TV + RMA): <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalCong_BG ?? 0} công</span></div>
+                <div className="text-slate-600">Tổng SL quy đổi (BG + RMA): <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG.toLocaleString()} SP</span></div>
+                <div className="text-slate-600">Tổng Định mức theo công: <span className="font-mono font-bold">{liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG.toLocaleString()} SP</span></div>
                 <div className="text-indigo-900 font-bold pt-1 border-t border-slate-100">
-                  NSLĐ Tự Động = ({liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG} / {liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG}) × 100 = <span className="text-emerald-700 font-extrabold">{liveSyncSummary.monthStats[currentMonthLabel].nsldBG}%</span>
+                  NSLĐ Tự Động = [({liveSyncSummary.monthStats[currentMonthLabel].totalSL_BG}) / ({liveSyncSummary.monthStats[currentMonthLabel].totalDM_BG})] × 100 = <span className="text-emerald-700 font-extrabold">{liveSyncSummary.monthStats[currentMonthLabel].nsldBG}%</span>
                 </div>
               </div>
 
