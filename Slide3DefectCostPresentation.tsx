@@ -795,7 +795,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                 </div>
 
                 {/* Chart Visual with exact red bars and labels */}
-                <div className="h-36 sm:h-40 w-full">
+                <div className="h-48 sm:h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={slicedWeeklyData}
@@ -988,7 +988,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                 </div>
 
                 {/* Monthly Bar Chart (Chỉ hiển thị các tháng có dữ liệu, Tháng 11 và 12 chưa đến thì không có số liệu) */}
-                <div className="h-36 sm:h-40 w-full">
+                <div className="h-48 sm:h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={activeMonthlyData}
@@ -1020,7 +1020,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                         dataKey="value" 
                         fill="#b91c1c" 
                         radius={[4, 4, 0, 0]}
-                        barSize={30}
+                        barSize={32}
                         onClick={(data) => {
                           if (data && data.label) {
                             setSelectedMonthLabel(data.label);
@@ -1060,217 +1060,6 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   >
                     TL Hư Hỏng Tháng
                   </button>
-                </div>
-              </div>
-            </div>
-
-            {/* BẢNG PHÂN TÍCH CÁC VẬT TƯ LINH KIỆN CÓ GIÁ TRỊ HƯ HỎNG CAO (LẤY DỮ LIỆU TỪ TẤT CẢ CÁC DATA ĐƯỢC CẬP NHẬT) */}
-            <div className="bg-white border border-slate-300 rounded-xl overflow-hidden shadow-md flex flex-col flex-1">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 text-white px-3.5 py-2 flex items-center justify-between border-b border-rose-800">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-tight text-amber-200">
-                      Bảng Phân Tích Linh Kiện Hư Hỏng Cao
-                    </h4>
-                    <p className="text-[10px] text-slate-300 font-sans">
-                      {analysisFilterWeek === 'all' && analysisScope === 'all'
-                        ? `Lấy dữ liệu từ tất cả ${(data.itemsRO || []).length + (data.itemsBG || []).length} mục data cập nhật (Line RO & Bếp Ga)`
-                        : `Dữ liệu tuần ${analysisFilterWeek !== 'all' ? analysisFilterWeek : targetDisplayWeek}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <div className="bg-black/50 px-2 py-0.5 rounded border border-rose-700/60 text-right">
-                    <span className="text-[9px] text-amber-300 font-bold block leading-none">Top 5 chiếm</span>
-                    <span className="text-xs font-black text-white">{top5Percentage}%</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Data Scope & Filter Bar */}
-              <div className="bg-slate-100/90 px-3 py-1.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-1 text-[11px] text-slate-700">
-                {/* Left: Quick Scope Buttons */}
-                <div className="flex items-center gap-1 flex-wrap">
-                  <span className="text-slate-500 font-sans font-bold text-[10px] mr-0.5">Dữ liệu:</span>
-                  <button
-                    onClick={() => {
-                      setAnalysisFilterWeek('all');
-                      setAnalysisScope('all');
-                    }}
-                    className={`px-2 py-0.5 rounded text-[10px] font-sans font-black transition-all border cursor-pointer ${
-                      analysisFilterWeek === 'all' && analysisScope === 'all'
-                        ? 'bg-rose-700 text-white border-rose-800 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                    }`}
-                    title="Lấy dữ liệu từ tất cả các data được cập nhật (RO & Bếp Ga qua tất cả các tuần)"
-                  >
-                    <Sparkles className="w-3 h-3 inline mr-1 text-amber-300" />
-                    Tất Cả Data Cập Nhật
-                  </button>
-
-                  {availableWeeks.map(w => {
-                    const isSelected = (analysisFilterWeek === w) || (analysisScope === 'period' && targetDisplayWeek === w && analysisFilterWeek === 'all');
-                    return (
-                      <button
-                        key={`quick-w-${w}`}
-                        onClick={() => {
-                          setAnalysisFilterWeek(w);
-                          setAnalysisScope('period');
-                          setSelectedWeekLabel(w);
-                        }}
-                        className={`px-2 py-0.5 rounded text-[10px] font-sans font-bold transition-all border cursor-pointer ${
-                          isSelected
-                            ? 'bg-slate-900 text-amber-300 border-slate-950 shadow-xs'
-                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                        }`}
-                        title={`Xem riêng dữ liệu phát sinh tuần ${w}`}
-                      >
-                        {w}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Right: Toggle Grouping & Count */}
-                <div className="flex items-center gap-1.5 ml-auto">
-                  {analysisFilterWeek === 'all' && analysisScope === 'all' && (
-                    <button
-                      onClick={() => setIsGroupedByCode(!isGroupedByCode)}
-                      className={`px-2 py-0.5 rounded text-[10px] font-sans font-semibold border transition-all cursor-pointer ${
-                        isGroupedByCode 
-                          ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold' 
-                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                      }`}
-                      title={isGroupedByCode ? 'Đang gộp các vật tư trùng mã từ các tuần' : 'Hiển thị chi tiết từng dòng cập nhật'}
-                    >
-                      {isGroupedByCode ? 'Gộp cùng mã VT' : 'Tách từng dòng'}
-                    </button>
-                  )}
-                  <span className="text-[10px] font-sans font-bold px-1.5 py-0.5 rounded bg-amber-200 text-amber-950">
-                    {topHighValueItems.length} linh kiện
-                  </span>
-                </div>
-              </div>
-
-              {/* High-Value Items Scrollable Table */}
-              <div className="max-h-56 sm:max-h-64 overflow-y-auto">
-                <table className="w-full text-xs text-left border-collapse">
-                  <thead className="bg-slate-50 text-slate-800 font-black text-[10px] uppercase sticky top-0 border-b border-slate-200 z-10">
-                    <tr>
-                      <th className="py-2 px-1 text-center w-7 border-r border-slate-200">#</th>
-                      <th className="py-2 px-1 text-center w-12 border-r border-slate-200">Line</th>
-                      <th className="py-2 px-1 text-center w-12 border-r border-slate-200">Tuần</th>
-                      <th className="py-2 px-2 border-r border-slate-200">Linh kiện vật tư</th>
-                      <th className="py-2 px-1 text-center w-8 border-r border-slate-200">SL</th>
-                      <th className="py-2 px-2 text-right w-22 border-r border-slate-200">Tổn thất</th>
-                      <th className="py-2 px-1.5 text-right w-14">% Tỉ lệ</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {topHighValueItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="text-center py-6 text-slate-500 font-serif italic text-xs">
-                          Chưa có linh kiện hư hỏng phát sinh trong dữ liệu đã chọn
-                        </td>
-                      </tr>
-                    ) : (
-                      topHighValueItems.slice(0, 10).map((item, idx) => {
-                        const isTop3 = idx < 3;
-                        const rankBadgeColor = 
-                          idx === 0 ? 'bg-amber-400 text-amber-950 font-black shadow-2xs' :
-                          idx === 1 ? 'bg-slate-300 text-slate-900 font-black' :
-                          idx === 2 ? 'bg-amber-700 text-white font-black' :
-                          'bg-slate-100 text-slate-600 font-bold';
-
-                        const isLineRO = item.lineType === 'RO';
-
-                        return (
-                          <tr 
-                            key={item.id || idx}
-                            className={`transition-colors hover:bg-rose-50/50 ${
-                              item.isHighlighted ? 'bg-amber-50/60' : idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
-                            }`}
-                          >
-                            <td className="py-2 px-1 text-center border-r border-slate-100">
-                              <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] ${rankBadgeColor}`}>
-                                {idx + 1}
-                              </span>
-                            </td>
-                            <td className="py-2 px-1 text-center border-r border-slate-100 whitespace-nowrap">
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-sans font-black ${
-                                isLineRO 
-                                  ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' 
-                                  : 'bg-amber-100 text-amber-900 border border-amber-300'
-                              }`}>
-                                {isLineRO ? 'RO' : 'Bếp Ga'}
-                              </span>
-                            </td>
-                            <td className="py-2 px-1 text-center border-r border-slate-100 whitespace-nowrap">
-                              <span className={`inline-block px-1 py-0.5 rounded text-[9px] font-sans font-bold ${
-                                item.weekList && item.weekList.length > 1
-                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                  : item.week === latestWeekWithData
-                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                    : 'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`} title={item.weekList ? `Các tuần: ${item.weekList.join(', ')}` : undefined}>
-                                {item.weekList && item.weekList.length > 1 
-                                  ? item.weekList.join(',') 
-                                  : item.week || '-'}
-                              </span>
-                            </td>
-                            <td className="py-2 px-2 border-r border-slate-100">
-                              <div className="flex flex-col">
-                                <span className="font-bold text-slate-900 text-[11px] leading-tight line-clamp-1" title={item.itemName}>
-                                  {item.itemName}
-                                </span>
-                                <span className="text-[9px] font-mono text-slate-400">
-                                  {item.itemCode}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-2 px-1 text-center font-bold text-slate-900 border-r border-slate-100 text-[11px]">
-                              {item.quantity}
-                            </td>
-                            <td className="py-2 px-2 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-[11.5px] whitespace-nowrap">
-                              {formatCurrency(item.calcAmount)}
-                            </td>
-                            <td className="py-2 px-1.5 text-right font-mono font-bold text-slate-700 text-[10.5px]">
-                              <div className="flex flex-col items-end">
-                                <span>{item.percentage}%</span>
-                                <div className="w-9 bg-slate-200 rounded-full h-1 mt-0.5 overflow-hidden">
-                                  <div 
-                                    className={`h-full ${isTop3 ? 'bg-rose-600' : 'bg-amber-500'}`}
-                                    style={{ width: `${Math.min(100, item.percentage * 3)}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Bottom Analysis Indicator */}
-              <div className="p-2 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500">
-                <span className="flex items-center gap-1 font-sans">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  Xếp hạng theo thành tiền giảm dần (Pareto 80/20)
-                </span>
-                <div className="flex items-center gap-2">
-                  {(analysisFilterWeek === latestWeekWithData || (analysisScope === 'period' && matchWeek(targetDisplayWeek, latestWeekWithData))) && (
-                    <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-100/90 px-1.5 py-0.5 rounded text-[9.5px]">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      Line RO {latestWeekWithData}: 0 lỗi
-                    </span>
-                  )}
-                  <span className="font-bold font-mono text-slate-800">
-                    Tổng tổn thất: {formatCurrency(totalAnalysisAmount)} VNĐ
-                  </span>
                 </div>
               </div>
             </div>
