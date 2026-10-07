@@ -265,14 +265,16 @@ export function autoComputeSlideDataFromInputs(
     if (!val10BG && t10Hist?.nsld2026) {
       val10BG = Number((t10Hist.nsld2026 * 0.96).toFixed(1));
     }
-    if (!val10RO) val10RO = 120.0;
-    if (!val10BG) val10BG = 108.5;
+    if (!val10RO) val10RO = 121.1;
+    if (!val10BG) val10BG = 102.7;
     const val10PXLR = calculateAbsolutePXLR(val10RO, val10BG, 'monthly');
 
     const updateMonth10 = (items: SlideBarItem[], val: number, type: string) => {
       const idx = items.findIndex(i => i.label === 'Tháng 10' || i.id === `${type}-m10`);
       if (idx !== -1) {
-        if (!items[idx].value || items[idx].value <= 0) {
+        if (!items[idx].value || items[idx].value <= 0 || (type === 'ro' && (items[idx].value === 120.0 || items[idx].value === 120)) || (type === 'bg' && (items[idx].value === 108.5 || items[idx].value === 108.0 || items[idx].value === 108)) || (type === 'pxlr' && (items[idx].value === 118.5 || items[idx].value === 117.8))) {
+          items[idx].value = val;
+        } else if (val > 0) {
           items[idx].value = val;
         }
       } else {

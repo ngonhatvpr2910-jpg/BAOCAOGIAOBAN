@@ -566,21 +566,21 @@ export const StorageService = {
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
           if (m.id === 'pxlr-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
-          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 118.5 };
+          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8)) return { ...m, value: 118.7 };
           return m;
         });
         parsed.ro.monthly = parsed.ro.monthly.map(m => {
           if (m.id === 'ro-m07') return { ...m, value: 117.1 };
           if (m.id === 'ro-m08') return { ...m, value: 111.2 };
           if (m.id === 'ro-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
-          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 120.0 };
+          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 120.0)) return { ...m, value: 121.1 };
           return m;
         });
         parsed.bg.monthly = parsed.bg.monthly.map(m => {
           if (m.id === 'bg-m07') return { ...m, value: 87.1 };
           if (m.id === 'bg-m08') return { ...m, value: 108.2 };
           if (m.id === 'bg-m09' && (!m.value || m.value <= 0)) return { ...m, value: 97.0 };
-          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0)) return { ...m, value: 108.5 };
+          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 108.5)) return { ...m, value: 102.7 };
           return m;
         });
 
