@@ -72,7 +72,7 @@ export const HISTORICAL_MONTH_BREAKDOWN: Record<string, { ro: number; bg: number
 };
 
 /**
- * Trích xuất số tuần từ chuỗi (ví dụ: "W39" -> 39, "Tuần 38" -> 38)
+ * Trích xuất số tuần từ chuỗi (ví dụ: "W39" -> 39, "Tuần 38" -> 38, "Tháng 9" -> 9)
  */
 export function extractWeekNumber(weekStr: string | undefined): number {
   if (!weekStr) return 0;
@@ -147,12 +147,22 @@ export function getWeeksInMonth(monthLabel: string): string[] {
 }
 
 /**
- * Kiểm tra xem một item có thuộc tháng được chọn hay không
+ * Kiểm tra xem một item có thuộc tháng được chọn hay không (dựa vào tuần hoặc mã tháng)
  */
 export function isItemInMonth(itemWeek: string | undefined, monthLabel: string): boolean {
   if (!itemWeek || !monthLabel) return false;
+  const cleanItem = itemWeek.trim().toLowerCase();
+  const cleanMonth = monthLabel.trim().toLowerCase();
+  
+  // Trực tiếp khớp nếu item chứa tên tháng (VD: "Tháng 9", "tháng 9", "T9", "T09")
+  if (cleanItem === cleanMonth) return true;
+  const mNum = extractWeekNumber(monthLabel);
+  if (cleanItem === `t${mNum}` || cleanItem === `thang ${mNum}` || cleanItem === `tháng ${mNum}`) return true;
+
+  // Lọc theo tuần thuộc tháng (VD: W37, W38, W39, W40 thuộc Tháng 9)
   const itemMonth = getMonthForWeek(itemWeek);
-  if (itemMonth === monthLabel) return true;
+  if (itemMonth.toLowerCase() === cleanMonth) return true;
+
   const targetWeeks = getWeeksInMonth(monthLabel);
   return targetWeeks.some(w => isSameWeek(itemWeek, w));
 }
@@ -229,7 +239,7 @@ export function computeWeeklyAggregations(
 }
 
 /**
- * Tính toán biểu đồ Tháng và chi phí từng tháng
+ * Tính toán biểu đồ Tháng và chi phí từng tháng dựa vào dữ liệu tuần và lưu trữ chuẩn xác
  */
 export function computeMonthlyAggregations(
   weeklyData: SlideBarItem[],
@@ -256,6 +266,14 @@ export function computeMonthlyAggregations(
   const sortedMonths = Array.from(allMonthsSet).sort((a, b) => (extractWeekNumber(a) || 0) - (extractWeekNumber(b) || 0));
 
   sortedMonths.forEach(month => {
+    const mNum = extractWeekNumber(month);
+
+    // Tinh gọn: Tháng 11 và Tháng 12 chưa đến thì không có số liệu
+    if (mNum === 11 || mNum === 12) {
+      monthlyTotals[month] = { ro: 0, bg: 0, total: 0 };
+      return;
+    }
+
     const weeksInThisMonth = getWeeksInMonth(month);
     const roItemsInMonth = (itemsRO || []).filter(i => isItemInMonth(i.week, month));
     const bgItemsInMonth = (itemsBG || []).filter(i => isItemInMonth(i.week, month));
@@ -265,27 +283,42 @@ export function computeMonthlyAggregations(
     let sumWeeksRO = 0, sumWeeksBG = 0, sumWeeksTotal = 0;
     weeksInThisMonth.forEach(w => {
       const wTotal = weeklyTotals[w];
-      if (wTotal) {
-        sumWeeksRO += wTotal.ro; sumWeeksBG += wTotal.bg; sumWeeksTotal += wTotal.total;
+      if (wTotal && wTotal.total > 0) {
+        sumWeeksRO += wTotal.ro; 
+        sumWeeksBG += wTotal.bg; 
+        sumWeeksTotal += wTotal.total;
       }
     });
 
     let finalRO = 0, finalBG = 0, finalTotal = 0;
 
-    if (HISTORICAL_MONTH_BREAKDOWN[month]) {
+    // 1. Tự động tính toán tổng hợp từ các tuần thuộc tháng đó (dựa vào dữ liệu tuần)
+    if (mNum >= 9 && sumWeeksTotal > 0) {
+      finalRO = sumWeeksRO;
+      finalBG = sumWeeksBG;
+      finalTotal = sumWeeksTotal;
+    } else if (mNum >= 9 && (roItemsCost > 0 || bgItemsCost > 0)) {
+      finalRO = roItemsCost;
+      finalBG = bgItemsCost;
+      finalTotal = roItemsCost + bgItemsCost;
+    } else if (baseMonthlyData && baseMonthlyData.some(m => m.label === month && (Number(m.value) || 0) > 0)) {
+      // 2. Bảo lưu và lưu dữ liệu tháng do người dùng nhập từ modal hoặc storage
+      const customMonth = baseMonthlyData.find(m => m.label === month);
+      const val = (Number(customMonth?.value) || 0) * 1000000;
+      finalTotal = val;
+      if (HISTORICAL_MONTH_BREAKDOWN[month] && HISTORICAL_MONTH_BREAKDOWN[month].total > 0) {
+        const rRatio = HISTORICAL_MONTH_BREAKDOWN[month].ro / HISTORICAL_MONTH_BREAKDOWN[month].total;
+        finalRO = Math.round(val * rRatio);
+        finalBG = val - finalRO;
+      } else {
+        finalRO = Math.round(val * 0.55);
+        finalBG = val - finalRO;
+      }
+    } else if (HISTORICAL_MONTH_BREAKDOWN[month]) {
+      // 3. Dữ liệu lịch sử mặc định (Tháng 6, 7, 8)
       finalRO = HISTORICAL_MONTH_BREAKDOWN[month].ro;
       finalBG = HISTORICAL_MONTH_BREAKDOWN[month].bg;
       finalTotal = HISTORICAL_MONTH_BREAKDOWN[month].total;
-    } else {
-      finalRO = sumWeeksRO > 0 ? sumWeeksRO : roItemsCost;
-      finalBG = sumWeeksBG > 0 ? sumWeeksBG : bgItemsCost;
-      finalTotal = sumWeeksTotal > 0 ? sumWeeksTotal : (finalRO + finalBG);
-      if (month === 'Tháng 9' && finalTotal === 0) {
-        finalTotal = 4200000; finalRO = 1920000; finalBG = 2280000;
-      }
-      if (month === 'Tháng 10' && finalTotal === 0) {
-        finalTotal = 4500000; finalRO = 2150000; finalBG = 2350000;
-      }
     }
 
     monthlyTotals[month] = {
