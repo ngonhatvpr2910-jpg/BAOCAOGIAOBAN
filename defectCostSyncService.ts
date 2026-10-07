@@ -57,8 +57,8 @@ export const HISTORICAL_MONTH_BASELINE: Record<string, number> = {
   'Tháng 8': 5.9,
   'Tháng 9': 4.2,
   'Tháng 10': 4.5,
-  'Tháng 11': 4.3,
-  'Tháng 12': 4.6,
+  'Tháng 11': 0,
+  'Tháng 12': 0,
 };
 
 export const HISTORICAL_MONTH_BREAKDOWN: Record<string, { ro: number; bg: number; total: number }> = {
@@ -67,8 +67,8 @@ export const HISTORICAL_MONTH_BREAKDOWN: Record<string, { ro: number; bg: number
   'Tháng 8': { ro: 3540000, bg: 2360000, total: 5900000 },
   'Tháng 9': { ro: 1920000, bg: 2280000, total: 4200000 },
   'Tháng 10': { ro: 2150000, bg: 2350000, total: 4500000 },
-  'Tháng 11': { ro: 2050000, bg: 2250000, total: 4300000 },
-  'Tháng 12': { ro: 2200000, bg: 2400000, total: 4600000 },
+  'Tháng 11': { ro: 0, bg: 0, total: 0 },
+  'Tháng 12': { ro: 0, bg: 0, total: 0 },
 };
 
 /**
@@ -307,7 +307,7 @@ export function computeMonthlyAggregations(
       id: `m-${extractWeekNumber(month) || month}`,
       label: month,
       value: valInMillions,
-      displayLabel: valInMillions > 0 ? `${valInMillions}M` : '0M',
+      displayLabel: valInMillions > 0 ? `${valInMillions}M` : '',
     };
   });
 

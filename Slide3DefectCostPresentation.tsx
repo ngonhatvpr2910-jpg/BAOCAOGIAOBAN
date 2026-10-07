@@ -96,6 +96,17 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return computeMonthlyAggregations(weeklyData, weeklyTotals, data.itemsRO || [], data.itemsBG || [], data.monthlyData);
   }, [weeklyData, weeklyTotals, data.itemsRO, data.itemsBG, data.monthlyData]);
 
+  // Tinh gọn dữ liệu tháng: Tháng 11 và Tháng 12 chưa đến thì không có số liệu (chỉ hiển thị các tháng có dữ liệu thực tế)
+  const activeMonthlyData = useMemo(() => {
+    return monthlyData.filter(m => {
+      const num = parseInt(m.label.replace(/\D/g, ''), 10);
+      if (num === 11 || num === 12) {
+        return (Number(m.value) || 0) > 0;
+      }
+      return true;
+    });
+  }, [monthlyData]);
+
   const totalWeeks = weeklyData.length;
   const maxStartIndex = Math.max(0, totalWeeks - weeksToShow);
 
@@ -976,11 +987,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   </span>
                 </div>
 
-                {/* Monthly Bar Chart */}
+                {/* Monthly Bar Chart (Chỉ hiển thị các tháng có dữ liệu, Tháng 11 và 12 chưa đến thì không có số liệu) */}
                 <div className="h-36 sm:h-40 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={monthlyData}
+                      data={activeMonthlyData}
                       margin={{ top: 16, right: 8, left: -22, bottom: 2 }}
                     >
                       <XAxis 
@@ -997,7 +1008,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                         tickLine={false}
                       />
                       <Tooltip 
-                        formatter={(val: any) => [`${val} Triệu VNĐ (~${(Number(val) * 1000000).toLocaleString('vi-VN')} đ)`, 'Tổn thất tháng']}
+                        formatter={(val: any) => {
+                          const num = Number(val) || 0;
+                          if (num <= 0) return ['Chưa có số liệu (Chưa đến kỳ)', 'Tổn thất'];
+                          return [`${val} Triệu VNĐ (~${(num * 1000000).toLocaleString('vi-VN')} đ)`, 'Tổn thất tháng'];
+                        }}
                         labelFormatter={(label) => `Tháng: ${label}`}
                         contentStyle={{ borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '11px', padding: '6px 10px' }}
                       />
@@ -1019,7 +1034,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                           position="top" 
                           style={{ fontSize: '10px', fontWeight: 'bold', fill: '#0f172a' }} 
                         />
-                        {monthlyData.map((entry, index) => (
+                        {activeMonthlyData.map((entry, index) => (
                           <Cell 
                             key={`mcell-${index}`} 
                             fill={entry.label === selectedMonthLabel && selectionMode === 'month' ? '#7f1d1d' : '#b91c1c'} 
@@ -1265,59 +1280,68 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
           {/* === RIGHT COLUMN: EXCEL-STYLE TABLES & PARETO VIEW (7 / 12) === */}
           <div className="lg:col-span-7 flex flex-col space-y-3">
             
-            {/* STATUS BANNER: CHỈ HIỂN THỊ TUẦN MỚI NHẤT & CHỌN NHANH */}
-            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-xl px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md border border-slate-700 font-sans text-xs">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-2.5 w-2.5 relative">
+            {/* STATUS BANNER: TINH GỌN, CHỈ HIỂN THỊ TUẦN MỚI NHẤT & CHỌN NHANH */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white rounded-xl px-3.5 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm border border-slate-700 font-sans text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="flex h-2.5 w-2.5 relative shrink-0">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
-                <div className="flex flex-col">
-                  <span className="font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5 text-xs sm:text-[13px]">
-                    {filterByPeriod ? `CHỈ HIỂN THỊ LINH KIỆN HƯ HỎNG: ${targetDisplayWeek} (MỚI NHẤT)` : 'ĐANG HIỂN THỊ TỔNG HỢP TẤT CẢ CÁC TUẦN'}
-                  </span>
-                  <span className="text-slate-400 text-[11px]">
+                <div className="flex flex-col min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-amber-300 uppercase tracking-wide text-xs truncate">
+                      {filterByPeriod ? `Linh Kiện Hư Hỏng: ${targetDisplayWeek}` : 'Tổng Hợp Tất Cả Các Tuần'}
+                    </span>
+                    {filterByPeriod && matchWeek(targetDisplayWeek, latestWeekWithData) && (
+                      <span className="px-1.5 py-0.2 bg-red-600 text-white text-[9px] font-bold rounded">
+                        Mới nhất
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-slate-400 text-[10.5px] truncate">
                     {filterByPeriod 
                       ? (matchWeek(targetDisplayWeek, latestWeekWithData) 
                           ? `${latestWeekWithData}: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas` 
-                          : `Dữ liệu tuần ${targetDisplayWeek}: Bảng chỉ hiển thị các linh kiện hư hỏng phát sinh trong kỳ`)
+                          : `Dữ liệu tuần ${targetDisplayWeek}: Bảng chỉ hiển thị linh kiện hư hỏng phát sinh trong kỳ`)
                       : 'Đang xem toàn bộ danh mục linh kiện phát sinh qua các tuần'}
                   </span>
                 </div>
               </div>
 
-              {/* Quick Week Filter Buttons */}
-              <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-                {availableWeeks.map(w => {
-                  const isLatest = w === latestWeekWithData;
-                  const isSelected = filterByPeriod && targetDisplayWeek === w;
+              {/* Quick Week Filter Buttons (Tinh gọn các tuần trọng tâm) */}
+              <div className="flex items-center gap-1 flex-wrap shrink-0">
+                {['W36', 'W37', 'W38', 'W39', 'W40', 'W41'].filter(w => availableWeeks.includes(w) || isSameWeek(w, latestWeekWithData)).map(w => {
+                  const isLatest = isSameWeek(w, latestWeekWithData);
+                  const isSelected = filterByPeriod && isSameWeek(targetDisplayWeek, w);
                   return (
                     <button
                       key={w}
+                      type="button"
                       onClick={() => {
                         setSelectedWeekLabel(w);
                         setSelectionMode('week');
                         setFilterByPeriod(true);
                       }}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
                         isSelected
-                          ? 'bg-amber-400 text-slate-950 shadow-xs ring-2 ring-amber-300/50'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'
+                          ? 'bg-amber-400 text-slate-950 shadow-xs ring-1 ring-amber-300'
+                          : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700 border border-slate-600'
                       }`}
                       title={`Xem linh kiện hư hỏng của ${w}`}
                     >
                       <span>{w}</span>
                       {isLatest && (
-                        <span className="text-[9px] px-1 py-0.2 bg-red-600 text-white rounded font-sans font-bold">
-                          Mới nhất
+                        <span className="text-[8.5px] px-1 py-0 bg-red-600 text-white rounded font-sans font-black">
+                          ★
                         </span>
                       )}
                     </button>
                   );
                 })}
                 <button
+                  type="button"
                   onClick={() => setFilterByPeriod(!filterByPeriod)}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-0.5 rounded text-[11px] font-bold transition-all cursor-pointer ${
                     !filterByPeriod
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-600'

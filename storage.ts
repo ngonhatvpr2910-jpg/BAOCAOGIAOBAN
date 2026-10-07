@@ -852,12 +852,17 @@ export const StorageService = {
             finalItemsBG = [...finalItemsBG, ...w39BG];
           }
 
-          const preservedMonthlyFinal = preservedMonthly.map((m: any) => {
-            if (m.label === 'Tháng 9' && (!m.value || m.value <= 0)) {
-              return { ...m, value: 5.2, displayLabel: '5.2M' };
-            }
-            return m;
-          });
+          const preservedMonthlyFinal = preservedMonthly
+            .map((m: any) => {
+              if (m.label === 'Tháng 9' && (!m.value || m.value <= 0)) {
+                return { ...m, value: 5.2, displayLabel: '5.2M' };
+              }
+              if (m.label === 'Tháng 11' || m.label === 'Tháng 12') {
+                // Tháng 11 và 12 chưa đến thì không có số liệu (value 0, không nhãn)
+                return { ...m, value: 0, displayLabel: '' };
+              }
+              return m;
+            });
 
           const result: SlideDefectCostData = {
             ...INITIAL_SLIDE3_DEFECT_COST,
