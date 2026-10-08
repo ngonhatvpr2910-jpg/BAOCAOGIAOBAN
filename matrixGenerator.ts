@@ -245,7 +245,9 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
         // Đồng bộ dữ liệu Tháng 10 chuẩn NSLĐ: W40 (~106.9%), W41 (~116.0%), Tổng T10 đạt đúng 102.7%
         baseGa = 4.8 + ((day % 4) * 0.2);
         baseTv = 3.2 + ((day % 3) * 0.3);
-        baseRma = day % 2 === 0 ? 3.0 : 0;
+        // RMA Tuần 41 (05 - 11/Oct) không có sản xuất và không có dữ liệu báo cáo
+        const isW41 = (day >= 5 && day <= 11);
+        baseRma = isW41 ? 0 : (day % 2 === 0 ? 3.0 : 0);
         const curCong = baseGa + baseTv + baseRma;
         const curDm = Number((curCong * 9.03).toFixed(1));
         if (day <= 4) {
@@ -253,9 +255,9 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
           slGa = Math.round(curDm * 1.069);
           slRma = 0;
         } else if (day <= 11) {
-          // W41 (05-11/Oct) ~ 116.0%
+          // W41 (05-11/Oct) ~ 116.0% - RMA không có sản xuất và không có báo cáo
           slGa = Math.round(curDm * 1.16);
-          slRma = baseRma > 0 ? 35 : 0;
+          slRma = 0;
         } else {
           // Remaining days -> Monthly average exactly 102.7%
           slGa = Math.round(curDm * 0.985);

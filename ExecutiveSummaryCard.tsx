@@ -389,7 +389,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
               // Pass / Fail evaluations against target benchmarks
               const isCompletionPass = (item.completionRate || 0) >= 100;
-              const isRmaNoPlan = isRMA && (item.khsxLabel === '0 SP' || item.khsxLabel === '0' || !item.actualOutput);
+              const isRmaNoPlan = isRMA && (item.khsxLabel === '0 SP' || item.khsxLabel === '0' || !item.actualOutput || item.actualOutput === 0 || item.actualOutputLabel === '0 SP');
 
               const isNsldPass = isRMA && item.nsldActual === 0 
                 ? true 
@@ -406,9 +406,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   ? `Mục tiêu ≥ ${item.nsldTarget}%`
                   : `Mục tiêu ≥ ${item.nsldTarget}%`;
 
-              const attendanceSubline = isAttendancePass
-                ? `Mục tiêu ≥ ${item.attendanceTarget}%`
-                : `Mục tiêu ≥ ${item.attendanceTarget}%`;
+              const attendanceSubline = isRmaNoPlan
+                ? 'Không có dữ liệu báo cáo'
+                : isAttendancePass
+                  ? `Mục tiêu ≥ ${item.attendanceTarget}%`
+                  : `Mục tiêu ≥ ${item.attendanceTarget}%`;
 
               // Clean completion percentage text (hide formulas in parentheses)
               const cleanCompletionNote = isRmaNoPlan
@@ -497,7 +499,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       </span>
                       {isRmaNoPlan ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-200 text-slate-700">
-                          0%
+                          Không SX
                         </span>
                       ) : isNsldPass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
@@ -514,12 +516,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                     <div className="mt-1">
                       <span className={`text-xl sm:text-2xl font-black ${
                         isRmaNoPlan
-                          ? 'text-slate-600'
+                          ? 'text-slate-500'
                           : isNsldPass
                             ? 'text-emerald-600'
                             : 'text-rose-600'
                       }`}>
-                        {item.nsldActual}%
+                        {isRmaNoPlan ? '-' : `${item.nsldActual}%`}
                       </span>
                       <div className={`text-xs sm:text-[13px] mt-1 font-black tracking-tight ${
                         isRmaNoPlan
@@ -535,15 +537,21 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
                   {/* Col 4: Đi làm */}
                   <div className={`rounded-2xl border-2 p-3.5 flex flex-col justify-between shadow-2xs transition ${
-                    isAttendancePass
-                      ? 'border-emerald-500 bg-emerald-50/25'
-                      : 'border-rose-400 bg-rose-50/30'
+                    isRmaNoPlan
+                      ? 'border-slate-300 bg-slate-50/50'
+                      : isAttendancePass
+                        ? 'border-emerald-500 bg-emerald-50/25'
+                        : 'border-rose-400 bg-rose-50/30'
                   }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-bold text-slate-800 leading-tight uppercase">
                         ĐI LÀM {item.unitKey} {activePeriodLabel.startsWith('W') ? `Tuần ${activePeriodLabel.substring(1)}` : activePeriodLabel}
                       </span>
-                      {isAttendancePass ? (
+                      {isRmaNoPlan ? (
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-slate-200 text-slate-700">
+                          Không báo cáo
+                        </span>
+                      ) : isAttendancePass ? (
                         <span className="px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
                           ✓ Đạt MT ≥{item.attendanceTarget}%
                           <Edit3 className="w-2 h-2 ml-0.5 cursor-pointer opacity-40 hover:opacity-100 hidden-ppt" onClick={(e) => { e.stopPropagation(); setIsNormsEditorOpen(true); }} />
@@ -557,12 +565,12 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                     </div>
                     <div className="mt-1">
                       <span className={`text-xl sm:text-2xl font-black ${
-                        isAttendancePass ? 'text-emerald-600' : 'text-rose-600'
+                        isRmaNoPlan ? 'text-slate-500' : isAttendancePass ? 'text-emerald-600' : 'text-rose-600'
                       }`}>
-                        {item.attendanceActual}%
+                        {isRmaNoPlan ? '-' : `${item.attendanceActual}%`}
                       </span>
                       <div className={`text-xs sm:text-[13px] mt-1 font-black tracking-tight ${
-                        isAttendancePass ? 'text-emerald-700' : 'text-rose-700'
+                        isRmaNoPlan ? 'text-slate-500' : isAttendancePass ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
                         {attendanceSubline}
                       </div>
@@ -574,14 +582,14 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                     <div className="col-span-2 rounded-2xl border-2 border-emerald-400 bg-emerald-50/25 p-3.5 flex flex-col justify-center items-center text-center shadow-2xs">
                       <div className="flex items-center gap-1.5">
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
-                          ✓ Đạt Chuẩn BOM
+                          {isRmaNoPlan ? 'ℹ Không Phát Sinh' : '✓ Đạt Chuẩn BOM'}
                         </span>
                       </div>
                       <div className="text-sm sm:text-base font-extrabold text-emerald-700 mt-1">
-                        {item.bomNote || 'Không phát sinh linh kiện ngoài BOM'}
+                        {isRmaNoPlan ? 'Không phát sinh sản xuất & không có dữ liệu báo cáo' : (item.bomNote || 'Không phát sinh linh kiện ngoài BOM')}
                       </div>
                       <div className="text-xs sm:text-[13px] text-slate-600 mt-0.5 font-bold">
-                        Kiểm soát định mức vật tư theo BOM
+                        {isRmaNoPlan ? 'Nhân lực tập trung hỗ trợ các dây chuyền chính' : 'Kiểm soát định mức vật tư theo BOM'}
                       </div>
                     </div>
                   ) : (
@@ -724,9 +732,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             </thead>
             <tbody>
               {summaryData.units.map((u) => {
+                const isRmaNoPlan = u.unitKey === 'RMA' && (u.khsxLabel === '0 SP' || u.khsxLabel === '0' || !u.actualOutput || u.actualOutput === 0 || u.actualOutputLabel === '0 SP');
                 const isErrorOver = (u.errorRateActual || 0) > (u.errorRateQuota || 0);
                 const isCostOver = (u.defectCostActual || 0) > (u.defectCostTarget || 0);
-                const isNsldPass = u.nsldActual >= u.nsldTarget;
+                const isNsldPass = isRmaNoPlan ? true : u.nsldActual >= u.nsldTarget;
 
                 return (
                   <tr key={u.id} className="hover:bg-slate-50 transition">
@@ -735,24 +744,32 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-medium">
                       <span className={`font-bold ${
-                        (u.completionRate || 0) >= 100 ? 'text-emerald-700' : 'text-rose-700'
+                        isRmaNoPlan ? 'text-slate-500' : (u.completionRate || 0) >= 100 ? 'text-emerald-700' : 'text-rose-700'
                       }`}>
-                        {(u.completionNote || '').replace(/\s*\([^)]*\)/g, '').trim()}
+                        {isRmaNoPlan ? 'Không có KHSX RMA' : (u.completionNote || '').replace(/\s*\([^)]*\)/g, '').trim()}
                       </span>
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-extrabold text-blue-900 bg-blue-50/30">
                       ≥ {u.nsldTarget}%
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-bold">
-                      <span className={isNsldPass ? 'text-emerald-600' : 'text-amber-600'}>
-                        {u.nsldActual}%
-                      </span>
+                      {isRmaNoPlan ? (
+                        <span className="text-slate-400">-</span>
+                      ) : (
+                        <span className={isNsldPass ? 'text-emerald-600' : 'text-amber-600'}>
+                          {u.nsldActual}%
+                        </span>
+                      )}
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-extrabold text-emerald-900 bg-emerald-50/30">
                       ≥ {u.attendanceTarget}%
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-bold text-emerald-600">
-                      {u.attendanceActual}%
+                      {isRmaNoPlan ? (
+                        <span className="text-slate-400">-</span>
+                      ) : (
+                        <span>{u.attendanceActual}%</span>
+                      )}
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center font-extrabold text-amber-900 bg-amber-50/30">
                       {u.errorRateQuota ? `≤ ${u.errorRateQuota}%` : 'BOM chuẩn'}
@@ -785,7 +802,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                       )}
                     </td>
                     <td className="border border-slate-200 p-2.5 text-center">
-                      {isErrorOver || isCostOver ? (
+                      {isRmaNoPlan ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                          Không Phát Sinh
+                        </span>
+                      ) : isErrorOver || isCostOver ? (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
                           Báo Động Đỏ
                         </span>

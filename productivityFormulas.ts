@@ -7,7 +7,7 @@ import { INITIAL_SLIDE1_NSLD } from './initialData';
  */
 export const HISTORICAL_ITEM_IDS = new Set([
   'pxlr-w35', 'ro-w35', 'bg-w35',
-  'pxlr-m06', 'pxlr-m07', 'pxlr-m08',
+  'pxlr-m06', 'pxlr-m07', 'pxlr-m08', 'pxlr-m09',
   'ro-m07', 'ro-m08',
   'bg-m07', 'bg-m08',
 ]);

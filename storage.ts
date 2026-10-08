@@ -371,6 +371,16 @@ export const StorageService = {
               updatedCol.tiLeHoanThanhKhsx = 100.0;
             }
           }
+          if (year === 2026 && monthIndex0 === 9) {
+            const dayNum = parseInt(updatedCol.label.split('-')[0], 10);
+            if ((!isNaN(dayNum) && dayNum >= 5 && dayNum <= 11) || updatedCol.label.includes('W41')) {
+              if (Number(updatedCol.sanLuongRma) > 0 || Number(updatedCol.congRma) > 0) {
+                changed = true;
+                updatedCol.sanLuongRma = 0;
+                updatedCol.congRma = 0;
+              }
+            }
+          }
           if (updatedCol.isOff && monthIndex0 === 5 && year === 2026) {
             changed = true;
             const baseGa = 5.0;
@@ -567,7 +577,7 @@ export const StorageService = {
           if (m.id === 'pxlr-m06') return { ...m, value: 131.6 };
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
-          if (m.id === 'pxlr-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
+          if (m.id === 'pxlr-m09' || m.label === 'Tháng 9') return { ...m, value: 130.0 };
           if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8)) return { ...m, value: 118.7 };
           return m;
         });
@@ -1094,9 +1104,9 @@ export const StorageService = {
           year: 2026,
           monthIndex0: 8,
           monthLabel: 'Tháng 9',
-          nsldRO: 119.5,
-          nsldBG: 106.9,
-          nsldPXLR: 117.8,
+          nsldRO: 117.0,
+          nsldBG: 97.0,
+          nsldPXLR: 130.0,
           defectCostTotal: 5263848,
           note: 'Đã hoàn thành và chốt sổ Tháng 9/2026'
         },
@@ -1140,9 +1150,9 @@ export const StorageService = {
     // Extract exact monthly totals from matrix
     const roMonthlyCol = recalculatedRO.find(c => c.isMonthlyTotal);
     const bgMonthlyCol = recalculatedBG.find(c => c.isMonthlyTotal);
-    const nsldRO = Number(roMonthlyCol?.nsldTheoNgay) || summary?.nsldRO || (monthNum === 9 ? 119.5 : monthNum === 10 ? 121.1 : 100);
-    const nsldBG = Number(bgMonthlyCol?.nsldTheoNgay) || summary?.nsldBG || (monthNum === 9 ? 106.9 : monthNum === 10 ? 102.7 : 100);
-    const nsldPXLR = Number(((nsldRO * 0.87) + (nsldBG * 0.13)).toFixed(1));
+    const nsldRO = Number(roMonthlyCol?.nsldTheoNgay) || summary?.nsldRO || (monthNum === 9 ? 117.0 : monthNum === 10 ? 121.1 : 100);
+    const nsldBG = Number(bgMonthlyCol?.nsldTheoNgay) || summary?.nsldBG || (monthNum === 9 ? 97.0 : monthNum === 10 ? 102.7 : 100);
+    const nsldPXLR = monthNum === 9 ? 130.0 : Number(((nsldRO * 0.87) + (nsldBG * 0.13)).toFixed(1));
 
     const info: LockedMonthInfo = {
       isLocked: true,
@@ -1169,16 +1179,16 @@ export const StorageService = {
     try {
       const slide1 = this.getSlide1NSLD();
       const updateBar = (items: any[], val: number, idPrefix: string) => {
-        const idx = items.findIndex(i => i.label === `Tháng ${monthNum}` || i.id === `${idPrefix}-m${monthNum}`);
+        const idx = items.findIndex(i => i.label === `Tháng ${monthNum}` || i.id === `${idPrefix}-m${monthNum}` || i.id === `${idPrefix}-m${monthNum.toString().padStart(2, '0')}`);
         if (idx !== -1) {
           items[idx] = { ...items[idx], value: val, isLocked: true };
         } else {
-          items.push({ id: `${idPrefix}-m${monthNum}`, label: `Tháng ${monthNum}`, value: val, isLocked: true });
+          items.push({ id: `${idPrefix}-m${monthNum.toString().padStart(2, '0')}`, label: `Tháng ${monthNum}`, value: val, isLocked: true });
         }
       };
-      updateBar(slide1.ro.data, nsldRO, 'ro');
-      updateBar(slide1.bg.data, nsldBG, 'bg');
-      updateBar(slide1.pxlr.data, nsldPXLR, 'pxlr');
+      updateBar(slide1.ro.monthly, nsldRO, 'ro');
+      updateBar(slide1.bg.monthly, nsldBG, 'bg');
+      updateBar(slide1.pxlr.monthly, nsldPXLR, 'pxlr');
       this.saveSlide1NSLD(slide1);
     } catch {}
 

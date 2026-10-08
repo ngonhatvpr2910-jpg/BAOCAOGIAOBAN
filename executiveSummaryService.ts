@@ -423,17 +423,17 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         unitKey: 'RMA',
         unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W41)',
         khsxLabel: '0 SP',
-        actualOutputLabel: '245 SP',
-        actualOutput: 245,
-        completionRate: 100.0,
-        completionNote: 'SL Quy đổi RMA: 245 SP',
-        nsldActual: 100.0,
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Không có KHSX RMA',
+        nsldActual: 0,
         nsldTarget: 100.0,
-        nsldDeltaNote: 'Đạt mục tiêu 100%',
-        attendanceActual: 98.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 0,
         attendanceTarget: 95.0,
-        bomNote: 'Không phát sinh linh kiện ngoài BOM',
-        actionItem: 'Sản lượng quy đổi RMA đạt 245 SP, hỗ trợ tốt nhịp độ trả hàng bảo hành và linh kiện tái sử dụng.',
+        bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+        actionItem: 'Tuần 41: RMA không có sản xuất và không có dữ liệu báo cáo. Nguồn nhân lực tập trung hỗ trợ các dây chuyền chính.',
       },
     ],
   },
@@ -1332,13 +1332,18 @@ export function getExecutiveSummaryData(
               completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`
             };
           }
-          if (u.unitKey === 'RMA' && weekColBG) {
-            const sl = dynSlRMA > 0 ? dynSlRMA : (u.actualOutput || 0);
+          if (u.unitKey === 'RMA') {
+            const sl = dynSlRMA;
             return {
               ...u,
+              khsxLabel: '0 SP',
               actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
               actualOutput: sl,
-              completionNote: `SL Quy đổi RMA: ${sl.toLocaleString('vi-VN')} SP`
+              completionRate: 0,
+              completionNote: sl > 0 ? `SL Quy đổi RMA: ${sl.toLocaleString('vi-VN')} SP` : 'Không có KHSX RMA',
+              nsldActual: sl > 0 ? (u.nsldActual || 100) : 0,
+              attendanceActual: sl > 0 ? (u.attendanceActual || 98) : 0,
+              bomNote: sl > 0 ? (u.bomNote || 'Không phát sinh linh kiện ngoài BOM') : 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
             };
           }
           return u;
