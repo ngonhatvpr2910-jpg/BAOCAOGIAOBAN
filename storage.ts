@@ -814,9 +814,15 @@ export const StorageService = {
               preservedMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
             }
           });
-          // Bổ sung Tháng 10 nếu chưa có
-          if (!preservedMonthly.some((m: any) => m.label === 'Tháng 10')) {
-            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 4.5, displayLabel: '4.5M' });
+          // Bổ sung Tháng 10 nếu chưa có (mặc định 0 VNĐ vì tuần 41 chưa cập nhật hư hỏng)
+          const m10 = preservedMonthly.find((m: any) => m.label === 'Tháng 10');
+          if (m10) {
+            if (m10.value === 4.5 || !m10.value) {
+              m10.value = 0;
+              m10.displayLabel = '';
+            }
+          } else {
+            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '' });
           }
           preservedMonthly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
 
@@ -830,6 +836,10 @@ export const StorageService = {
             }
             if (w.label === 'W39' && (!w.value || w.value <= 0 || w.value === 2.0)) {
               return { ...w, value: 1.0, displayLabel: '1.0M' };
+            }
+            if (['W41', 'W42', 'W43', 'W44'].includes(w.label)) {
+              // Tuần 41-44: Chưa cập nhật hư hỏng, đúng ra là 0
+              return { ...w, value: 0, displayLabel: '' };
             }
             return w;
           });
@@ -848,14 +858,18 @@ export const StorageService = {
           }
           const octWeeksToEnsure = [
             { id: 'w-40', label: 'W40', value: 1.2, displayLabel: '1.2M' },
-            { id: 'w-41', label: 'W41', value: 0.9, displayLabel: '0.9M' },
-            { id: 'w-42', label: 'W42', value: 1.1, displayLabel: '1.1M' },
-            { id: 'w-43', label: 'W43', value: 0.8, displayLabel: '0.8M' },
-            { id: 'w-44', label: 'W44', value: 1.0, displayLabel: '1.0M' },
+            { id: 'w-41', label: 'W41', value: 0, displayLabel: '' },
+            { id: 'w-42', label: 'W42', value: 0, displayLabel: '' },
+            { id: 'w-43', label: 'W43', value: 0, displayLabel: '' },
+            { id: 'w-44', label: 'W44', value: 0, displayLabel: '' },
           ];
           octWeeksToEnsure.forEach(wReq => {
-            if (!preservedWeekly.some((w: any) => w.label === wReq.label)) {
+            const existing = preservedWeekly.find((w: any) => w.label === wReq.label);
+            if (!existing) {
               preservedWeekly.push(wReq);
+            } else if (['W41', 'W42', 'W43', 'W44'].includes(wReq.label)) {
+              existing.value = 0;
+              existing.displayLabel = '';
             }
           });
           preservedWeekly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
@@ -868,16 +882,13 @@ export const StorageService = {
           finalItemsRO = finalItemsRO.filter((item: any) => {
             const isW39 = (item.week || '').toUpperCase().includes('39');
             const isRO = item.category === 'RO' || (item.id && String(item.id).startsWith('ro-dam-'));
-            const isFakeW39Id = ['ro-dam-9', 'ro-dam-10', 'ro-dam-11', 'ro-dam-12', 'ro-dam-13', 'ro-dam-14'].includes(item.id);
-            return !(isFakeW39Id || (isW39 && isRO));
+            const isFakeW39Id = ['ro-dam-9', 'ro-dam-10', 'ro-dam-11', 'ro-dam-12'].includes(item.id);
+            const isFakeW41Id = ['ro-dam-13', 'ro-dam-14', 'ro-dam-15', 'ro-dam-16', 'ro-dam-17'].includes(item.id);
+            const isW41 = (item.week || '').toUpperCase().includes('41');
+            return !(isFakeW39Id || (isW39 && isRO) || isFakeW41Id || (isW41 && isRO));
           });
 
-          // Đảm bảo vật tư W40 và W41 của Line RO có mặt đầy đủ (Tháng 10 bắt đầu từ W41)
-          const hasW41RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('41'));
-          if (!hasW41RO) {
-            const w41RO = INITIAL_SLIDE3_DEFECT_COST.itemsRO.filter(i => (i.week || '').toUpperCase().includes('41'));
-            finalItemsRO = [...finalItemsRO, ...w41RO];
-          }
+          // Đảm bảo vật tư W40 của Line RO có mặt đầy đủ
           const hasW40RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('40'));
           if (!hasW40RO) {
             const w40RO = INITIAL_SLIDE3_DEFECT_COST.itemsRO.filter(i => (i.week || '').toUpperCase().includes('40'));
@@ -890,12 +901,13 @@ export const StorageService = {
             finalItemsBG = [...finalItemsBG, ...w39BG];
           }
 
-          // Đảm bảo vật tư W40 và W41 của Bếp Gas có mặt đầy đủ
-          const hasW41BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('41'));
-          if (!hasW41BG) {
-            const w41BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('41'));
-            finalItemsBG = [...finalItemsBG, ...w41BG];
-          }
+          // Xóa các vật tư W41 giả định của Bếp Gas (Tuần 41 chưa cập nhật hư hỏng)
+          finalItemsBG = finalItemsBG.filter((item: any) => {
+            const isFakeW41Id = ['bg-dam-21', 'bg-dam-22', 'bg-dam-23', 'bg-dam-24', 'bg-dam-25'].includes(item.id);
+            const isW41 = (item.week || '').toUpperCase().includes('41');
+            return !(isFakeW41Id || (isW41 && item.category === 'BG'));
+          });
+
           const hasW40BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('40'));
           if (!hasW40BG) {
             const w40BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('40'));
@@ -906,6 +918,10 @@ export const StorageService = {
             .map((m: any) => {
               if (m.label === 'Tháng 9' && (!m.value || m.value <= 0)) {
                 return { ...m, value: 5.2, displayLabel: '5.2M' };
+              }
+              if (m.label === 'Tháng 10') {
+                // Hiện tại tuần 41 chưa cập nhật hư hỏng, đúng ra Tháng 10 là 0
+                return { ...m, value: 0, displayLabel: '' };
               }
               if (m.label === 'Tháng 11' || m.label === 'Tháng 12') {
                 // Tháng 11 và 12 chưa đến thì không có số liệu (value 0, không nhãn)

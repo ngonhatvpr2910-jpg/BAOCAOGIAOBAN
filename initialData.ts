@@ -839,17 +839,17 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'w-38', label: 'W38', value: 1.8, displayLabel: '1.8M' },
     { id: 'w-39', label: 'W39', value: 1.0, displayLabel: '1.0M' },
     { id: 'w-40', label: 'W40', value: 1.2, displayLabel: '1.2M' },
-    { id: 'w-41', label: 'W41', value: 0.9, displayLabel: '0.9M' },
-    { id: 'w-42', label: 'W42', value: 1.1, displayLabel: '1.1M' },
-    { id: 'w-43', label: 'W43', value: 0.8, displayLabel: '0.8M' },
-    { id: 'w-44', label: 'W44', value: 1.0, displayLabel: '1.0M' },
+    { id: 'w-41', label: 'W41', value: 0, displayLabel: '' },
+    { id: 'w-42', label: 'W42', value: 0, displayLabel: '' },
+    { id: 'w-43', label: 'W43', value: 0, displayLabel: '' },
+    { id: 'w-44', label: 'W44', value: 0, displayLabel: '' },
   ],
   monthlyData: [
     { id: 'm-06', label: 'Tháng 6', value: 10.8, displayLabel: '10.8M' },
     { id: 'm-07', label: 'Tháng 7', value: 7.1, displayLabel: '7.1M' },
     { id: 'm-08', label: 'Tháng 8', value: 5.9, displayLabel: '5.9M' },
     { id: 'm-09', label: 'Tháng 9', value: 5.2, displayLabel: '5.2M' },
-    { id: 'm-10', label: 'Tháng 10', value: 4.5, displayLabel: '4.5M' },
+    { id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '' },
   ],
   itemsRO: [
     // Tuần 37
@@ -868,12 +868,7 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'ro-dam-10', itemCode: '04-29-06-SHA76622KL-0008', itemName: 'Bộ lõi lọc chức năng số 5 UltraX', quantity: 2, unitPrice: 115000.00, amount: 230000.00, category: 'RO', isHighlighted: true, week: 'W40' },
     { id: 'ro-dam-11', itemCode: '04-29-03-SHA76218CK-0019', itemName: 'Cút nối góc chia nước 1/4"', quantity: 6, unitPrice: 3600.00, amount: 21600.00, category: 'RO', isHighlighted: false, week: 'W40' },
     { id: 'ro-dam-12', itemCode: '04-29-06-SHA76601S-0010', itemName: 'Vỏ carton máy RO Slim', quantity: 8, unitPrice: 24300.00, amount: 194400.00, category: 'RO', isHighlighted: false, week: 'W40' },
-    // Tuần 41 (W41 - Tuần hiện tại)
-    { id: 'ro-dam-13', itemCode: '04-28-03-BRA590N-0012', itemName: 'Van điện từ 24V DCRO', quantity: 2, unitPrice: 85000.00, amount: 170000.00, category: 'RO', isHighlighted: true, week: 'W41' },
-    { id: 'ro-dam-14', itemCode: '04-29-03-SHA76218CK-0022', itemName: 'Cút nối tự hãm nước vào 3/8"', quantity: 8, unitPrice: 3450.00, amount: 27600.00, category: 'RO', isHighlighted: false, week: 'W41' },
-    { id: 'ro-dam-15', itemCode: '04-29-07-SHA76636KL-0008', itemName: 'Bộ dây nguồn tổng RO SHA', quantity: 3, unitPrice: 18500.00, amount: 55500.00, category: 'RO', isHighlighted: false, week: 'W41' },
-    { id: 'ro-dam-16', itemCode: '04-29-03-SHA76213CK-0020', itemName: 'Nhựa giá đỡ bơm MLN', quantity: 4, unitPrice: 22000.00, amount: 88000.00, category: 'RO', isHighlighted: false, week: 'W41' },
-    { id: 'ro-dam-17', itemCode: '04-29-06-SHA76601S-0015', itemName: 'Vỏ carton máy RO UltraX', quantity: 5, unitPrice: 23780.00, amount: 118900.00, category: 'RO', isHighlighted: false, week: 'W41' },
+    // Tuần 41 (W41 - Tuần hiện tại): Hiện tại chưa cập nhật hư hỏng (0 linh kiện hỏng)
   ],
   itemsBG: [
     // Tuần 37
@@ -900,12 +895,7 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'bg-dam-18', itemCode: '02-33-06-SHB32012VMC-0005', itemName: 'Vỏ hộp bếp ga SHB32012', quantity: 12, unitPrice: 15300.00, amount: 183600.00, category: 'BG', isHighlighted: false, week: 'W40' },
     { id: 'bg-dam-19', itemCode: '02-33-08-SH0000-0005', itemName: 'Đĩa chống tràn Inox cuốn mép', quantity: 12, unitPrice: 7700.00, amount: 92400.00, category: 'BG', isHighlighted: false, week: 'W40' },
     { id: 'bg-dam-20', itemCode: '02-33-05-B160000-0005', itemName: 'Nút vặn bếp ga đen xám', quantity: 45, unitPrice: 1900.00, amount: 85000.00, category: 'BG', isHighlighted: false, week: 'W40' },
-    // Tuần 41 (W41 - Tuần hiện tại)
-    { id: 'bg-dam-21', itemCode: '02-33-01-MKBD-0005', itemName: 'Mặt kính bếp gas đôi in hoa văn', quantity: 1, unitPrice: 145000.00, amount: 145000.00, category: 'BG', isHighlighted: true, week: 'W41' },
-    { id: 'bg-dam-22', itemCode: '02-33-07-MMB3569MT-0006', itemName: 'Cụm đánh lửa 3569MT(0.8)', quantity: 8, unitPrice: 21900.00, amount: 175200.00, category: 'BG', isHighlighted: true, week: 'W41' },
-    { id: 'bg-dam-23', itemCode: '02-33-06-MMBB0787B-0005', itemName: 'Vỏ hộp bếp ga MMBB0787B', quantity: 6, unitPrice: 15300.00, amount: 91800.00, category: 'BG', isHighlighted: false, week: 'W41' },
-    { id: 'bg-dam-24', itemCode: '02-33-08-SHB201MT-0012', itemName: 'Đĩa chống tràn SHB201MT', quantity: 7, unitPrice: 6400.00, amount: 44800.00, category: 'BG', isHighlighted: false, week: 'W41' },
-    { id: 'bg-dam-25', itemCode: '02-33-09-650X90-0005', itemName: 'Ống dẫn ga khung mỏng', quantity: 2, unitPrice: 16600.00, amount: 33200.00, category: 'BG', isHighlighted: false, week: 'W41' },
+    // Tuần 41 (W41 - Tuần hiện tại): Hiện tại chưa cập nhật hư hỏng (0 linh kiện hỏng)
   ],
 };
 

@@ -577,7 +577,7 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
     periodLabel: 'Tháng 10',
     timeFrame: 'month',
     actionItemTitle: 'Việc cần làm - Đối sách Tháng 10',
-    actionItemContent: 'Toàn xưởng bám sát kế hoạch sản xuất 18.200 SP, NSLĐ toàn xưởng duy trì 118.7% (RO 121.1%, BG 102.7%). Chi phí hư hỏng 4.5M kiểm soát tốt dưới mục tiêu 6.5M.',
+    actionItemContent: 'Toàn xưởng bám sát kế hoạch sản xuất 18.200 SP, NSLĐ toàn xưởng duy trì 118.7% (RO 121.1%, BG 102.7%). Chi phí hư hỏng Tháng 10 hiện là 0 đ (Tuần 41 chưa cập nhật hư hỏng).',
     isUrgentAction: false,
     units: [
       {
@@ -596,9 +596,9 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
         attendanceTarget: 95.0,
         errorRateActual: 3.42,
         errorRateQuota: 7.38,
-        defectCostActual: 4500000,
+        defectCostActual: 0,
         defectCostTarget: 6500000,
-        actionItem: 'Tháng 10 Toàn Phân Xưởng: KHSX 18.200 SP, Thực hiện 17.730 SP (97.4% KHSX). NSLĐ 118.7%, Đi làm 98.0%. Chi phí hư hỏng 4.5M kiểm soát tốt dưới mục tiêu 6.5M.',
+        actionItem: 'Tháng 10 Toàn Phân Xưởng: KHSX 18.200 SP, Thực hiện 17.730 SP (97.4% KHSX). NSLĐ 118.7%, Đi làm 98.0%. Chi phí hư hỏng Tháng 10 hiện là 0 đ (Tuần 41 chưa cập nhật dữ liệu hư hỏng).',
       },
       {
         id: 'exec-ro-m10',
@@ -616,9 +616,9 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
         attendanceTarget: 95.0,
         errorRateActual: 2.80,
         errorRateQuota: 5.20,
-        defectCostActual: 2150000,
+        defectCostActual: 0,
         defectCostTarget: 3500000,
-        actionItem: 'Line RO Tháng 10: KHSX 15.600 SP, Thực hiện 15.280 SP (97.9% KHSX), NSLĐ 121.1% vượt chuẩn 120%, Đi làm 98.2%, Tỉ lệ lỗi 2.80% dưới định mức 5.20%. Hư hỏng 2.15M đạt mục tiêu.',
+        actionItem: 'Line RO Tháng 10: KHSX 15.600 SP, Thực hiện 15.280 SP (97.9% KHSX), NSLĐ 121.1% vượt chuẩn 120%, Đi làm 98.2%, Tỉ lệ lỗi 2.80% dưới định mức 5.20%. Chưa phát sinh hư hỏng (0 đ).',
       },
       {
         id: 'exec-bg-m10',
@@ -636,9 +636,9 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
         attendanceTarget: 95.0,
         errorRateActual: 5.80,
         errorRateQuota: 7.74,
-        defectCostActual: 2350000,
+        defectCostActual: 0,
         defectCostTarget: 2500000,
-        actionItem: 'Line BG Tháng 10: KHSX 2.600 SP, Thực hiện 2.450 SP (94.2% KHSX), NSLĐ 102.7% đạt trên chuẩn 100%. Tỉ lệ lỗi 5.80% đạt định mức 7.74%. Hư hỏng 2.35M dưới mục tiêu 2.5M.',
+        actionItem: 'Line BG Tháng 10: KHSX 2.600 SP, Thực hiện 2.450 SP (94.2% KHSX), NSLĐ 102.7% đạt trên chuẩn 100%. Tỉ lệ lỗi 5.80% đạt định mức 7.74%. Chưa phát sinh hư hỏng (0 đ).',
       },
       {
         id: 'exec-rma-m10',

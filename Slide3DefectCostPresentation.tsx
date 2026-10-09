@@ -111,6 +111,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
         return (Number(m.value) || 0) > 0;
       }
       return true;
+    }).map(m => {
+      if (m.label === 'Tháng 10' && (!m.value || m.value <= 0)) {
+        return { ...m, value: 0, displayLabel: '0' };
+      }
+      return m;
     });
   }, [monthlyData]);
 
@@ -1082,7 +1087,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                       <Tooltip 
                         formatter={(val: any) => {
                           const num = Number(val) || 0;
-                          if (num <= 0) return ['Chưa có số liệu (Chưa đến kỳ)', 'Tổn thất'];
+                          if (num <= 0) return ['0 VNĐ (Hiện tại chưa cập nhật hư hỏng)', 'Tổn thất'];
                           return [`${val} Triệu VNĐ (~${(num * 1000000).toLocaleString('vi-VN')} đ)`, 'Tổn thất tháng'];
                         }}
                         labelFormatter={(label) => `Tháng: ${label}`}
@@ -1173,16 +1178,18 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     {filterByPeriod 
                       ? (selectionMode === 'week'
                           ? (matchWeek(targetDisplayWeek, 'W41')
-                              ? `Tuần 41 (01 - 11/Oct - Bắt đầu Tháng 10): Tổ RMA tuần vừa qua không có SX/báo cáo • Line RO: ${formatCurrency(displayTotalRO)} đ (${filteredRO.length} mã) • Bếp Gas: ${formatCurrency(displayTotalBG)} đ (${filteredBG.length} mã)`
+                              ? `Tuần 41 (01 - 11/Oct - Tuần đầu Tháng 10): Hiện tại chưa cập nhật hư hỏng (0 đ) • Tổ RMA tuần vừa qua không có SX/báo cáo`
                               : matchWeek(targetDisplayWeek, 'W39')
                                 ? `Tuần 39 (18 - 24/Sep): Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas: ${formatCurrency(displayTotalBG)} đ`
                                 : displayTotalRO === 0 && displayTotalBG > 0
                                   ? `${targetDisplayWeek}: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas (${formatCurrency(displayTotalBG)} đ)`
                                   : displayTotalBG === 0 && displayTotalRO > 0
                                     ? `${targetDisplayWeek}: Line Bếp Gas đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line RO (${formatCurrency(displayTotalRO)} đ)`
-                                    : `${targetDisplayWeek}: Phân rõ 2 dây chuyền - Line RO: ${formatCurrency(displayTotalRO)} đ (${filteredRO.length} mã) • Bếp Gas: ${formatCurrency(displayTotalBG)} đ (${filteredBG.length} mã)`)
+                                    : displayTotalRO === 0 && displayTotalBG === 0
+                                      ? `${targetDisplayWeek}: Chưa cập nhật hư hỏng (0 đ)`
+                                      : `${targetDisplayWeek}: Phân rõ 2 dây chuyền - Line RO: ${formatCurrency(displayTotalRO)} đ (${filteredRO.length} mã) • Bếp Gas: ${formatCurrency(displayTotalBG)} đ (${filteredBG.length} mã)`)
                           : (selectedMonthLabel === 'Tháng 10'
-                              ? `Dữ liệu Tháng 10 (Bắt đầu từ Tuần 41: W41, W42, W43, W44): Line RO (${formatCurrency(displayTotalRO)} đ), Bếp Gas (${formatCurrency(displayTotalBG)} đ) • RMA tuần 41 không có SX`
+                              ? `Dữ liệu Tháng 10 (Bắt đầu từ Tuần 41): Hiện tại Tuần 41 chưa cập nhật hư hỏng (0 đ) • Tổ RMA tuần vừa qua không có SX/báo cáo`
                               : `Dữ liệu ${selectedMonthLabel}: Lọc tự động ${filteredRO.length + filteredBG.length} linh kiện từ các tuần ${getWeeksInMonth(selectedMonthLabel).join(', ')}`))
                       : 'Đang xem toàn bộ danh mục linh kiện phát sinh qua các tuần'}
                   </span>
@@ -1332,19 +1339,19 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
             <div className="flex flex-col space-y-2.5 flex-1">
               {/* 1. THẺ SO SÁNH TRỌNG ĐIỂM HƯ HỎNG 2 DÂY CHUYỀN (KPI COMPARISON CARDS) */}
               <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-750 rounded-xl p-3 shadow-sm text-white font-sans">
-                {/* Thông báo RMA khi xem Tháng 10 hoặc Tuần 41 */}
+                {/* Thông báo RMA & Tháng 10 khi xem Tháng 10 hoặc Tuần 41 */}
                 {((selectionMode === 'week' && matchWeek(targetDisplayWeek, 'W41')) || (selectionMode === 'month' && selectedMonthLabel === 'Tháng 10')) && (
                   <div className="mb-2 bg-blue-950/80 border border-blue-500/50 rounded-lg px-3 py-1.5 flex items-center justify-between text-[11px] text-blue-200 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="px-1.5 py-0.5 rounded bg-blue-600 text-white font-black text-[9.5px]">
-                        RMA TUẦN 41
+                        THÁNG 10 / W41
                       </span>
                       <span className="font-medium text-slate-200">
-                        Tổ RMA tuần vừa qua không có sản xuất cũng như không có dữ liệu báo cáo hư hỏng.
+                        Tuần 41 hiện tại chưa cập nhật hư hỏng (0 đ) • Tổ RMA tuần vừa qua không có sản xuất cũng như không có dữ liệu báo cáo.
                       </span>
                     </div>
                     <span className="text-[10px] text-amber-300 font-bold bg-slate-900/80 px-2 py-0.5 rounded border border-amber-400/30">
-                      Tháng 10 bắt đầu từ Tuần 41 (01 - 11/Oct)
+                      Tổn thất Tháng 10: 0 VNĐ
                     </span>
                   </div>
                 )}
