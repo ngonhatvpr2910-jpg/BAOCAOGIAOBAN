@@ -261,9 +261,10 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
-        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, re-initialize with fresh synchronized data
+        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, or legacy W40 in Month 10, re-initialize with fresh synchronized data
         const allZeroProduction = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongLineChinh) || 0) === 0 && (Number(c.congChinhThuc) || 0) === 0);
-        if (allZeroProduction && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
+        const hasLegacyW40InMonth10 = year === 2026 && monthIndex0 === 9 && parsed.some(c => c.label.includes('W40'));
+        if ((allZeroProduction || hasLegacyW40InMonth10) && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
           const fresh = generateMonthROMatrix(year, monthIndex0);
           localStorage.setItem(key, JSON.stringify(fresh));
           return fresh;
@@ -350,9 +351,10 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
-        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, re-initialize with fresh synchronized data
+        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, or legacy W40 in Month 10, re-initialize with fresh synchronized data
         const allZeroBG = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongBepGa) || 0) === 0 && (Number(c.congBepGa) || 0) === 0);
-        if (allZeroBG && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
+        const hasLegacyW40InMonth10 = year === 2026 && monthIndex0 === 9 && parsed.some(c => c.label.includes('W40'));
+        if ((allZeroBG || hasLegacyW40InMonth10) && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
           const fresh = generateMonthBGMatrix(year, monthIndex0);
           localStorage.setItem(key, JSON.stringify(fresh));
           return fresh;
@@ -373,7 +375,7 @@ export const StorageService = {
           }
           if (year === 2026 && monthIndex0 === 9) {
             const dayNum = parseInt(updatedCol.label.split('-')[0], 10);
-            if ((!isNaN(dayNum) && dayNum >= 5 && dayNum <= 11) || updatedCol.label.includes('W41')) {
+            if ((!isNaN(dayNum) && dayNum >= 1 && dayNum <= 11) || updatedCol.label.includes('W41')) {
               if (Number(updatedCol.sanLuongRma) > 0 || Number(updatedCol.congRma) > 0) {
                 changed = true;
                 updatedCol.sanLuongRma = 0;
@@ -837,13 +839,25 @@ export const StorageService = {
               preservedWeekly.push({ id: `w-${wLabel.toLowerCase()}`, label: wLabel, value: wVal, displayLabel: `${wVal}M` });
             }
           });
-          // Đảm bảo W38 và W39 có mặt trong danh sách tuần
+          // Đảm bảo W38, W39, W40, W41, W42, W43, W44 (Tháng 10 bắt đầu từ W41) có mặt trong danh sách tuần
           if (!preservedWeekly.some((w: any) => w.label === 'W38')) {
             preservedWeekly.push({ id: 'w-38', label: 'W38', value: 1.8, displayLabel: '1.8M' });
           }
           if (!preservedWeekly.some((w: any) => w.label === 'W39')) {
             preservedWeekly.push({ id: 'w-39', label: 'W39', value: 1.0, displayLabel: '1.0M' });
           }
+          const octWeeksToEnsure = [
+            { id: 'w-40', label: 'W40', value: 1.2, displayLabel: '1.2M' },
+            { id: 'w-41', label: 'W41', value: 0.9, displayLabel: '0.9M' },
+            { id: 'w-42', label: 'W42', value: 1.1, displayLabel: '1.1M' },
+            { id: 'w-43', label: 'W43', value: 0.8, displayLabel: '0.8M' },
+            { id: 'w-44', label: 'W44', value: 1.0, displayLabel: '1.0M' },
+          ];
+          octWeeksToEnsure.forEach(wReq => {
+            if (!preservedWeekly.some((w: any) => w.label === wReq.label)) {
+              preservedWeekly.push(wReq);
+            }
+          });
           preservedWeekly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
 
           let finalItemsRO = Array.isArray(parsed.itemsRO) && parsed.itemsRO.length > 0 ? [...parsed.itemsRO] : [...INITIAL_SLIDE3_DEFECT_COST.itemsRO];
@@ -858,10 +872,34 @@ export const StorageService = {
             return !(isFakeW39Id || (isW39 && isRO));
           });
 
+          // Đảm bảo vật tư W40 và W41 của Line RO có mặt đầy đủ (Tháng 10 bắt đầu từ W41)
+          const hasW41RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('41'));
+          if (!hasW41RO) {
+            const w41RO = INITIAL_SLIDE3_DEFECT_COST.itemsRO.filter(i => (i.week || '').toUpperCase().includes('41'));
+            finalItemsRO = [...finalItemsRO, ...w41RO];
+          }
+          const hasW40RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('40'));
+          if (!hasW40RO) {
+            const w40RO = INITIAL_SLIDE3_DEFECT_COST.itemsRO.filter(i => (i.week || '').toUpperCase().includes('40'));
+            finalItemsRO = [...finalItemsRO, ...w40RO];
+          }
+
           const hasW39BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('39'));
           if (!hasW39BG) {
             const w39BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('39'));
             finalItemsBG = [...finalItemsBG, ...w39BG];
+          }
+
+          // Đảm bảo vật tư W40 và W41 của Bếp Gas có mặt đầy đủ
+          const hasW41BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('41'));
+          if (!hasW41BG) {
+            const w41BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('41'));
+            finalItemsBG = [...finalItemsBG, ...w41BG];
+          }
+          const hasW40BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('40'));
+          if (!hasW40BG) {
+            const w40BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('40'));
+            finalItemsBG = [...finalItemsBG, ...w40BG];
           }
 
           const preservedMonthlyFinal = preservedMonthly

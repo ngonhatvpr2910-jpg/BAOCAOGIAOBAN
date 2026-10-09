@@ -251,12 +251,12 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 type="button"
                 onClick={() => jumpToWeekNum(41)}
                 className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  selectedWeekNum >= 40 && selectedWeekNum <= 44
+                  selectedWeekNum >= 41 && selectedWeekNum <= 44
                     ? 'bg-teal-50 border border-teal-500 text-teal-800'
                     : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                 }`}
               >
-                Tháng 10 (W40-44)
+                Tháng 10 (W41-44)
               </button>
 
               <button

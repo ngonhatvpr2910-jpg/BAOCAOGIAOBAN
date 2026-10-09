@@ -566,6 +566,11 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
           else if (day <= 17) week = 'W38';
           else if (day <= 24) week = 'W39';
           else week = 'W40';
+        } else if (month === 10) {
+          if (day <= 11) week = 'W41';
+          else if (day <= 18) week = 'W42';
+          else if (day <= 25) week = 'W43';
+          else week = 'W44';
         }
       }
     }

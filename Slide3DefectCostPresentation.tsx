@@ -41,7 +41,13 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Droplets,
+  PieChart,
+  BarChart3,
+  Columns,
+  Rows,
+  Split
 } from 'lucide-react';
 
 interface Slide3DefectCostPresentationProps {
@@ -77,6 +83,10 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
 
   const [analysisFilterWeek, setAnalysisFilterWeek] = useState<string>('all');
   const [isGroupedByCode, setIsGroupedByCode] = useState<boolean>(true);
+
+  // Phân rõ Bếp Gas và RO: 'both' (Mặc định: Phân rõ cả 2 Dây chuyền), 'bg' (Chuyên sâu Bếp Gas), 'ro' (Chuyên sâu Line RO), 'combined' (Toàn xưởng gộp)
+  const [lineViewMode, setLineViewMode] = useState<'both' | 'bg' | 'ro' | 'combined'>('both');
+  const [bothLinesLayout, setBothLinesLayout] = useState<'stacked' | 'grid'>('stacked');
 
   // Slider state for Week view - Hỗ trợ kéo xem quá khứ & hiện tại, xem tất cả tuần
   const [weeksToShow, setWeeksToShow] = useState<number>(4);
@@ -151,13 +161,13 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return Math.max(0, allCount - 4);
   });
 
-  // Set default selected week to the latest week with data (e.g. W39)
+  // Set default selected week to the latest week with data (e.g. W41)
   useEffect(() => {
     if (!selectedWeekLabel && latestWeekWithData) {
       setSelectedWeekLabel(latestWeekWithData);
     }
-    if (monthlyData.length > 0 && !selectedMonthLabel) {
-      setSelectedMonthLabel(monthlyData[monthlyData.length - 1].label);
+    if (!selectedMonthLabel) {
+      setSelectedMonthLabel('Tháng 10');
     }
   }, [latestWeekWithData, monthlyData, selectedWeekLabel, selectedMonthLabel]);
 
@@ -314,36 +324,38 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     });
   }, [data.itemsBG, searchTerm, highlightOnly, filterByPeriod, selectionMode, targetDisplayWeek, selectedMonthLabel, hasAnyWeekTagBG]);
 
-  // Bảng phân tích Top vật tư linh kiện có giá trị hư hỏng cao - TỰ ĐỘNG LỌC THEO TUẦN HOẶC THÁNG DỰA VÀO DỮ LIỆU TUẦN
-  const topHighValueItems = useMemo(() => {
-    const allRO = (data.itemsRO || []).map(item => ({ 
-      ...item, 
-      lineType: 'RO' as const, 
-      lineName: 'Line RO' 
-    }));
-    const allBG = (data.itemsBG || []).map(item => ({ 
-      ...item, 
-      lineType: 'BG' as const, 
-      lineName: 'Bếp Ga' 
-    }));
-    const combined = [...allRO, ...allBG];
-
+  // Helper dùng chung để xử lý, phân loại và xếp hạng Pareto cho từng Dây chuyền hoặc gộp
+  const processDefectList = (
+    rawItems: DamagedItemRecord[], 
+    lineType: 'RO' | 'BG' | 'COMBINED',
+    lineName: string,
+    factoryGrandTotal: number
+  ) => {
     let sourceList: (DamagedItemRecord & { lineType: 'RO' | 'BG'; lineName: string })[] = [];
 
-    if (analysisFilterWeek !== 'all') {
-      sourceList = combined.filter(item => isSameWeek(item.week, analysisFilterWeek));
-    } else if (!filterByPeriod) {
-      // MẶC ĐỊNH KHI CHỌN TẤT CẢ: LẤY DỮ LIỆU TỪ TẤT CẢ CÁC DATA ĐƯỢC CẬP NHẬT
-      sourceList = combined;
-    } else if (selectionMode === 'week') {
-      // LỌC THEO TUẦN ĐANG CHỌN (VD: W39, W38, W37...)
-      sourceList = combined.filter(item => isSameWeek(item.week, targetDisplayWeek));
+    if (lineType === 'COMBINED') {
+      const allRO = (data.itemsRO || []).map(item => ({ ...item, lineType: 'RO' as const, lineName: 'Line RO' }));
+      const allBG = (data.itemsBG || []).map(item => ({ ...item, lineType: 'BG' as const, lineName: 'Bếp Ga' }));
+      sourceList = [...allRO, ...allBG];
     } else {
-      // LỌC THEO THÁNG DỰA VÀO DỮ LIỆU TUẦN THUỘC THÁNG ĐÓ (VD: Tháng 9 gồm W36-W40)
-      sourceList = combined.filter(item => isItemInMonth(item.week, selectedMonthLabel));
+      sourceList = rawItems.map(item => ({
+        ...item,
+        lineType: lineType as 'RO' | 'BG',
+        lineName,
+      }));
     }
 
-    // Lọc tiếp theo từ khóa tìm kiếm và lọc trọng điểm nếu người dùng đang bật
+    if (analysisFilterWeek !== 'all') {
+      sourceList = sourceList.filter(item => isSameWeek(item.week, analysisFilterWeek));
+    } else if (!filterByPeriod) {
+      // Giữ nguyên toàn bộ
+    } else if (selectionMode === 'week') {
+      sourceList = sourceList.filter(item => isSameWeek(item.week, targetDisplayWeek));
+    } else {
+      sourceList = sourceList.filter(item => isItemInMonth(item.week, selectedMonthLabel));
+    }
+
+    // Lọc theo từ khóa tìm kiếm và lọc mục trọng điểm
     const searchFiltered = sourceList.filter(item => {
       const matchQuery = 
         item.itemCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -358,14 +370,24 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
       calcAmount: number;
       weekList: string[];
       occurrences: number;
+      rank: number;
+      percentage: number;
+      percentageOfLine: number;
+      percentageOfTotal: number;
+      cumulativePercent: number;
+      isPareto: boolean;
     };
 
-    let processedList: ProcessedItem[] = [];
+    let processedList: (DamagedItemRecord & {
+      lineType: 'RO' | 'BG';
+      lineName: string;
+      calcAmount: number;
+      weekList: string[];
+      occurrences: number;
+    })[] = [];
 
-    // Nếu đang xem "Tất cả data" hoặc lọc tháng và bật "Gộp cùng mã VT": gộp lại theo mã linh kiện
     if (isGroupedByCode && (!filterByPeriod || selectionMode === 'month' || analysisFilterWeek === 'all')) {
-      const groupMap = new Map<string, ProcessedItem>();
-
+      const groupMap = new Map<string, any>();
       searchFiltered.forEach(item => {
         const key = `${item.lineType}_${(item.itemCode || item.itemName).trim().toLowerCase()}`;
         const amt = item.amount || (item.quantity * item.unitPrice) || 0;
@@ -388,7 +410,6 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
           existing.occurrences += 1;
         }
       });
-
       processedList = Array.from(groupMap.values());
     } else {
       processedList = searchFiltered.map(item => ({
@@ -402,45 +423,65 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     // Sắp xếp giảm dần theo thành tiền tổn thất
     processedList.sort((a, b) => b.calcAmount - a.calcAmount);
 
-    const totalDefectCost = processedList.reduce((s, i) => s + i.calcAmount, 0) || 1;
+    const lineTotal = processedList.reduce((s, i) => s + i.calcAmount, 0);
+    const safeLineTotal = lineTotal || 1;
+    const safeFactoryTotal = factoryGrandTotal || safeLineTotal;
 
     let cumulative = 0;
-    return processedList.map((item, index) => {
-      const percentage = Number(((item.calcAmount / totalDefectCost) * 100).toFixed(1));
-      cumulative += percentage;
+    const ranked: ProcessedItem[] = processedList.map((item, index) => {
+      const percentageOfLine = Number(((item.calcAmount / safeLineTotal) * 100).toFixed(1));
+      const percentageOfTotal = Number(((item.calcAmount / safeFactoryTotal) * 100).toFixed(1));
+      cumulative += percentageOfLine;
       return {
         ...item,
         rank: index + 1,
-        percentage,
+        percentage: percentageOfLine,
+        percentageOfLine,
+        percentageOfTotal,
         cumulativePercent: Number(cumulative.toFixed(1)),
-        isPareto: cumulative <= 80 || index === 0, // Nhóm A (Pareto 80/20)
+        isPareto: cumulative <= 80 || index === 0,
       };
     });
-  }, [
-    data.itemsRO, 
-    data.itemsBG, 
-    analysisFilterWeek, 
-    filterByPeriod, 
-    selectionMode, 
-    targetDisplayWeek, 
-    selectedMonthLabel, 
-    searchTerm, 
-    highlightOnly, 
-    isGroupedByCode
-  ]);
 
-  const totalAnalysisAmount = useMemo(() => {
-    return topHighValueItems.reduce((s, i) => s + i.calcAmount, 0);
-  }, [topHighValueItems]);
+    const top5Total = ranked.slice(0, 5).reduce((s, i) => s + i.calcAmount, 0);
+    const top5Percentage = lineTotal > 0 ? Number(((top5Total / lineTotal) * 100).toFixed(1)) : 0;
 
-  const top5Total = useMemo(() => {
-    return topHighValueItems.slice(0, 5).reduce((s, i) => s + i.calcAmount, 0);
-  }, [topHighValueItems]);
+    return {
+      items: ranked,
+      totalAmount: lineTotal,
+      top5Total,
+      top5Percentage,
+      topItem: ranked.length > 0 ? ranked[0] : null,
+      count: ranked.length,
+    };
+  };
 
-  const top5Percentage = useMemo(() => {
-    if (!totalAnalysisAmount) return 0;
-    return Number(((top5Total / totalAnalysisAmount) * 100).toFixed(1));
-  }, [topHighValueItems, top5Total, totalAnalysisAmount]);
+  // Tính tổng nhà máy sơ bộ để tính % đóng góp
+  const roughFactoryTotal = useMemo(() => {
+    const all = [...(data.itemsRO || []), ...(data.itemsBG || [])];
+    return all.reduce((s, i) => s + (i.amount || (i.quantity * i.unitPrice) || 0), 0) || 1;
+  }, [data.itemsRO, data.itemsBG]);
+
+  // 1. Phân tích trọng điểm hư hỏng riêng cho DÂY CHUYỀN BẾP GAS (DCBG)
+  const bgAnalysis = useMemo(() => {
+    return processDefectList(data.itemsBG || [], 'BG', 'Bếp Ga', roughFactoryTotal);
+  }, [data.itemsBG, analysisFilterWeek, filterByPeriod, selectionMode, targetDisplayWeek, selectedMonthLabel, searchTerm, highlightOnly, isGroupedByCode, roughFactoryTotal]);
+
+  // 2. Phân tích trọng điểm hư hỏng riêng cho DÂY CHUYỀN MÁY LỌC NƯỚC (DCRO)
+  const roAnalysis = useMemo(() => {
+    return processDefectList(data.itemsRO || [], 'RO', 'Line RO', roughFactoryTotal);
+  }, [data.itemsRO, analysisFilterWeek, filterByPeriod, selectionMode, targetDisplayWeek, selectedMonthLabel, searchTerm, highlightOnly, isGroupedByCode, roughFactoryTotal]);
+
+  // 3. Phân tích gộp toàn xưởng (PARETO CHUNG)
+  const combinedAnalysis = useMemo(() => {
+    return processDefectList([], 'COMBINED', 'Toàn xưởng', roughFactoryTotal);
+  }, [data.itemsRO, data.itemsBG, analysisFilterWeek, filterByPeriod, selectionMode, targetDisplayWeek, selectedMonthLabel, searchTerm, highlightOnly, isGroupedByCode, roughFactoryTotal]);
+
+  // Giữ lại topHighValueItems để tương thích các chỗ gọi cũ
+  const topHighValueItems = combinedAnalysis.items;
+  const totalAnalysisAmount = combinedAnalysis.totalAmount;
+  const top5Total = combinedAnalysis.top5Total;
+  const top5Percentage = combinedAnalysis.top5Percentage;
 
   // Historical breakdown if no raw item rows match for that period
   const historicalMonthBreakdown: Record<string, { ro: number; bg: number; total: number }> = {
@@ -547,6 +588,42 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     }
     return totalBG;
   }, [filteredBG, filterByPeriod, selectionMode, activeWeekTotalBG, activeMonthTotalBG, totalBG]);
+
+  // Tổng tổn thất hiệu lực từng line theo chế độ lọc hiện tại (dùng hiển thị phân rõ Bếp Gas vs RO)
+  const effectiveBGTotal = useMemo(() => {
+    if (bgAnalysis.totalAmount > 0) return bgAnalysis.totalAmount;
+    if (filterByPeriod) {
+      return selectionMode === 'week' ? activeWeekTotalBG : activeMonthTotalBG;
+    }
+    return totalBG;
+  }, [bgAnalysis.totalAmount, filterByPeriod, selectionMode, activeWeekTotalBG, activeMonthTotalBG, totalBG]);
+
+  const effectiveROTotal = useMemo(() => {
+    if (roAnalysis.totalAmount > 0) return roAnalysis.totalAmount;
+    if (filterByPeriod) {
+      return selectionMode === 'week' ? activeWeekTotalRO : activeMonthTotalRO;
+    }
+    return totalRO;
+  }, [roAnalysis.totalAmount, filterByPeriod, selectionMode, activeWeekTotalRO, activeMonthTotalRO, totalRO]);
+
+  const effectiveGrandTotal = useMemo(() => {
+    const sum = effectiveBGTotal + effectiveROTotal;
+    if (sum > 0) return sum;
+    if (filterByPeriod) {
+      return selectionMode === 'week' ? activeWeekGrandTotal : activeMonthGrandTotal;
+    }
+    return grandTotal;
+  }, [effectiveBGTotal, effectiveROTotal, filterByPeriod, selectionMode, activeWeekGrandTotal, activeMonthGrandTotal, grandTotal]);
+
+  const effectiveBGShare = useMemo(() => {
+    if (!effectiveGrandTotal) return 0;
+    return Number(((effectiveBGTotal / effectiveGrandTotal) * 100).toFixed(1));
+  }, [effectiveBGTotal, effectiveGrandTotal]);
+
+  const effectiveROShare = useMemo(() => {
+    if (!effectiveGrandTotal) return 0;
+    return Number(((effectiveROTotal / effectiveGrandTotal) * 100).toFixed(1));
+  }, [effectiveROTotal, effectiveGrandTotal]);
 
   return (
     <div 
@@ -1095,10 +1172,18 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                   <span className="text-slate-400 text-[10.5px] truncate">
                     {filterByPeriod 
                       ? (selectionMode === 'week'
-                          ? (matchWeek(targetDisplayWeek, latestWeekWithData) 
-                              ? `${latestWeekWithData}: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas` 
-                              : `Dữ liệu tuần ${targetDisplayWeek}: Bảng hiển thị ${filteredRO.length + filteredBG.length} linh kiện hư hỏng`)
-                          : `Dữ liệu ${selectedMonthLabel}: Lọc tự động ${filteredRO.length + filteredBG.length} linh kiện từ các tuần ${getWeeksInMonth(selectedMonthLabel).join(', ')}`)
+                          ? (matchWeek(targetDisplayWeek, 'W41')
+                              ? `Tuần 41 (01 - 11/Oct - Bắt đầu Tháng 10): Tổ RMA tuần vừa qua không có SX/báo cáo • Line RO: ${formatCurrency(displayTotalRO)} đ (${filteredRO.length} mã) • Bếp Gas: ${formatCurrency(displayTotalBG)} đ (${filteredBG.length} mã)`
+                              : matchWeek(targetDisplayWeek, 'W39')
+                                ? `Tuần 39 (18 - 24/Sep): Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas: ${formatCurrency(displayTotalBG)} đ`
+                                : displayTotalRO === 0 && displayTotalBG > 0
+                                  ? `${targetDisplayWeek}: Line RO đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line Bếp Gas (${formatCurrency(displayTotalBG)} đ)`
+                                  : displayTotalBG === 0 && displayTotalRO > 0
+                                    ? `${targetDisplayWeek}: Line Bếp Gas đạt chuẩn 0 lỗi (0 đ) • Toàn bộ tổn thất thuộc Line RO (${formatCurrency(displayTotalRO)} đ)`
+                                    : `${targetDisplayWeek}: Phân rõ 2 dây chuyền - Line RO: ${formatCurrency(displayTotalRO)} đ (${filteredRO.length} mã) • Bếp Gas: ${formatCurrency(displayTotalBG)} đ (${filteredBG.length} mã)`)
+                          : (selectedMonthLabel === 'Tháng 10'
+                              ? `Dữ liệu Tháng 10 (Bắt đầu từ Tuần 41: W41, W42, W43, W44): Line RO (${formatCurrency(displayTotalRO)} đ), Bếp Gas (${formatCurrency(displayTotalBG)} đ) • RMA tuần 41 không có SX`
+                              : `Dữ liệu ${selectedMonthLabel}: Lọc tự động ${filteredRO.length + filteredBG.length} linh kiện từ các tuần ${getWeeksInMonth(selectedMonthLabel).join(', ')}`))
                       : 'Đang xem toàn bộ danh mục linh kiện phát sinh qua các tuần'}
                   </span>
                 </div>
@@ -1127,7 +1212,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     onClick={() => {
                       setSelectionMode('month');
                       setFilterByPeriod(true);
-                      if (!selectedMonthLabel) setSelectedMonthLabel('Tháng 9');
+                      if (!selectedMonthLabel) setSelectedMonthLabel('Tháng 10');
                     }}
                     className={`px-2 py-0.5 rounded font-bold transition-all ${
                       filterByPeriod && selectionMode === 'month' 
@@ -1141,7 +1226,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
 
                 {/* Danh sách nút theo chế độ */}
                 {selectionMode === 'week' ? (
-                  ['W36', 'W37', 'W38', 'W39', 'W40', 'W41'].filter(w => availableWeeks.includes(w) || isSameWeek(w, latestWeekWithData)).map(w => {
+                  ['W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'].filter(w => availableWeeks.includes(w) || isSameWeek(w, latestWeekWithData) || ['W41', 'W42', 'W43', 'W44'].includes(w)).map(w => {
                     const isLatest = isSameWeek(w, latestWeekWithData);
                     const isSelected = filterByPeriod && isSameWeek(targetDisplayWeek, w);
                     return (
@@ -1158,7 +1243,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                             ? 'bg-amber-400 text-slate-950 shadow-xs ring-1 ring-amber-300'
                             : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700 border border-slate-600'
                         }`}
-                        title={`Xem linh kiện hư hỏng của ${w}`}
+                        title={`Xem linh kiện hư hỏng của ${w}${['W41', 'W42', 'W43', 'W44'].includes(w) ? ' (Tháng 10)' : ' (Tháng 9)'}`}
                       >
                         <span>{w}</span>
                         {isLatest && (
@@ -1186,9 +1271,14 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                             ? 'bg-amber-400 text-slate-950 shadow-xs ring-1 ring-amber-300'
                             : 'bg-slate-800/90 text-slate-300 hover:bg-slate-700 border border-slate-600'
                         }`}
-                        title={`Lọc tất cả linh kiện thuộc ${m}`}
+                        title={`Lọc tất cả linh kiện thuộc ${m} (${getWeeksInMonth(m).join(', ')})`}
                       >
                         <span>{m}</span>
+                        {m === 'Tháng 10' && (
+                          <span className="text-[8.5px] px-1 py-0 bg-blue-600 text-white rounded font-sans font-black">
+                            W41-44
+                          </span>
+                        )}
                       </button>
                     );
                   })
@@ -1209,225 +1299,744 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
               </div>
             </div>
 
-            {/* === BẢNG PHÂN TÍCH TOÀN DIỆN CÁC VẬT TƯ LINH KIỆN CÓ GIÁ TRỊ HƯ HỎNG CAO (PARETO 80/20) === */}
-            <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-md flex flex-col flex-1">
-              <div className="bg-gradient-to-r from-slate-950 via-rose-950 to-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold font-sans border-b border-rose-800">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
-                  <span className="uppercase font-['Times_New_Roman',Times,serif] text-sm font-black tracking-tight">
-                    BẢNG PHÂN TÍCH VẬT TƯ LINH KIỆN HƯ HỎNG GIÁ TRỊ CAO {filterByPeriod ? `(${selectionMode === 'week' ? targetDisplayWeek : selectedMonthLabel})` : '(TẤT CẢ KỲ)'}
+            {/* Phụ đề hướng dẫn tuần thuộc Tháng khi ở chế độ Tháng */}
+            {filterByPeriod && selectionMode === 'month' && (
+              <div className="bg-slate-850 border border-slate-700 rounded-lg px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-300 gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-amber-300">
+                    {selectedMonthLabel === 'Tháng 10' ? 'Tháng 10 (bắt đầu từ Tuần 41):' : `${selectedMonthLabel}:`}
                   </span>
-                  <span className="text-[10px] text-amber-200 font-sans font-black px-2 py-0.5 bg-rose-900/80 rounded-full border border-rose-700">
-                    PARETO 80/20 • {topHighValueItems.length} MỤC
-                  </span>
+                  <span className="text-slate-400">Xem nhanh chi tiết từng tuần trong tháng:</span>
                 </div>
-                <div className="bg-slate-900/90 px-3 py-1 rounded-lg border border-slate-700 text-amber-300 font-mono text-sm shadow-inner">
-                  <span className="text-[10px] text-slate-400 mr-2 font-sans font-black">TỔNG TỔN THẤT:</span>
-                  <span className="font-black text-white text-base">
-                    {formatCurrency(totalAnalysisAmount || (filterByPeriod ? (selectionMode === 'week' ? activeWeekGrandTotal : activeMonthGrandTotal) : grandTotal))}
-                  </span>
-                  <span className="text-[10px] ml-1">VNĐ</span>
-                </div>
-              </div>
-
-              {/* Scope selector bar for Pareto view */}
-              <div className="bg-slate-100 px-3.5 py-1.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-1 text-xs">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-slate-500 font-sans font-bold text-[11px]">Xem nhanh:</span>
-                  <button
-                    onClick={() => {
-                      setFilterByPeriod(false);
-                      setAnalysisFilterWeek('all');
-                    }}
-                    className={`px-2.5 py-1 rounded text-[11px] font-sans font-bold transition-all border cursor-pointer ${
-                      !filterByPeriod
-                        ? 'bg-rose-700 text-white border-rose-800 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Sparkles className="w-3 h-3 inline mr-1 text-amber-300" />
-                    Tất Cả Kỳ ({((data.itemsRO || []).length + (data.itemsBG || []).length)} mục)
-                  </button>
-                  {availableWeeks.map(w => (
+                <div className="flex items-center gap-1">
+                  {getWeeksInMonth(selectedMonthLabel).map(w => (
                     <button
-                      key={`pareto-w-${w}`}
+                      key={`sub-${w}`}
+                      type="button"
                       onClick={() => {
                         setSelectedWeekLabel(w);
                         setSelectionMode('week');
                         setFilterByPeriod(true);
-                        setAnalysisFilterWeek('all');
                       }}
-                      className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold transition-all border cursor-pointer ${
-                        filterByPeriod && selectionMode === 'week' && targetDisplayWeek === w
-                          ? 'bg-slate-900 text-amber-300 border-slate-950'
-                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                      }`}
+                      className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-200 border border-slate-600 transition-colors cursor-pointer"
+                      title={`Chuyển sang xem chi tiết ${w}`}
                     >
-                      {w}
-                    </button>
-                  ))}
-                  {['Tháng 8', 'Tháng 9', 'Tháng 10'].map(m => (
-                    <button
-                      key={`pareto-m-${m}`}
-                      onClick={() => {
-                        setSelectedMonthLabel(m);
-                        setSelectionMode('month');
-                        setFilterByPeriod(true);
-                        setAnalysisFilterWeek('all');
-                      }}
-                      className={`px-2 py-0.5 rounded text-[11px] font-sans font-bold transition-all border cursor-pointer ${
-                        filterByPeriod && selectionMode === 'month' && selectedMonthLabel === m
-                          ? 'bg-indigo-900 text-amber-300 border-indigo-950'
-                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {m}
+                      {w} {isSameWeek(w, 'W41') ? '★' : ''}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
 
-                <div className="flex items-center gap-2">
-                  {(!filterByPeriod || selectionMode === 'month') && (
-                    <button
-                      onClick={() => setIsGroupedByCode(!isGroupedByCode)}
-                      className={`px-2.5 py-0.5 rounded text-[11px] font-sans font-semibold border transition-all cursor-pointer ${
-                        isGroupedByCode 
-                          ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold' 
-                          : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {isGroupedByCode ? 'Gộp cùng mã VT' : 'Tách từng dòng'}
-                    </button>
-                  )}
-                  <span className="text-slate-600 font-sans text-xs">
-                    Top 5 chiếm: <strong className="text-rose-700 font-mono font-bold">{top5Percentage}%</strong>
-                  </span>
+            {/* === BẢNG PHÂN TÍCH TRỌNG ĐIỂM HƯ HỎNG - PHÂN RÕ BẾP GAS VÀ RO CẢ 2 DÂY CHUYỀN === */}
+            <div className="flex flex-col space-y-2.5 flex-1">
+              {/* 1. THẺ SO SÁNH TRỌNG ĐIỂM HƯ HỎNG 2 DÂY CHUYỀN (KPI COMPARISON CARDS) */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-750 rounded-xl p-3 shadow-sm text-white font-sans">
+                {/* Thông báo RMA khi xem Tháng 10 hoặc Tuần 41 */}
+                {((selectionMode === 'week' && matchWeek(targetDisplayWeek, 'W41')) || (selectionMode === 'month' && selectedMonthLabel === 'Tháng 10')) && (
+                  <div className="mb-2 bg-blue-950/80 border border-blue-500/50 rounded-lg px-3 py-1.5 flex items-center justify-between text-[11px] text-blue-200 flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-1.5 py-0.5 rounded bg-blue-600 text-white font-black text-[9.5px]">
+                        RMA TUẦN 41
+                      </span>
+                      <span className="font-medium text-slate-200">
+                        Tổ RMA tuần vừa qua không có sản xuất cũng như không có dữ liệu báo cáo hư hỏng.
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-amber-300 font-bold bg-slate-900/80 px-2 py-0.5 rounded border border-amber-400/30">
+                      Tháng 10 bắt đầu từ Tuần 41 (01 - 11/Oct)
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 pb-2 border-b border-slate-750">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-tight text-white font-['Times_New_Roman',Times,serif]">
+                      SO SÁNH TỔN THẤT & TRỌNG ĐIỂM HƯ HỎNG 2 DÂY CHUYỀN {filterByPeriod ? `(${selectionMode === 'week' ? targetDisplayWeek : selectedMonthLabel})` : '(TẤT CẢ KỲ)'}
+                    </h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-300">
+                    <span>Tổng tổn thất 2 DC:</span>
+                    <strong className="text-rose-400 font-mono text-sm">{formatCurrency(effectiveGrandTotal)} đ</strong>
+                  </div>
+                </div>
+
+                {/* 2 Cột so sánh Bếp Gas vs RO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                  {/* Card Bếp Gas (DCBG) */}
+                  <div className="bg-gradient-to-br from-amber-950/60 to-rose-950/40 border border-amber-600/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Flame className="w-4 h-4 text-amber-400" />
+                        <span className="font-black text-amber-300 text-xs tracking-wide">DÂY CHUYỀN BẾP GAS (DCBG)</span>
+                      </div>
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 shadow-2xs">
+                        Chiếm {effectiveBGShare}% tổn thất
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between py-1">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-medium">Tổn thất Bếp Gas:</span>
+                        <strong className="text-amber-200 font-mono text-lg font-black">{formatCurrency(effectiveBGTotal)} VNĐ</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block font-medium">Số mã VT lỗi:</span>
+                        <span className="font-bold text-slate-200 text-xs font-mono">{bgAnalysis.count} mã ({bgAnalysis.top5Percentage}% top 5)</span>
+                      </div>
+                    </div>
+                    <div className="pt-1.5 border-t border-amber-800/40 text-[10.5px] text-amber-100 flex items-center justify-between">
+                      <span className="text-slate-400 truncate mr-1">Thiệt hại lớn nhất:</span>
+                      <strong className="text-amber-300 truncate max-w-[200px]" title={bgAnalysis.topItem ? `${bgAnalysis.topItem.itemName} (${formatCurrency(bgAnalysis.topItem.calcAmount)} đ)` : 'Không phát sinh'}>
+                        {bgAnalysis.topItem ? `${bgAnalysis.topItem.itemName} (${formatCurrency(bgAnalysis.topItem.calcAmount)} đ)` : 'Không phát sinh'}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Card Line RO (DCRO) */}
+                  <div className="bg-gradient-to-br from-cyan-950/60 to-teal-950/40 border border-cyan-600/40 rounded-lg p-2.5 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <Droplets className="w-4 h-4 text-cyan-400" />
+                        <span className="font-black text-cyan-300 text-xs tracking-wide">DÂY CHUYỀN RO (DCRO)</span>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full shadow-2xs ${
+                        effectiveROTotal === 0 ? 'bg-emerald-400 text-slate-950' : 'bg-cyan-400 text-slate-950'
+                      }`}>
+                        {effectiveROTotal === 0 ? '0% (Đạt chuẩn 0 lỗi)' : `Chiếm ${effectiveROShare}% tổn thất`}
+                      </span>
+                    </div>
+                    <div className="flex items-baseline justify-between py-1">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-medium">Tổn thất Line RO:</span>
+                        <strong className="text-cyan-200 font-mono text-lg font-black">{formatCurrency(effectiveROTotal)} VNĐ</strong>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 block font-medium">Số mã VT lỗi:</span>
+                        <span className="font-bold text-slate-200 text-xs font-mono">{roAnalysis.count} mã {roAnalysis.count > 0 ? `(${roAnalysis.top5Percentage}% top 5)` : ''}</span>
+                      </div>
+                    </div>
+                    <div className="pt-1.5 border-t border-cyan-800/40 text-[10.5px] text-cyan-100 flex items-center justify-between">
+                      <span className="text-slate-400 truncate mr-1">Thiệt hại lớn nhất:</span>
+                      <strong className={`truncate max-w-[200px] ${effectiveROTotal === 0 ? 'text-emerald-300 font-black' : 'text-cyan-300'}`} title={roAnalysis.topItem ? `${roAnalysis.topItem.itemName} (${formatCurrency(roAnalysis.topItem.calcAmount)} đ)` : 'Đạt chuẩn 0 lỗi chất lượng'}>
+                        {roAnalysis.topItem ? `${roAnalysis.topItem.itemName} (${formatCurrency(roAnalysis.topItem.calcAmount)} đ)` : 'Đạt chuẩn 0 lỗi chất lượng (0 đ)'}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thanh so sánh tương quan tỷ trọng tổn thất */}
+                <div className="mt-2.5 pt-2 border-t border-slate-750 flex flex-col gap-1">
+                  <div className="flex items-center justify-between text-[10px] font-bold">
+                    <span className="text-amber-400 flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                      Bếp Gas: {effectiveBGShare}% ({formatCurrency(effectiveBGTotal)} đ)
+                    </span>
+                    <span className="text-slate-400 text-[9.5px]">Tương quan tỷ trọng tổn thất giữa 2 Line</span>
+                    <span className="text-cyan-400 flex items-center gap-1">
+                      Line RO: {effectiveROShare}% ({formatCurrency(effectiveROTotal)} đ)
+                      <span className="w-2 h-2 rounded-full bg-cyan-500 inline-block" />
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                    <div 
+                      className="bg-gradient-to-r from-amber-500 to-rose-600 h-full transition-all duration-500" 
+                      style={{ width: `${Math.max(2, Math.min(98, effectiveBGShare))}%` }} 
+                      title={`Bếp Gas: ${effectiveBGShare}%`}
+                    />
+                    <div 
+                      className="bg-gradient-to-r from-cyan-500 to-teal-400 h-full transition-all duration-500" 
+                      style={{ width: `${Math.max(2, Math.min(98, effectiveROShare))}%` }} 
+                      title={`Line RO: ${effectiveROShare}%`}
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="max-h-[460px] overflow-y-auto">
-                <table className="w-full text-xs sm:text-sm text-left border-collapse">
-                  <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase tracking-tighter text-[11px]">
-                    <tr>
-                      <th className="p-2.5 text-center w-12 border-r border-slate-200">Hạng</th>
-                      <th className="p-2.5 w-20 border-r border-slate-200">Line</th>
-                      <th className="p-2.5 w-16 text-center border-r border-slate-200">Tuần</th>
-                      <th className="p-2.5 border-r border-slate-200">Mã vật tư</th>
-                      <th className="p-2.5 border-r border-slate-200">Tên vật tư linh kiện mô tả</th>
-                      <th className="p-2.5 text-center w-14 border-r border-slate-200">SL</th>
-                      <th className="p-2.5 text-right w-24 border-r border-slate-200">Đơn giá</th>
-                      <th className="p-2.5 text-right w-32 border-r border-slate-200">Tổn thất (VNĐ)</th>
-                      <th className="p-2.5 text-right w-20 border-r border-slate-200">% Tỉ lệ</th>
-                      <th className="p-2.5 text-center w-28">Đánh giá</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {topHighValueItems.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="text-center py-10 text-slate-500 font-serif italic text-sm">
-                          <div className="flex flex-col items-center justify-center gap-2">
-                            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
-                            <span className="font-bold text-slate-700">
-                              {filterByPeriod 
-                                ? (selectionMode === 'week' ? `Không ghi nhận linh kiện hư hỏng phát sinh trong tuần ${targetDisplayWeek}` : `Không có linh kiện hư hỏng phát sinh trong ${selectedMonthLabel}`)
-                                : 'Không tìm thấy dữ liệu vật tư hư hỏng'}
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              {filterByPeriod && selectionMode === 'week' && matchWeek(targetDisplayWeek, latestWeekWithData)
-                                ? 'Line RO đạt chuẩn 0 lỗi • Tổn thất được bảo lưu an toàn'
-                                : 'Nhấp nút "Tất cả" hoặc chọn tuần khác để tra cứu'}
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
-                      topHighValueItems.map((item, idx) => {
-                        const isLineRO = item.lineType === 'RO';
-                        const rankColor = 
-                          idx === 0 ? 'bg-amber-400 text-amber-950 font-black' :
-                          idx === 1 ? 'bg-slate-300 text-slate-900 font-black' :
-                          idx === 2 ? 'bg-amber-700 text-white font-black' :
-                          'bg-slate-100 text-slate-600 font-bold';
+              {/* 2. THANH CHỌN CHẾ ĐỘ PHÂN TÍCH & BỘ LỌC DÂY CHUYỀN */}
+              <div className="bg-slate-100 p-2 rounded-xl border border-slate-300 flex flex-wrap items-center justify-between gap-2 text-xs font-sans shadow-2xs">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-slate-600 font-bold text-[11px] mr-1">Chế độ xem:</span>
+                  <button
+                    type="button"
+                    onClick={() => setLineViewMode('both')}
+                    className={`px-3 py-1 rounded-lg font-black transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                      lineViewMode === 'both'
+                        ? 'bg-gradient-to-r from-slate-900 via-rose-900 to-slate-900 text-amber-300 border border-slate-950 ring-1 ring-amber-400/50'
+                        : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-300'
+                    }`}
+                    title="Phân rõ ràng và song song cả 2 dây chuyền Bếp Gas và RO"
+                  >
+                    <Split className="w-3.5 h-3.5" />
+                    <span>Phân Rõ Cả 2 Dây Chuyền</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLineViewMode('bg')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      lineViewMode === 'bg'
+                        ? 'bg-amber-600 text-white shadow-xs border border-amber-700'
+                        : 'bg-white text-slate-700 hover:bg-amber-50 hover:text-amber-800 border border-slate-300'
+                    }`}
+                    title="Chỉ phân tích chi tiết linh kiện hư hỏng của Dây chuyền Bếp Gas"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Dây Chuyền Bếp Gas ({bgAnalysis.count})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLineViewMode('ro')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      lineViewMode === 'ro'
+                        ? 'bg-cyan-700 text-white shadow-xs border border-cyan-800'
+                        : 'bg-white text-slate-700 hover:bg-cyan-50 hover:text-cyan-800 border border-slate-300'
+                    }`}
+                    title="Chỉ phân tích chi tiết linh kiện hư hỏng của Dây chuyền Máy Lọc Nước RO"
+                  >
+                    <Droplets className="w-3.5 h-3.5 text-cyan-600" />
+                    <span>Dây Chuyền RO ({roAnalysis.count})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLineViewMode('combined')}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      lineViewMode === 'combined'
+                        ? 'bg-slate-800 text-white shadow-xs border border-slate-900'
+                        : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-300'
+                    }`}
+                    title="Bảng gộp toàn xưởng xếp hạng theo Pareto 80/20"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    <span>Toàn Xưởng Gộp ({combinedAnalysis.count})</span>
+                  </button>
+                </div>
 
-                        return (
-                          <tr 
-                            key={item.id || idx}
-                            className={`transition-colors hover:bg-slate-50 group ${
-                              item.isHighlighted ? 'bg-amber-50/70 border-y border-amber-200' : idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
-                            }`}
-                          >
-                            <td className="p-2 text-center border-r border-slate-100">
-                              <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${rankColor}`}>
-                                {idx + 1}
-                              </span>
-                            </td>
-                            <td className="p-2 border-r border-slate-100 whitespace-nowrap">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-sans font-black ${
-                                isLineRO 
-                                  ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' 
-                                  : 'bg-amber-100 text-amber-900 border border-amber-300'
-                              }`}>
-                                {isLineRO ? 'Line RO' : 'Bếp Gas'}
-                              </span>
-                            </td>
-                            <td className="p-2 text-center border-r border-slate-100 whitespace-nowrap">
-                              <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-sans font-bold ${
-                                item.weekList && item.weekList.length > 1
-                                  ? 'bg-purple-100 text-purple-900 border border-purple-200'
-                                  : item.week === latestWeekWithData
-                                    ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                    : 'bg-slate-100 text-slate-700 border border-slate-200'
-                              }`}>
-                                {item.weekList && item.weekList.length > 1 ? item.weekList.join(', ') : item.week || '-'}
-                              </span>
-                            </td>
-                            <td className="p-2 font-mono text-[11px] font-bold text-slate-600 border-r border-slate-100 whitespace-nowrap">
-                              {item.itemCode}
-                            </td>
-                            <td className={`p-2 font-bold border-r border-slate-100 ${item.isHighlighted ? 'text-amber-900 font-black' : 'text-slate-800'}`}>
-                              {item.itemName}
-                            </td>
-                            <td className="p-2 text-center font-black text-slate-900 border-r border-slate-100 text-[13px]">
-                              {item.quantity}
-                            </td>
-                            <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-100 text-xs">
-                              {formatCurrency(item.unitPrice)}
-                            </td>
-                            <td className="p-2 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-sm whitespace-nowrap">
-                              {formatCurrency(item.calcAmount)}
-                            </td>
-                            <td className="p-2 text-right font-mono font-bold text-slate-800 border-r border-slate-100 text-xs">
-                              {item.percentage}%
-                            </td>
-                            <td className="p-2 text-center whitespace-nowrap">
-                              {item.isPareto ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-black bg-rose-100 text-rose-800 border border-rose-300">
-                                  <AlertTriangle className="w-3 h-3 text-rose-600" />
-                                  Pareto 80%
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-sans font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                  Kiểm soát
-                                </span>
-                              )}
+                {/* Tùy chọn Bố cục khi xem Cả 2 Dây Chuyền */}
+                {lineViewMode === 'both' && (
+                  <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-300 text-[11px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setBothLinesLayout('stacked')}
+                      className={`px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
+                        bothLinesLayout === 'stacked' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                      title="Xếp chồng 2 bảng riêng biệt - xem đầy đủ thông tin"
+                    >
+                      <Rows className="w-3 h-3" />
+                      <span>Xếp Chồng</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBothLinesLayout('grid')}
+                      className={`px-2 py-0.5 rounded flex items-center gap-1 transition-all ${
+                        bothLinesLayout === 'grid' ? 'bg-slate-800 text-white' : 'text-slate-600 hover:bg-slate-100'
+                      }`}
+                      title="Hiển thị 2 cột song song để đối chiếu nhanh"
+                    >
+                      <Columns className="w-3 h-3" />
+                      <span>Song Song</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* 3. BẢNG DỮ LIỆU PHÂN TÍCH TRỌNG HƯ HỎNG */}
+              {/* CHẾ ĐỘ 1: PHÂN RÕ CẢ 2 DÂY CHUYỀN (MẶC ĐỊNH) */}
+              {lineViewMode === 'both' && (
+                <div className={`flex flex-col gap-3 ${bothLinesLayout === 'grid' ? 'xl:grid xl:grid-cols-2 xl:gap-3' : 'space-y-3'}`}>
+                  {/* BẢNG 1: DÂY CHUYỀN BẾP GAS (DCBG) */}
+                  <div className="border border-amber-300/80 rounded-xl overflow-hidden bg-white shadow-md flex flex-col">
+                    <div className="bg-gradient-to-r from-amber-950 via-rose-950 to-amber-900 text-white px-3.5 py-2 flex items-center justify-between text-xs font-bold font-sans border-b border-amber-700">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Flame className="w-4 h-4 text-amber-400 shrink-0" />
+                        <span className="uppercase font-['Times_New_Roman',Times,serif] text-xs sm:text-sm font-black tracking-tight text-amber-200 truncate">
+                          PHÂN TÍCH TRỌNG HƯ HỎNG - DÂY CHUYỀN BẾP GAS
+                        </span>
+                        <span className="text-[9.5px] text-slate-900 bg-amber-400 font-sans font-black px-1.5 py-0.2 rounded-full shrink-0">
+                          {bgAnalysis.count} MỤC
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-amber-300 font-mono font-bold">
+                          {formatCurrency(effectiveBGTotal)} VNĐ
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-amber-50/70 px-3 py-1 border-b border-amber-200 flex items-center justify-between text-[11px] text-amber-900 font-sans">
+                      <span>Top 5 chiếm: <strong className="text-rose-700 font-mono font-bold">{bgAnalysis.top5Percentage}%</strong> tổn thất Bếp Gas</span>
+                      <span className="text-slate-600 font-bold">Tỷ trọng: <strong className="text-amber-800">{effectiveBGShare}%</strong> toàn xưởng</span>
+                    </div>
+
+                    <div className="max-h-[320px] overflow-y-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase text-[10px]">
+                          <tr>
+                            <th className="p-2 text-center w-10 border-r border-slate-200">Hạng</th>
+                            {(!filterByPeriod || selectionMode === 'month') && (
+                              <th className="p-2 text-center w-14 border-r border-slate-200">Tuần</th>
+                            )}
+                            <th className="p-2 border-r border-slate-200">Mã VT</th>
+                            <th className="p-2 border-r border-slate-200">Tên linh kiện vật tư Bếp Gas</th>
+                            <th className="p-2 text-center w-12 border-r border-slate-200">SL</th>
+                            <th className="p-2 text-right w-20 border-r border-slate-200">Đơn giá</th>
+                            <th className="p-2 text-right w-24 border-r border-slate-200">Tổn thất (đ)</th>
+                            <th className="p-2 text-right w-16 border-r border-slate-200">% Line BG</th>
+                            <th className="p-2 text-center w-20">Đánh giá</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 font-sans">
+                          {bgAnalysis.items.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="text-center py-6 text-slate-500 italic font-serif text-xs">
+                                Không ghi nhận linh kiện hư hỏng phát sinh cho Bếp Gas trong kỳ này
+                              </td>
+                            </tr>
+                          ) : (
+                            bgAnalysis.items.map((item, idx) => (
+                              <tr key={`bg-${item.id || idx}`} className={`hover:bg-amber-50/40 transition-colors ${item.isHighlighted ? 'bg-amber-50/80 font-semibold' : idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                                <td className="p-1.5 text-center border-r border-slate-100">
+                                  <span className={`inline-flex items-center justify-center w-4.5 h-4.5 rounded-full text-[10px] font-black ${
+                                    idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-900' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {idx + 1}
+                                  </span>
+                                </td>
+                                {(!filterByPeriod || selectionMode === 'month') && (
+                                  <td className="p-1.5 text-center border-r border-slate-100 text-[10px] text-slate-600 whitespace-nowrap">
+                                    {item.weekList && item.weekList.length > 1 ? item.weekList.join(',') : item.week || '-'}
+                                  </td>
+                                )}
+                                <td className="p-1.5 font-mono text-[10.5px] text-slate-600 border-r border-slate-100 whitespace-nowrap">{item.itemCode}</td>
+                                <td className="p-1.5 font-bold text-slate-800 border-r border-slate-100">{item.itemName}</td>
+                                <td className="p-1.5 text-center font-black text-slate-900 border-r border-slate-100">{item.quantity}</td>
+                                <td className="p-1.5 text-right font-mono text-slate-500 border-r border-slate-100 text-[11px]">{formatCurrency(item.unitPrice)}</td>
+                                <td className="p-1.5 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-xs whitespace-nowrap">{formatCurrency(item.calcAmount)}</td>
+                                <td className="p-1.5 text-right font-mono font-bold text-amber-900 border-r border-slate-100 text-[11px]">{item.percentageOfLine}%</td>
+                                <td className="p-1.5 text-center whitespace-nowrap">
+                                  {item.isPareto ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                      Pareto 80%
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                      Kiểm soát
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* BẢNG 2: DÂY CHUYỀN MÁY LỌC NƯỚC (DCRO) */}
+                  <div className="border border-cyan-300/80 rounded-xl overflow-hidden bg-white shadow-md flex flex-col">
+                    <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-900 text-white px-3.5 py-2 flex items-center justify-between text-xs font-bold font-sans border-b border-cyan-700">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <Droplets className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="uppercase font-['Times_New_Roman',Times,serif] text-xs sm:text-sm font-black tracking-tight text-cyan-200 truncate">
+                          PHÂN TÍCH TRỌNG HƯ HỎNG - DÂY CHUYỀN RO
+                        </span>
+                        <span className="text-[9.5px] text-slate-900 bg-cyan-400 font-sans font-black px-1.5 py-0.2 rounded-full shrink-0">
+                          {roAnalysis.count} MỤC
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-[10px] text-cyan-300 font-mono font-bold">
+                          {formatCurrency(effectiveROTotal)} VNĐ
+                        </span>
+                      </div>
+                    </div>
+                    <div className="bg-cyan-50/70 px-3 py-1 border-b border-cyan-200 flex items-center justify-between text-[11px] text-cyan-900 font-sans">
+                      <span>Top 5 chiếm: <strong className="text-rose-700 font-mono font-bold">{roAnalysis.top5Percentage}%</strong> tổn thất Line RO</span>
+                      <span className="text-slate-600 font-bold">Tỷ trọng: <strong className="text-cyan-800">{effectiveROShare}%</strong> toàn xưởng</span>
+                    </div>
+
+                    <div className="max-h-[320px] overflow-y-auto">
+                      <table className="w-full text-xs text-left border-collapse">
+                        <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase text-[10px]">
+                          <tr>
+                            <th className="p-2 text-center w-10 border-r border-slate-200">Hạng</th>
+                            {(!filterByPeriod || selectionMode === 'month') && (
+                              <th className="p-2 text-center w-14 border-r border-slate-200">Tuần</th>
+                            )}
+                            <th className="p-2 border-r border-slate-200">Mã VT</th>
+                            <th className="p-2 border-r border-slate-200">Tên linh kiện vật tư Line RO</th>
+                            <th className="p-2 text-center w-12 border-r border-slate-200">SL</th>
+                            <th className="p-2 text-right w-20 border-r border-slate-200">Đơn giá</th>
+                            <th className="p-2 text-right w-24 border-r border-slate-200">Tổn thất (đ)</th>
+                            <th className="p-2 text-right w-16 border-r border-slate-200">% Line RO</th>
+                            <th className="p-2 text-center w-20">Đánh giá</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 font-sans">
+                          {roAnalysis.items.length === 0 ? (
+                            <tr>
+                              <td colSpan={9} className="text-center py-6 text-slate-500 font-serif italic text-xs">
+                                <div className="flex flex-col items-center justify-center gap-1.5 py-2">
+                                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                                  <span className="font-bold text-slate-800">
+                                    Line RO Đạt Chuẩn 0 Lỗi {filterByPeriod && selectionMode === 'week' ? `trong tuần ${targetDisplayWeek}` : 'trong kỳ này'} (0 đ tổn thất)
+                                  </span>
+                                  <span className="text-[11px] text-emerald-700 font-sans font-semibold">
+                                    ✓ Không phát sinh linh kiện hư hỏng • Chất lượng kiểm soát đạt 100%
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            roAnalysis.items.map((item, idx) => (
+                              <tr key={`ro-${item.id || idx}`} className={`hover:bg-cyan-50/40 transition-colors ${item.isHighlighted ? 'bg-amber-50/80 font-semibold' : idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                                <td className="p-1.5 text-center border-r border-slate-100">
+                                  <span className={`inline-flex items-center justify-center w-4.5 h-4.5 rounded-full text-[10px] font-black ${
+                                    idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-900' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+                                  }`}>
+                                    {idx + 1}
+                                  </span>
+                                </td>
+                                {(!filterByPeriod || selectionMode === 'month') && (
+                                  <td className="p-1.5 text-center border-r border-slate-100 text-[10px] text-slate-600 whitespace-nowrap">
+                                    {item.weekList && item.weekList.length > 1 ? item.weekList.join(',') : item.week || '-'}
+                                  </td>
+                                )}
+                                <td className="p-1.5 font-mono text-[10.5px] text-slate-600 border-r border-slate-100 whitespace-nowrap">{item.itemCode}</td>
+                                <td className="p-1.5 font-bold text-slate-800 border-r border-slate-100">{item.itemName}</td>
+                                <td className="p-1.5 text-center font-black text-slate-900 border-r border-slate-100">{item.quantity}</td>
+                                <td className="p-1.5 text-right font-mono text-slate-500 border-r border-slate-100 text-[11px]">{formatCurrency(item.unitPrice)}</td>
+                                <td className="p-1.5 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-xs whitespace-nowrap">{formatCurrency(item.calcAmount)}</td>
+                                <td className="p-1.5 text-right font-mono font-bold text-cyan-900 border-r border-slate-100 text-[11px]">{item.percentageOfLine}%</td>
+                                <td className="p-1.5 text-center whitespace-nowrap">
+                                  {item.isPareto ? (
+                                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                      Pareto 80%
+                                    </span>
+                                  ) : (
+                                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                      Kiểm soát
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* CHẾ ĐỘ 2: CHUYÊN SÂU DÂY CHUYỀN BẾP GAS (DCBG) */}
+              {lineViewMode === 'bg' && (
+                <div className="border border-amber-400 rounded-xl overflow-hidden bg-white shadow-md flex flex-col flex-1">
+                  <div className="bg-gradient-to-r from-amber-950 via-rose-950 to-amber-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold font-sans border-b border-amber-700">
+                    <div className="flex items-center gap-2.5">
+                      <Flame className="w-5 h-5 text-amber-400" />
+                      <span className="uppercase font-['Times_New_Roman',Times,serif] text-sm font-black tracking-tight text-amber-200">
+                        PHÂN TÍCH TRỌNG ĐIỂM HƯ HỎNG - DÂY CHUYỀN BẾP GAS (DCBG)
+                      </span>
+                      <span className="text-[10px] text-slate-950 bg-amber-400 font-sans font-black px-2 py-0.5 rounded-full">
+                        {bgAnalysis.count} MỤC • CHIẾM {effectiveBGShare}% TOÀN XƯỞNG
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/80 px-3 py-1 rounded-lg border border-amber-600/50 text-amber-300 font-mono text-sm shadow-inner">
+                      <span className="text-[10px] text-slate-400 mr-2 font-sans font-black">TỔNG BẾP GAS:</span>
+                      <span className="font-black text-white text-base">{formatCurrency(effectiveBGTotal)}</span>
+                      <span className="text-[10px] ml-1">VNĐ</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-amber-50 px-4 py-1.5 border-b border-amber-200 flex flex-wrap items-center justify-between gap-2 text-xs font-sans text-amber-950">
+                    <span>Top 5 vật tư chiếm: <strong className="text-rose-700 font-mono font-bold text-sm">{bgAnalysis.top5Percentage}%</strong> ({formatCurrency(bgAnalysis.top5Total)} đ)</span>
+                    <span>Đánh giá Pareto 80/20 chuyên sâu cho các vật tư rủi ro cao của DC Bếp Gas</span>
+                  </div>
+
+                  <div className="max-h-[440px] overflow-y-auto">
+                    <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                      <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase text-[11px]">
+                        <tr>
+                          <th className="p-2.5 text-center w-12 border-r border-slate-200">Hạng</th>
+                          <th className="p-2.5 w-16 text-center border-r border-slate-200">Tuần</th>
+                          <th className="p-2.5 border-r border-slate-200">Mã vật tư</th>
+                          <th className="p-2.5 border-r border-slate-200">Tên vật tư linh kiện mô tả</th>
+                          <th className="p-2.5 text-center w-14 border-r border-slate-200">SL</th>
+                          <th className="p-2.5 text-right w-24 border-r border-slate-200">Đơn giá</th>
+                          <th className="p-2.5 text-right w-32 border-r border-slate-200">Tổn thất (VNĐ)</th>
+                          <th className="p-2.5 text-right w-20 border-r border-slate-200">% Line BG</th>
+                          <th className="p-2.5 text-right w-20 border-r border-slate-200">% Toàn xưởng</th>
+                          <th className="p-2.5 text-center w-28">Đánh giá</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 font-sans">
+                        {bgAnalysis.items.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="text-center py-10 text-slate-500 font-serif italic text-sm">
+                              Không có dữ liệu vật tư hư hỏng phát sinh cho Bếp Gas trong kỳ này
                             </td>
                           </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="bg-slate-50 px-4 py-2.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-2">
-                <div className="flex items-center gap-4">
-                  <span>Số mục hiển thị: <strong className="text-slate-900 font-bold">{topHighValueItems.length}</strong></span>
-                  <span>Top 5 chiếm: <strong className="text-rose-700 font-bold">{top5Percentage}% ({formatCurrency(top5Total)} đ)</strong></span>
+                        ) : (
+                          bgAnalysis.items.map((item, idx) => (
+                            <tr key={`bg-full-${item.id || idx}`} className={`hover:bg-amber-50/50 transition-colors ${item.isHighlighted ? 'bg-amber-50 font-bold' : idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                              <td className="p-2 text-center border-r border-slate-100">
+                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-black ${
+                                  idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-900' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center border-r border-slate-100 whitespace-nowrap text-xs text-slate-600">
+                                {item.weekList && item.weekList.length > 1 ? item.weekList.join(', ') : item.week || '-'}
+                              </td>
+                              <td className="p-2 font-mono text-[11px] font-bold text-slate-600 border-r border-slate-100 whitespace-nowrap">{item.itemCode}</td>
+                              <td className="p-2 font-bold text-slate-800 border-r border-slate-100">{item.itemName}</td>
+                              <td className="p-2 text-center font-black text-slate-900 border-r border-slate-100 text-[13px]">{item.quantity}</td>
+                              <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-100 text-xs">{formatCurrency(item.unitPrice)}</td>
+                              <td className="p-2 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-sm whitespace-nowrap">{formatCurrency(item.calcAmount)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-amber-900 border-r border-slate-100 text-xs">{item.percentageOfLine}%</td>
+                              <td className="p-2 text-right font-mono text-slate-600 border-r border-slate-100 text-xs">{item.percentageOfTotal}%</td>
+                              <td className="p-2 text-center whitespace-nowrap">
+                                {item.isPareto ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                    Pareto 80%
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                    Kiểm soát
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <span className="text-[11px] italic font-serif">
-                  * Dữ liệu tự động đồng bộ theo kỳ {filterByPeriod ? (selectionMode === 'week' ? targetDisplayWeek : selectedMonthLabel) : 'tất cả'} và xếp hạng theo Pareto 80/20
-                </span>
-              </div>
+              )}
+
+              {/* CHẾ ĐỘ 3: CHUYÊN SÂU DÂY CHUYỀN MÁY LỌC NƯỚC (DCRO) */}
+              {lineViewMode === 'ro' && (
+                <div className="border border-cyan-400 rounded-xl overflow-hidden bg-white shadow-md flex flex-col flex-1">
+                  <div className="bg-gradient-to-r from-slate-950 via-teal-950 to-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold font-sans border-b border-cyan-700">
+                    <div className="flex items-center gap-2.5">
+                      <Droplets className="w-5 h-5 text-cyan-400" />
+                      <span className="uppercase font-['Times_New_Roman',Times,serif] text-sm font-black tracking-tight text-cyan-200">
+                        PHÂN TÍCH TRỌNG ĐIỂM HƯ HỎNG - DÂY CHUYỀN RO (DCRO)
+                      </span>
+                      <span className="text-[10px] text-slate-950 bg-cyan-400 font-sans font-black px-2 py-0.5 rounded-full">
+                        {roAnalysis.count} MỤC • CHIẾM {effectiveROShare}% TOÀN XƯỞNG
+                      </span>
+                    </div>
+                    <div className="bg-slate-950/80 px-3 py-1 rounded-lg border border-cyan-600/50 text-cyan-300 font-mono text-sm shadow-inner">
+                      <span className="text-[10px] text-slate-400 mr-2 font-sans font-black">TỔNG LINE RO:</span>
+                      <span className="font-black text-white text-base">{formatCurrency(effectiveROTotal)}</span>
+                      <span className="text-[10px] ml-1">VNĐ</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-cyan-50 px-4 py-1.5 border-b border-cyan-200 flex flex-wrap items-center justify-between gap-2 text-xs font-sans text-cyan-950">
+                    <span>Top 5 vật tư chiếm: <strong className="text-rose-700 font-mono font-bold text-sm">{roAnalysis.top5Percentage}%</strong> ({formatCurrency(roAnalysis.top5Total)} đ)</span>
+                    <span>Đánh giá Pareto 80/20 chuyên sâu cho các vật tư rủi ro cao của DC Máy Lọc Nước RO</span>
+                  </div>
+
+                  <div className="max-h-[440px] overflow-y-auto">
+                    <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                      <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase text-[11px]">
+                        <tr>
+                          <th className="p-2.5 text-center w-12 border-r border-slate-200">Hạng</th>
+                          <th className="p-2.5 w-16 text-center border-r border-slate-200">Tuần</th>
+                          <th className="p-2.5 border-r border-slate-200">Mã vật tư</th>
+                          <th className="p-2.5 border-r border-slate-200">Tên vật tư linh kiện mô tả</th>
+                          <th className="p-2.5 text-center w-14 border-r border-slate-200">SL</th>
+                          <th className="p-2.5 text-right w-24 border-r border-slate-200">Đơn giá</th>
+                          <th className="p-2.5 text-right w-32 border-r border-slate-200">Tổn thất (VNĐ)</th>
+                          <th className="p-2.5 text-right w-20 border-r border-slate-200">% Line RO</th>
+                          <th className="p-2.5 text-right w-20 border-r border-slate-200">% Toàn xưởng</th>
+                          <th className="p-2.5 text-center w-28">Đánh giá</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 font-sans">
+                        {roAnalysis.items.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="text-center py-12 text-slate-500 font-serif italic text-sm">
+                              <div className="flex flex-col items-center justify-center gap-2">
+                                <CheckCircle2 className="w-8 h-8 text-emerald-600" />
+                                <span className="font-bold text-slate-800 text-base">
+                                  Line RO Đạt Chuẩn 0 Lỗi {filterByPeriod && selectionMode === 'week' ? `trong tuần ${targetDisplayWeek}` : 'trong kỳ này'} (0 VNĐ tổn thất)
+                                </span>
+                                <span className="text-xs text-slate-500 max-w-md">
+                                  Không ghi nhận bất kỳ linh kiện hỏng nào phát sinh trên Line RO. Toàn bộ dây chuyền hoạt động chuẩn chỉ và an toàn tuyệt đối.
+                                </span>
+                              </div>
+                            </td>
+                          </tr>
+                        ) : (
+                          roAnalysis.items.map((item, idx) => (
+                            <tr key={`ro-full-${item.id || idx}`} className={`hover:bg-cyan-50/50 transition-colors ${item.isHighlighted ? 'bg-amber-50 font-bold' : idx % 2 === 1 ? 'bg-slate-50/30' : 'bg-white'}`}>
+                              <td className="p-2 text-center border-r border-slate-100">
+                                <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-black ${
+                                  idx === 0 ? 'bg-amber-400 text-amber-950' : idx === 1 ? 'bg-slate-300 text-slate-900' : idx === 2 ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+                                }`}>
+                                  {idx + 1}
+                                </span>
+                              </td>
+                              <td className="p-2 text-center border-r border-slate-100 whitespace-nowrap text-xs text-slate-600">
+                                {item.weekList && item.weekList.length > 1 ? item.weekList.join(', ') : item.week || '-'}
+                              </td>
+                              <td className="p-2 font-mono text-[11px] font-bold text-slate-600 border-r border-slate-100 whitespace-nowrap">{item.itemCode}</td>
+                              <td className="p-2 font-bold text-slate-800 border-r border-slate-100">{item.itemName}</td>
+                              <td className="p-2 text-center font-black text-slate-900 border-r border-slate-100 text-[13px]">{item.quantity}</td>
+                              <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-100 text-xs">{formatCurrency(item.unitPrice)}</td>
+                              <td className="p-2 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-sm whitespace-nowrap">{formatCurrency(item.calcAmount)}</td>
+                              <td className="p-2 text-right font-mono font-bold text-cyan-900 border-r border-slate-100 text-xs">{item.percentageOfLine}%</td>
+                              <td className="p-2 text-right font-mono text-slate-600 border-r border-slate-100 text-xs">{item.percentageOfTotal}%</td>
+                              <td className="p-2 text-center whitespace-nowrap">
+                                {item.isPareto ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                    Pareto 80%
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                    Kiểm soát
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* CHẾ ĐỘ 4: BẢNG GỘP TOÀN XƯỞNG (PARETO 80/20) */}
+              {lineViewMode === 'combined' && (
+                <div className="border border-slate-300 rounded-xl overflow-hidden bg-white shadow-md flex flex-col flex-1">
+                  <div className="bg-gradient-to-r from-slate-950 via-rose-950 to-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs font-bold font-sans border-b border-rose-800">
+                    <div className="flex items-center gap-3">
+                      <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]" />
+                      <span className="uppercase font-['Times_New_Roman',Times,serif] text-sm font-black tracking-tight">
+                        BẢNG PHÂN TÍCH GỘP TOÀN XƯỞNG {filterByPeriod ? `(${selectionMode === 'week' ? targetDisplayWeek : selectedMonthLabel})` : '(TẤT CẢ KỲ)'}
+                      </span>
+                      <span className="text-[10px] text-amber-200 font-sans font-black px-2 py-0.5 bg-rose-900/80 rounded-full border border-rose-700">
+                        PARETO 80/20 • {topHighValueItems.length} MỤC
+                      </span>
+                    </div>
+                    <div className="bg-slate-900/90 px-3 py-1 rounded-lg border border-slate-700 text-amber-300 font-mono text-sm shadow-inner">
+                      <span className="text-[10px] text-slate-400 mr-2 font-sans font-black">TỔNG TỔN THẤT:</span>
+                      <span className="font-black text-white text-base">
+                        {formatCurrency(totalAnalysisAmount || effectiveGrandTotal)}
+                      </span>
+                      <span className="text-[10px] ml-1">VNĐ</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-100 px-3.5 py-1.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-1 text-xs font-sans">
+                    <span className="text-slate-600">
+                      Gộp chung 2 Line: Bếp Gas ({formatCurrency(effectiveBGTotal)} đ) + Line RO ({formatCurrency(effectiveROTotal)} đ)
+                    </span>
+                    <span className="text-slate-600 font-sans text-xs">
+                      Top 5 chiếm: <strong className="text-rose-700 font-mono font-bold">{top5Percentage}%</strong>
+                    </span>
+                  </div>
+
+                  <div className="max-h-[440px] overflow-y-auto">
+                    <table className="w-full text-xs sm:text-sm text-left border-collapse">
+                      <thead className="bg-slate-100 text-slate-900 font-black sticky top-0 border-b border-slate-300 z-10 uppercase text-[11px]">
+                        <tr>
+                          <th className="p-2.5 text-center w-12 border-r border-slate-200">Hạng</th>
+                          <th className="p-2.5 w-20 border-r border-slate-200">Line</th>
+                          <th className="p-2.5 w-16 text-center border-r border-slate-200">Tuần</th>
+                          <th className="p-2.5 border-r border-slate-200">Mã vật tư</th>
+                          <th className="p-2.5 border-r border-slate-200">Tên vật tư linh kiện mô tả</th>
+                          <th className="p-2.5 text-center w-14 border-r border-slate-200">SL</th>
+                          <th className="p-2.5 text-right w-24 border-r border-slate-200">Đơn giá</th>
+                          <th className="p-2.5 text-right w-32 border-r border-slate-200">Tổn thất (VNĐ)</th>
+                          <th className="p-2.5 text-right w-20 border-r border-slate-200">% Tỉ lệ</th>
+                          <th className="p-2.5 text-center w-28">Đánh giá</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200 font-sans">
+                        {topHighValueItems.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="text-center py-10 text-slate-500 font-serif italic text-sm">
+                              Không tìm thấy dữ liệu vật tư hư hỏng
+                            </td>
+                          </tr>
+                        ) : (
+                          topHighValueItems.map((item, idx) => {
+                            const isLineRO = item.lineType === 'RO';
+                            const rankColor = 
+                              idx === 0 ? 'bg-amber-400 text-amber-950 font-black' :
+                              idx === 1 ? 'bg-slate-300 text-slate-900 font-black' :
+                              idx === 2 ? 'bg-amber-700 text-white font-black' :
+                              'bg-slate-100 text-slate-600 font-bold';
+
+                            return (
+                              <tr 
+                                key={`comb-${item.id || idx}`}
+                                className={`transition-colors hover:bg-slate-50 ${
+                                  item.isHighlighted ? 'bg-amber-50/70 border-y border-amber-200' : idx % 2 === 1 ? 'bg-slate-50/40' : 'bg-white'
+                                }`}
+                              >
+                                <td className="p-2 text-center border-r border-slate-100">
+                                  <span className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs ${rankColor}`}>
+                                    {idx + 1}
+                                  </span>
+                                </td>
+                                <td className="p-2 border-r border-slate-100 whitespace-nowrap">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-sans font-black ${
+                                    isLineRO 
+                                      ? 'bg-cyan-100 text-cyan-900 border border-cyan-300' 
+                                      : 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  }`}>
+                                    {isLineRO ? 'Line RO' : 'Bếp Gas'}
+                                  </span>
+                                </td>
+                                <td className="p-2 text-center border-r border-slate-100 whitespace-nowrap text-xs text-slate-600">
+                                  {item.weekList && item.weekList.length > 1 ? item.weekList.join(', ') : item.week || '-'}
+                                </td>
+                                <td className="p-2 font-mono text-[11px] font-bold text-slate-600 border-r border-slate-100 whitespace-nowrap">
+                                  {item.itemCode}
+                                </td>
+                                <td className={`p-2 font-bold border-r border-slate-100 ${item.isHighlighted ? 'text-amber-900 font-black' : 'text-slate-800'}`}>
+                                  {item.itemName}
+                                </td>
+                                <td className="p-2 text-center font-black text-slate-900 border-r border-slate-100 text-[13px]">
+                                  {item.quantity}
+                                </td>
+                                <td className="p-2 text-right font-mono text-slate-500 border-r border-slate-100 text-xs">
+                                  {formatCurrency(item.unitPrice)}
+                                </td>
+                                <td className="p-2 text-right font-mono font-black text-rose-700 border-r border-slate-100 text-sm whitespace-nowrap">
+                                  {formatCurrency(item.calcAmount)}
+                                </td>
+                                <td className="p-2 text-right font-mono font-bold text-slate-800 border-r border-slate-100 text-xs">
+                                  {item.percentage}%
+                                </td>
+                                <td className="p-2 text-center whitespace-nowrap">
+                                  {item.isPareto ? (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                      <AlertTriangle className="w-3 h-3 text-rose-600" />
+                                      Pareto 80%
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-sans font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                      Kiểm soát
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* GRAND TOTAL SUMMARY BAR & LEGEND */}
@@ -1444,7 +2053,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                       </span>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-white font-mono text-xl font-bold">
-                          {formatCurrency(selectionMode === 'week' ? activeWeekTotalRO : activeMonthTotalRO)}
+                          {formatCurrency(effectiveROTotal)}
                         </span>
                         <span className="text-slate-500 text-[10px] font-bold">VNĐ</span>
                       </div>
@@ -1455,7 +2064,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                       </span>
                       <div className="flex items-baseline gap-1.5">
                         <span className="text-white font-mono text-xl font-bold">
-                          {formatCurrency(selectionMode === 'week' ? activeWeekTotalBG : activeMonthTotalBG)}
+                          {formatCurrency(effectiveBGTotal)}
                         </span>
                         <span className="text-slate-500 text-[10px] font-bold">VNĐ</span>
                       </div>
@@ -1493,10 +2102,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                 </span>
                 <div className="flex items-baseline gap-2">
                   <strong className="text-white font-mono text-4xl font-black tracking-tighter drop-shadow-md">
-                    {formatCurrency(filterByPeriod 
-                      ? (selectionMode === 'week' ? activeWeekGrandTotal : activeMonthGrandTotal)
-                      : grandTotal
-                    )}
+                    {formatCurrency(effectiveGrandTotal)}
                   </strong>
                   <span className="text-red-500 font-black text-lg tracking-wider">VNĐ</span>
                 </div>

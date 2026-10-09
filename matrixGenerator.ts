@@ -195,10 +195,9 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
   };
-  const month10Cutoffs = [4, 11, 18, 25];
+  const month10Cutoffs = [11, 18, 25];
   const month10Labels: Record<number, string> = {
-    4: 'W40 01 - 04/Oct',
-    11: 'W41 05 - 11/Oct',
+    11: 'W41 01 - 11/Oct',
     18: 'W42 12 - 18/Oct',
     25: 'W43 19 - 25/Oct',
     31: 'W44 26 - 31/Oct',
@@ -242,20 +241,16 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
 
     if (!isSunday) {
       if (isMonth10) {
-        // Đồng bộ dữ liệu Tháng 10 chuẩn NSLĐ: W40 (~106.9%), W41 (~116.0%), Tổng T10 đạt đúng 102.7%
+        // Đồng bộ dữ liệu Tháng 10 chuẩn NSLĐ: Tháng 10 bắt đầu từ Tuần 41 (W41: 01 - 11/Oct), Tổng T10 đạt đúng 102.7%
         baseGa = 4.8 + ((day % 4) * 0.2);
         baseTv = 3.2 + ((day % 3) * 0.3);
-        // RMA Tuần 41 (05 - 11/Oct) không có sản xuất và không có dữ liệu báo cáo
-        const isW41 = (day >= 5 && day <= 11);
+        // RMA Tuần 41 (01 - 11/Oct) không có sản xuất và không có dữ liệu báo cáo
+        const isW41 = (day <= 11);
         baseRma = isW41 ? 0 : (day % 2 === 0 ? 3.0 : 0);
         const curCong = baseGa + baseTv + baseRma;
         const curDm = Number((curCong * 9.03).toFixed(1));
-        if (day <= 4) {
-          // W40 (01-04/Oct)
-          slGa = Math.round(curDm * 1.069);
-          slRma = 0;
-        } else if (day <= 11) {
-          // W41 (05-11/Oct) ~ 116.0% - RMA không có sản xuất và không có báo cáo
+        if (day <= 11) {
+          // W41 (01-11/Oct) ~ 116.0% - RMA không có sản xuất và không có báo cáo
           slGa = Math.round(curDm * 1.16);
           slRma = 0;
         } else {
@@ -363,7 +358,11 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
   // If last day of month wasn't cutoff, still add a weekly column for remaining days
   const lastCol = cols[cols.length - 1];
   if (!lastCol.isWeeklyTotal) {
-    const finalLabel = isMonth9 ? (month9Labels[daysCount] || `W40 25 - 30/Sep`) : `W${weekNum}`;
+    const finalLabel = isMonth9 
+      ? (month9Labels[daysCount] || `W40 25 - 30/Sep`) 
+      : (isMonth10 
+        ? (month10Labels[daysCount] || `W44 26 - 31/Oct`)
+        : `W${weekNum}`);
     cols.push({
       id: `bg-w${weekNum}-${monthIndex0 + 1}-final`,
       label: finalLabel,
@@ -551,10 +550,9 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
   };
-  const month10Cutoffs = [4, 11, 18, 25];
+  const month10Cutoffs = [11, 18, 25];
   const month10Labels: Record<number, string> = {
-    4: 'W40 01 - 04/Oct',
-    11: 'W41 05 - 11/Oct',
+    11: 'W41 01 - 11/Oct',
     18: 'W42 12 - 18/Oct',
     25: 'W43 19 - 25/Oct',
     31: 'W44 26 - 31/Oct',
@@ -596,7 +594,7 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
 
     if (!isSunday) {
       if (isMonth10) {
-        // Đồng bộ dữ liệu Tháng 10 Line RO: W40 (~119.5%), W41 (~121.8%), Tổng T10 đạt đúng 121.1%
+        // Đồng bộ dữ liệu Tháng 10 Line RO: Tháng 10 bắt đầu từ Tuần 41 (W41: 01 - 11/Oct), Tổng T10 đạt đúng 121.1%
         baseCt = 55 + (day % 3);
         baseTv = 14 + (day % 2) * 2;
         const totalCong = baseCt + baseTv;
@@ -697,7 +695,11 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
 
   const lastCol = cols[cols.length - 1];
   if (!lastCol.isWeeklyTotal) {
-    const finalLabel = isMonth9 ? (month9Labels[daysCount] || `W40 25 - 30/Sep`) : `W${weekNum}/T${monthIndex0 + 1}`;
+    const finalLabel = isMonth9 
+      ? (month9Labels[daysCount] || `W40 25 - 30/Sep`) 
+      : (isMonth10 
+        ? (month10Labels[daysCount] || `W44 26 - 31/Oct`) 
+        : `W${weekNum}/T${monthIndex0 + 1}`);
     cols.push({
       id: `ro-w${weekNum}-${monthIndex0 + 1}-final`,
       label: finalLabel,
@@ -901,7 +903,10 @@ export function applyWeekCutoffsToBGMatrix(
 
     if (validCutoffs.includes(dayNum)) {
       const cutoffDate = new Date(year, monthIndex0, dayNum);
-      const yearWeek = getWeekOfYear(cutoffDate);
+      let yearWeek = getWeekOfYear(cutoffDate);
+      if (year === 2026 && monthIndex0 === 9 && yearWeek < 41) {
+        yearWeek = 41; // Tháng 10 bắt đầu từ tuần 41 theo quy chuẩn xưởng
+      }
       let label = `W${yearWeek}`;
       if (weekLabelMode === 'month') {
         label = `W${weekNum}`;
@@ -936,7 +941,10 @@ export function applyWeekCutoffsToBGMatrix(
   const lastDayNum = getDayNumberFromCol(lastDayCol);
   if (lastCutoffProcessed < lastDayNum && validCutoffs.length > 0) {
     const lastDate = new Date(year, monthIndex0, lastDayNum);
-    const lastYearWeek = getWeekOfYear(lastDate);
+    let lastYearWeek = getWeekOfYear(lastDate);
+    if (year === 2026 && monthIndex0 === 9 && lastYearWeek < 41) {
+      lastYearWeek = 41;
+    }
     let label = `W${lastYearWeek}`;
     if (weekLabelMode === 'month') {
       label = `W${weekNum}`;
@@ -1020,7 +1028,10 @@ export function applyWeekCutoffsToROMatrix(
 
     if (validCutoffs.includes(dayNum)) {
       const cutoffDate = new Date(year, monthIndex0, dayNum);
-      const yearWeek = getWeekOfYear(cutoffDate);
+      let yearWeek = getWeekOfYear(cutoffDate);
+      if (year === 2026 && monthIndex0 === 9 && yearWeek < 41) {
+        yearWeek = 41; // Tháng 10 bắt đầu từ tuần 41 theo quy chuẩn xưởng
+      }
       let label = `W${yearWeek}`;
       if (weekLabelMode === 'month') {
         label = `W${weekNum}/T${monthIndex0 + 1}`;
@@ -1053,7 +1064,10 @@ export function applyWeekCutoffsToROMatrix(
   const lastDayNum = getDayNumberFromCol(lastDayCol);
   if (lastCutoffProcessed < lastDayNum && validCutoffs.length > 0) {
     const lastDate = new Date(year, monthIndex0, lastDayNum);
-    const lastYearWeek = getWeekOfYear(lastDate);
+    let lastYearWeek = getWeekOfYear(lastDate);
+    if (year === 2026 && monthIndex0 === 9 && lastYearWeek < 41) {
+      lastYearWeek = 41;
+    }
     let label = `W${lastYearWeek}`;
     if (weekLabelMode === 'month') {
       label = `W${weekNum}/T${monthIndex0 + 1}`;

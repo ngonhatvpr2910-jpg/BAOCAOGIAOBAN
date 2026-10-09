@@ -129,7 +129,7 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
       amount: 50000,
       category: 'RO',
       isHighlighted: false,
-      week: formData.itemsRO.length > 0 ? formData.itemsRO[0].week : 'W40',
+      week: formData.itemsRO.length > 0 ? formData.itemsRO[0].week : 'W41',
     };
     const updated = [newItem, ...formData.itemsRO];
     setFormData({ ...formData, itemsRO: autoHighlightTop3(updated) });
@@ -171,7 +171,7 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
       amount: 50000,
       category: 'BG',
       isHighlighted: false,
-      week: formData.itemsBG.length > 0 ? formData.itemsBG[0].week : 'W40',
+      week: formData.itemsBG.length > 0 ? formData.itemsBG[0].week : 'W41',
     };
     const updated = [newItem, ...formData.itemsBG];
     setFormData({ ...formData, itemsBG: autoHighlightTop3(updated) });
