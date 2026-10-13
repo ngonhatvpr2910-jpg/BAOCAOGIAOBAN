@@ -4,7 +4,9 @@ import { StorageService } from './storage';
 import { 
   getExecutiveSummaryData, 
   AVAILABLE_WEEKS, 
-  AVAILABLE_MONTHS 
+  AVAILABLE_MONTHS,
+  getWeeksForMonth,
+  getMonthForWeek,
 } from './executiveSummaryService';
 import { GlobalNormsEditorModal } from './GlobalNormsEditorModal';
 import { 
@@ -28,7 +30,7 @@ import {
   Zap
 } from 'lucide-react';
 
-import { Slide1NSLDData, Slide2QualityData } from './types';
+import { Slide1NSLDData, Slide2QualityData, SlideDefectCostData } from './types';
 
 interface ExecutiveSummaryCardProps {
   isSlideView?: boolean;
@@ -41,6 +43,7 @@ interface ExecutiveSummaryCardProps {
   onTimeFrameChange?: (timeFrame: 'week' | 'month') => void;
   slide1NSLDData?: Slide1NSLDData;
   slide2QualityData?: Slide2QualityData;
+  slide3DefectCostData?: SlideDefectCostData;
 }
 
 export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
@@ -54,6 +57,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   onTimeFrameChange,
   slide1NSLDData,
   slide2QualityData,
+  slide3DefectCostData,
 }) => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [internalTimeFrame, setInternalTimeFrame] = useState<'week' | 'month'>('week');
@@ -77,10 +81,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     return slide2QualityData || slide2Quality || StorageService.getSlide2Quality();
   }, [slide2QualityData, slide2Quality, localVersion, dataVersion]);
 
-  // Đọc dữ liệu chi phí hư hỏng thực tế từ Storage
+  // Đọc dữ liệu chi phí hư hỏng thực tế từ props hoặc Storage
   const defectCostData = useMemo(() => {
-    return StorageService.getSlide3DefectCost();
-  }, [dataVersion]);
+    return slide3DefectCostData || StorageService.getSlide3DefectCost();
+  }, [slide3DefectCostData, dataVersion, localVersion]);
 
   const slide1Data = useMemo(() => {
     return slide1NSLDData || StorageService.getSlide1NSLD();
@@ -142,18 +146,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   const selectedMonth = propSelectedMonth || internalSelectedMonth;
   const timeFrame = propTimeFrame || internalTimeFrame;
 
+  const [showAllWeeks, setShowAllWeeks] = useState<boolean>(false);
+
   const handleSelectWeek = (w: string) => {
     setInternalSelectedWeek(w);
-    // Tự động suy luận tháng tương ứng từ tuần đã chọn
-    const wNum = parseInt(w.replace(/\D/g, ''), 10);
-    let m = 'Tháng 10';
-    if (wNum >= 41 && wNum <= 44) m = 'Tháng 10';
-    else if (wNum >= 45 && wNum <= 48) m = 'Tháng 11';
-    else if (wNum >= 49 && wNum <= 52) m = 'Tháng 12';
-    else if (wNum >= 36 && wNum <= 40) m = 'Tháng 9';
-    else if (wNum >= 31 && wNum <= 35) m = 'Tháng 8';
-    else if (wNum >= 27 && wNum <= 30) m = 'Tháng 7';
-    else if (wNum >= 22 && wNum <= 26) m = 'Tháng 6';
+    const m = getMonthForWeek(w);
     setInternalSelectedMonth(m);
     onWeekChange?.(w);
     onMonthChange?.(m);
@@ -161,65 +158,49 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
   const handleSelectMonth = (m: string) => {
     setInternalSelectedMonth(m);
-    // Tự động chọn tuần tiêu biểu của tháng đó
-    const mNum = parseInt(m.replace(/\D/g, ''), 10);
-    let w = 'W41';
-    if (mNum === 10) w = 'W41';
-    else if (mNum === 11) w = 'W45';
-    else if (mNum === 12) w = 'W49';
-    else if (mNum === 9) w = 'W38';
-    else if (mNum === 8) w = 'W35';
-    else if (mNum === 7) w = 'W30';
-    else if (mNum === 6) w = 'W26';
-    setInternalSelectedWeek(w);
+    const weeksInMonth = getWeeksForMonth(m);
+    if (!weeksInMonth.includes(selectedWeek)) {
+      const repWeek = weeksInMonth[0] || 'W41';
+      setInternalSelectedWeek(repWeek);
+      onWeekChange?.(repWeek);
+    }
     onMonthChange?.(m);
-    onWeekChange?.(w);
   };
 
   const handleSelectTimeFrame = (tf: 'week' | 'month') => {
     setInternalTimeFrame(tf);
     if (tf === 'month') {
-      // Khi chuyển sang xem Tháng, tự động chọn tháng tương ứng với tuần đang được hiển thị
-      const wNum = parseInt(selectedWeek.replace(/\D/g, ''), 10);
-      let m = 'Tháng 10';
-      if (wNum >= 41 && wNum <= 44) m = 'Tháng 10';
-      else if (wNum >= 45 && wNum <= 48) m = 'Tháng 11';
-      else if (wNum >= 49 && wNum <= 52) m = 'Tháng 12';
-      else if (wNum >= 36 && wNum <= 40) m = 'Tháng 9';
-      else if (wNum >= 31 && wNum <= 35) m = 'Tháng 8';
-      else if (wNum >= 27 && wNum <= 30) m = 'Tháng 7';
-      else if (wNum >= 22 && wNum <= 26) m = 'Tháng 6';
+      const m = getMonthForWeek(selectedWeek);
       setInternalSelectedMonth(m);
       onMonthChange?.(m);
     } else {
-      // Khi chuyển sang xem Tuần, tự động chọn tuần đại diện thuộc tháng đó
-      const mNum = parseInt(selectedMonth.replace(/\D/g, ''), 10);
-      let w = 'W41';
-      if (mNum === 10) w = 'W41';
-      else if (mNum === 11) w = 'W45';
-      else if (mNum === 12) w = 'W49';
-      else if (mNum === 9) w = 'W38';
-      else if (mNum === 8) w = 'W35';
-      else if (mNum === 7) w = 'W30';
-      else if (mNum === 6) w = 'W26';
-      setInternalSelectedWeek(w);
-      onWeekChange?.(w);
+      const weeksInMonth = getWeeksForMonth(selectedMonth);
+      if (!weeksInMonth.includes(selectedWeek)) {
+        const repWeek = weeksInMonth[0] || 'W41';
+        setInternalSelectedWeek(repWeek);
+        onWeekChange?.(repWeek);
+      }
     }
     onTimeFrameChange?.(tf);
   };
 
-  // Danh sách các tuần trọng tâm xung quanh tuần hiện tại W41
+  // Danh sách các tuần hiển thị:
+  // - Nếu showAllWeeks = true: hiển thị toàn bộ các tuần (W22 -> W52)
+  // - Mặc định: hiển thị toàn bộ các tuần thuộc tháng đang chọn (không bị giới hạn riêng W39/W40)
   const visibleWeeks = useMemo(() => {
-    const focusWeeks = ['W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'];
-    if (!focusWeeks.includes(selectedWeek) && dynamicAvailableWeeks.includes(selectedWeek)) {
-      return [...focusWeeks, selectedWeek].sort((a, b) => {
+    if (showAllWeeks) {
+      return dynamicAvailableWeeks;
+    }
+    const weeksInSelectedMonth = getWeeksForMonth(selectedMonth);
+    if (!weeksInSelectedMonth.includes(selectedWeek)) {
+      return Array.from(new Set([...weeksInSelectedMonth, selectedWeek])).sort((a, b) => {
         const nA = parseInt(a.replace(/\D/g, ''), 10);
         const nB = parseInt(b.replace(/\D/g, ''), 10);
         return nA - nB;
       });
     }
-    return focusWeeks;
-  }, [selectedWeek, dynamicAvailableWeeks]);
+    return weeksInSelectedMonth;
+  }, [selectedMonth, selectedWeek, dynamicAvailableWeeks, showAllWeeks]);
 
   // Tổng hợp dữ liệu điều hành theo tuần hoặc theo tháng dựa trên data
   const summaryData = useMemo(() => {
@@ -253,8 +234,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
         <div className="w-full flex items-stretch h-10 sm:h-12 border-b border-teal-900 select-none shrink-0">
           <div className="w-10 sm:w-16 bg-[#cc0000] flex-shrink-0" />
           <div className="flex-1 bg-[#006064] flex items-center justify-between px-4 sm:px-6">
-            <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif]">
-              BÁO CÁO SẢN XUẤT DCLR ({activePeriodLabel})
+            <h1 className="text-white font-bold text-base sm:text-lg md:text-xl tracking-wider uppercase font-['Times_New_Roman',Times,serif] flex items-center gap-2.5 flex-wrap">
+              <span>BÁO CÁO SẢN XUẤT DCLR ({activePeriodLabel})</span>
+              {timeFrame === 'month' && (
+                <span className="text-xs font-medium normal-case tracking-normal px-2.5 py-0.5 rounded-full bg-teal-800/90 border border-teal-600/60 text-cyan-200">
+                  (Tổng hợp từ: {getWeeksForMonth(selectedMonth).join(', ')})
+                </span>
+              )}
             </h1>
           </div>
         </div>
@@ -270,11 +256,22 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             1
           </div>
           <div>
-            <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-              <span>BÁO CÁO TỔNG THỂ - EXECUTIVE SUMMARY ({activePeriodLabel})</span>
-            </h2>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
+                BÁO CÁO TỔNG THỂ - EXECUTIVE SUMMARY ({activePeriodLabel})
+              </h2>
+              {timeFrame === 'month' && (
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-cyan-300 border border-cyan-400/30 font-bold flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-300" />
+                  <span>Tổng hợp tháng từ {getWeeksForMonth(selectedMonth).join(', ')}</span>
+                </span>
+              )}
+            </div>
             <p className="text-xs text-slate-300">
-              Bảng số liệu điều hành then chốt: Kế hoạch, Thực hiện, NSLĐ, Tỉ lệ đi làm, Tỉ lệ lỗi và Chi phí hư hỏng theo {timeFrame === 'week' ? 'tuần' : 'tháng'}.
+              {timeFrame === 'week' 
+                ? `Báo cáo số liệu chi tiết tuần ${selectedWeek} (thuộc ${getMonthForWeek(selectedWeek)}): Kế hoạch, Thực hiện, NSLĐ, Đi làm, Tỉ lệ lỗi và Chi phí hư hỏng.`
+                : `Bảng số liệu điều hành tổng hợp ${selectedMonth} từ các tuần (${getWeeksForMonth(selectedMonth).join(', ')}): Kế hoạch, Thực hiện, NSLĐ, Đi làm, Tỉ lệ lỗi và Chi phí hư hỏng.`
+              }
             </p>
           </div>
         </div>
@@ -332,6 +329,19 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               <>
                 <button
                   type="button"
+                  onClick={() => setShowAllWeeks(!showAllWeeks)}
+                  className={`px-2 py-1 rounded-lg text-[11px] font-bold cursor-pointer transition border mr-0.5 select-none ${
+                    showAllWeeks
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-xs'
+                      : 'text-slate-300 hover:text-white bg-slate-700/60 border-slate-600 hover:bg-slate-700'
+                  }`}
+                  title={showAllWeeks ? 'Thu gọn hiển thị theo các tuần của tháng này' : 'Bấm để hiển thị toàn bộ tuần từ W22 đến W52'}
+                >
+                  {showAllWeeks ? 'Thu gọn' : 'Tất cả tuần'}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => {
                     const idx = dynamicAvailableWeeks.indexOf(selectedWeek);
                     if (idx > 0) handleSelectWeek(dynamicAvailableWeeks[idx - 1]);
@@ -342,32 +352,34 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   <ChevronLeft className="w-3.5 h-3.5" />
                 </button>
 
-                {visibleWeeks.map(w => {
-                  const isSelected = selectedWeek === w;
-                  const isCurrent = w === 'W41';
-                  return (
-                    <button
-                      key={`btn-week-${w}`}
-                      onClick={() => handleSelectWeek(w)}
-                      className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
-                        isSelected
-                          ? isCurrent
-                            ? 'bg-emerald-500 text-slate-950 font-black shadow-xs ring-2 ring-emerald-300'
-                            : 'bg-amber-400 text-slate-950 font-black shadow-xs'
-                          : isCurrent
-                            ? 'bg-emerald-800/70 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-700'
-                            : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
-                      }`}
-                    >
-                      <span>{w}</span>
-                      {isCurrent && (
-                        <span className="text-[9px] px-1 py-0.2 bg-emerald-600 text-white rounded font-sans font-extrabold">
-                          Hiện tại
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
+                <div className="flex items-center gap-1 max-w-[420px] overflow-x-auto scrollbar-none py-0.5">
+                  {visibleWeeks.map(w => {
+                    const isSelected = selectedWeek === w;
+                    const isCurrent = w === 'W41';
+                    return (
+                      <button
+                        key={`btn-week-${w}`}
+                        onClick={() => handleSelectWeek(w)}
+                        className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 shrink-0 ${
+                          isSelected
+                            ? isCurrent
+                              ? 'bg-emerald-500 text-slate-950 font-black shadow-xs ring-2 ring-emerald-300'
+                              : 'bg-amber-400 text-slate-950 font-black shadow-xs'
+                            : isCurrent
+                              ? 'bg-emerald-800/70 text-emerald-200 border border-emerald-500/50 hover:bg-emerald-700'
+                              : 'text-slate-300 hover:text-white hover:bg-slate-700/50'
+                        }`}
+                      >
+                        <span>{w}</span>
+                        {isCurrent && (
+                          <span className="text-[9px] px-1 py-0.2 bg-emerald-600 text-white rounded font-sans font-extrabold">
+                            Hiện tại
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
 
                 <button
                   type="button"

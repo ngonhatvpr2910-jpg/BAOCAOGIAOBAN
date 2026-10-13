@@ -164,15 +164,28 @@ export const TabPowerPointPresentation: React.FC = () => {
   const handleMonthChangeSlide = (m: string) => {
     setSelectedMonth(m);
     const mNum = parseInt(m.replace(/\D/g, ''), 10);
-    let w = 'W41';
-    if (mNum === 10) w = 'W41';
-    else if (mNum === 11) w = 'W45';
-    else if (mNum === 12) w = 'W49';
-    else if (mNum === 9) w = 'W38';
-    else if (mNum === 8) w = 'W35';
-    else if (mNum === 7) w = 'W30';
-    else if (mNum === 6) w = 'W26';
-    setSelectedWeek(w);
+    const currWNum = parseInt(selectedWeek.replace(/\D/g, ''), 10);
+    const isWeekInThisMonth = (
+      (mNum === 10 && currWNum >= 41 && currWNum <= 44) ||
+      (mNum === 11 && currWNum >= 45 && currWNum <= 48) ||
+      (mNum === 12 && currWNum >= 49 && currWNum <= 52) ||
+      (mNum === 9 && currWNum >= 36 && currWNum <= 40) ||
+      (mNum === 8 && currWNum >= 31 && currWNum <= 35) ||
+      (mNum === 7 && currWNum >= 27 && currWNum <= 30) ||
+      (mNum === 6 && currWNum >= 22 && currWNum <= 26)
+    );
+    // CHỈ gán tuần đại diện nếu tuần hiện tại không thuộc tháng đang được chọn
+    if (!isWeekInThisMonth) {
+      let w = 'W41';
+      if (mNum === 10) w = 'W41';
+      else if (mNum === 11) w = 'W45';
+      else if (mNum === 12) w = 'W49';
+      else if (mNum === 9) w = 'W38';
+      else if (mNum === 8) w = 'W35';
+      else if (mNum === 7) w = 'W30';
+      else if (mNum === 6) w = 'W26';
+      setSelectedWeek(w);
+    }
   };
   
   const slide0Ref = useRef<HTMLDivElement>(null);
@@ -1126,6 +1139,7 @@ export const TabPowerPointPresentation: React.FC = () => {
             onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
             slide1NSLDData={slideData}
             slide2QualityData={slide2Data}
+            slide3DefectCostData={slide3Data}
           />
         </section>
 
@@ -1678,6 +1692,7 @@ export const TabPowerPointPresentation: React.FC = () => {
               onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
               slide1NSLDData={slideData}
               slide2QualityData={slide2Data}
+              slide3DefectCostData={slide3Data}
             />
           </div>
 

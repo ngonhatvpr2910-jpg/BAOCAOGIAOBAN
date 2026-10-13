@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Slide5ProductionPlanData, Slide5WeekPlan, Slide5PlanRow } from './types';
-import { Calendar, Users, Edit3, ClipboardList, Plus, ChevronLeft, ChevronRight, Sparkles, Clock } from 'lucide-react';
+import { Calendar, Users, Edit3, ClipboardList, Plus, ChevronLeft, ChevronRight, Sparkles, Clock, X } from 'lucide-react';
 import { StorageService } from './storage';
 
 interface Slide5ProductionPlanPresentationProps {
@@ -88,32 +88,63 @@ export const Slide5ProductionPlanPresentation: React.FC<Slide5ProductionPlanPres
     }
   };
 
+  // KHI THÊM TUẦN MỚI THÌ LẤY LẠI TOÀN BỘ DỮ LIỆU TỪ TUẦN CŨ (Ví dụ thêm Tuần 44 thì lấy lại toàn bộ dữ liệu từ Tuần 43)
   const handleAddNextWeek = () => {
+    const sourceWeek = (activeWeekIndex >= 0 && activeWeekIndex < weeksList.length)
+      ? weeksList[activeWeekIndex]
+      : weeksList[weeksList.length - 1];
     const lastWeek = weeksList[weeksList.length - 1];
-    let nextNum = 39;
-    if (lastWeek?.weekHeader) {
-      const match = lastWeek.weekHeader.match(/\d+/);
-      if (match) nextNum = parseInt(match[0], 10) + 1;
-    }
 
-    const lastDateStr = lastWeek?.rows?.[lastWeek.rows.length - 1]?.date || '27/09/2026';
+    let prevNum = 43;
+    const match = (sourceWeek?.weekHeader || lastWeek?.weekHeader || '').match(/\d+/);
+    if (match) prevNum = parseInt(match[0], 10);
+    const nextNum = prevNum + 1;
+
+    const lastDateStr = sourceWeek?.rows?.[sourceWeek.rows.length - 1]?.date 
+      || lastWeek?.rows?.[lastWeek.rows.length - 1]?.date 
+      || '18/10/2026';
     const nextDates = generateNextWeekDates(lastDateStr);
 
-    const newRows: Slide5PlanRow[] = nextDates.map(date => ({
-      date,
-      planDCLR: 'BLOCK + DCLR',
-      rmaBg: 'RMA + BG',
-      manpowerLine: lastWeek?.rows?.[0]?.manpowerLine || '54 NS CT + 14TV',
-      manpowerRma: lastWeek?.rows?.[0]?.manpowerRma || '12 NS CT + 2TV',
-    }));
+    const prevWeekLabel1 = `Tuần ${prevNum}`;
+    const prevWeekLabel2 = `tuần ${prevNum}`;
+    const prevWeekLabel3 = `W${prevNum}`;
+    const prevWeekLabel4 = `w${prevNum}`;
+    const nextWeekLabel = `Tuần ${nextNum}`;
+
+    const replaceWeekRef = (text?: string): string => {
+      if (!text) return '';
+      return text
+        .replaceAll(prevWeekLabel1, nextWeekLabel)
+        .replaceAll(prevWeekLabel2, `tuần ${nextNum}`)
+        .replaceAll(prevWeekLabel3, `W${nextNum}`)
+        .replaceAll(prevWeekLabel4, `w${nextNum}`);
+    };
+
+    // Lấy lại toàn bộ dữ liệu từ tuần cũ: các dòng, kế hoạch DCLR, RMA, nhân sự...
+    const sourceRows = (sourceWeek?.rows && sourceWeek.rows.length > 0)
+      ? sourceWeek.rows
+      : (lastWeek?.rows && lastWeek.rows.length > 0 ? lastWeek.rows : []);
+
+    const newRows: Slide5PlanRow[] = nextDates.map((date, idx) => {
+      const srcRow: Partial<Slide5PlanRow> = sourceRows[idx] || sourceRows[0] || {};
+      return {
+        date,
+        planDCLR: replaceWeekRef(srcRow.planDCLR) || 'CHẠY ĐẠI TRÀ DCLR',
+        rmaBg: replaceWeekRef(srcRow.rmaBg) || 'RMA + BG',
+        manpowerLine: srcRow.manpowerLine || '56 NS CT + 12TV',
+        manpowerRma: srcRow.manpowerRma || '12 NS CT + 2TV',
+      };
+    });
 
     const newWeek: Slide5WeekPlan = {
-      id: `w-${nextNum}`,
+      id: `w-${nextNum}-${Date.now()}`,
       weekHeader: `Tuần ${nextNum}`,
-      weekTitle: `Kế hoạch tuần tiếp theo (${nextDates[0].slice(0, 5)} - ${nextDates[6].slice(0, 5)})`,
+      weekTitle: sourceWeek?.weekTitle
+        ? replaceWeekRef(sourceWeek.weekTitle)
+        : `Kế hoạch sản xuất Tuần ${nextNum} (${nextDates[0].slice(0, 5)} - ${nextDates[6].slice(0, 5)})`,
       dateRange: `${nextDates[0].slice(0, 5)} – ${nextDates[6].slice(0, 5)}`,
-      manpowerSummary: lastWeek?.manpowerSummary || '54/57 NS Line',
-      rmaSummary: lastWeek?.rmaSummary || 'RMA 12/14NS',
+      manpowerSummary: sourceWeek?.manpowerSummary || lastWeek?.manpowerSummary || '56/57 NS Line',
+      rmaSummary: sourceWeek?.rmaSummary || lastWeek?.rmaSummary || 'RMA 12/14NS',
       rows: newRows,
     };
 
@@ -131,6 +162,31 @@ export const Slide5ProductionPlanPresentation: React.FC<Slide5ProductionPlanPres
     };
 
     setActiveWeekIndex(newIndex);
+    StorageService.saveSlide5ProductionPlan(updatedData);
+    if (onUpdateData) {
+      onUpdateData(updatedData);
+    }
+  };
+
+  // CHO PHÉP XÓA KHI BẤM VÀO DẤU X (xóa ngay lập tức không bị alert/confirm chặn)
+  const handleDeleteWeek = (e: React.MouseEvent, idxToDelete: number) => {
+    e.stopPropagation();
+    if (weeksList.length <= 1) return;
+
+    const newWeeks = weeksList.filter((_, i) => i !== idxToDelete);
+    const newIdx = Math.max(0, Math.min(newWeeks.length - 1, activeWeekIndex >= newWeeks.length ? newWeeks.length - 1 : (idxToDelete === activeWeekIndex ? Math.max(0, activeWeekIndex - 1) : (activeWeekIndex > idxToDelete ? activeWeekIndex - 1 : activeWeekIndex))));
+    setActiveWeekIndex(newIdx);
+
+    const updatedData: Slide5ProductionPlanData = {
+      ...data,
+      activeWeekIndex: newIdx,
+      weekHeader: newWeeks[newIdx].weekHeader,
+      manpowerSummary: newWeeks[newIdx].manpowerSummary,
+      rmaSummary: newWeeks[newIdx].rmaSummary,
+      rows: newWeeks[newIdx].rows,
+      weeks: newWeeks,
+    };
+
     StorageService.saveSlide5ProductionPlan(updatedData);
     if (onUpdateData) {
       onUpdateData(updatedData);
@@ -200,28 +256,39 @@ export const Slide5ProductionPlanPresentation: React.FC<Slide5ProductionPlanPres
             {weeksList.map((w, idx) => {
               const isActive = idx === activeWeekIndex;
               return (
-                <button
-                  key={w.id || idx}
-                  type="button"
-                  onClick={() => handleSelectWeek(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-xs font-black ring-2 ring-blue-400 ring-offset-1'
-                      : 'bg-white hover:bg-slate-200/80 text-slate-700 border border-slate-200'
-                  }`}
-                >
-                  <span>{w.weekHeader}</span>
-                  {w.dateRange && (
-                    <span className={`text-[10px] font-normal px-1 py-0.2 rounded ${
-                      isActive ? 'bg-white/20 text-white' : 'text-slate-500 bg-slate-100'
-                    }`}>
-                      {w.dateRange}
-                    </span>
+                <div key={w.id || idx} className="flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectWeek(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isActive
+                        ? 'bg-blue-600 text-white shadow-xs font-black ring-2 ring-blue-400 ring-offset-1'
+                        : 'bg-white hover:bg-slate-200/80 text-slate-700 border border-slate-200'
+                    }`}
+                  >
+                    <span>{w.weekHeader}</span>
+                    {w.dateRange && (
+                      <span className={`text-[10px] font-normal px-1 py-0.2 rounded ${
+                        isActive ? 'bg-white/20 text-white' : 'text-slate-500 bg-slate-100'
+                      }`}>
+                        {w.dateRange}
+                      </span>
+                    )}
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                    )}
+                  </button>
+                  {weeksList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteWeek(e, idx)}
+                      className="ml-0.5 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
+                      title={`Xóa ${w.weekHeader}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                  )}
-                </button>
+                </div>
               );
             })}
 

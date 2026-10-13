@@ -1036,6 +1036,23 @@ export const INITIAL_SLIDE5_PRODUCTION_PLAN: Slide5ProductionPlanData = {
         { date: '17/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
         { date: '18/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
       ]
+    },
+    {
+      id: 'w-43',
+      weekHeader: 'Tuần 43',
+      weekTitle: 'Kế hoạch sản xuất Tuần 43 (19 - 25/10)',
+      dateRange: '19/10 – 25/10/2026',
+      manpowerSummary: '56/57 NS Line',
+      rmaSummary: 'RMA 12/14NS',
+      rows: [
+        { date: '19/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '20/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '21/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '22/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '23/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '24/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+        { date: '25/10/2026', planDCLR: 'CHẠY ĐẠI TRÀ DCLR', rmaBg: 'RMA + BG', manpowerLine: '56 NS CT + 12TV', manpowerRma: '12 NS CT + 2TV' },
+      ]
     }
   ]
 };
@@ -1234,6 +1251,26 @@ export const INITIAL_SLIDE6_TASK_PLAN: Slide6TaskPlanData = {
           detail: 'Duy trì đánh giá 5S hàng tuần, gắn biển nhận diện chuyền kiểu mẫu',
           deadline: '18/10/2026',
           status: 'pending'
+        }
+      ]
+    },
+    {
+      id: 'w-43',
+      weekHeader: 'Tuần 43',
+      weekTitle: 'Kế hoạch công việc trọng điểm Tuần 43',
+      dateRange: '19/10 – 25/10/2026',
+      rows: [
+        {
+          task: 'Kế hoạch trọng điểm Tuần 43',
+          detail: 'Triển khai các hạng mục nâng cao NSLĐ và kiểm soát 4M Tuần 43',
+          deadline: 'Đang lập kế hoạch\nTuần 43',
+          status: 'pending',
+        },
+        {
+          task: 'Kiểm soát tỷ lệ lỗi ngoài BOM & tồn trạm',
+          detail: 'Họp giao ban tổ trưởng line RO và line Bếp Ga hàng ngày',
+          deadline: 'Hàng ngày',
+          status: 'in_progress',
         }
       ]
     }

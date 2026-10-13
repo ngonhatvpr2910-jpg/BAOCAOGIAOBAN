@@ -1044,6 +1044,12 @@ export const StorageService = {
         const parsed: Slide5ProductionPlanData = JSON.parse(data);
         if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length < 2) {
           parsed.weeks = INITIAL_SLIDE5_PRODUCTION_PLAN.weeks;
+        } else {
+          const hasW43 = parsed.weeks.some(w => w.weekHeader.includes('43'));
+          if (!hasW43) {
+            const w43 = INITIAL_SLIDE5_PRODUCTION_PLAN.weeks?.find(w => w.weekHeader.includes('43'));
+            if (w43) parsed.weeks.push(w43);
+          }
         }
         return parsed;
       }
@@ -1075,6 +1081,12 @@ export const StorageService = {
         const parsed: Slide6TaskPlanData = JSON.parse(data);
         if (!parsed.weeks || !Array.isArray(parsed.weeks) || parsed.weeks.length < 2) {
           parsed.weeks = INITIAL_SLIDE6_TASK_PLAN.weeks;
+        } else {
+          const hasW43 = parsed.weeks.some(w => w.weekHeader.includes('43'));
+          if (!hasW43) {
+            const w43 = INITIAL_SLIDE6_TASK_PLAN.weeks?.find(w => w.weekHeader.includes('43'));
+            if (w43) parsed.weeks.push(w43);
+          }
         }
         return parsed;
       }

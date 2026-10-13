@@ -36,6 +36,19 @@ export const HISTORICAL_WEEKS_BASELINE: Record<string, number> = {
  * Tỷ trọng phân bổ lịch sử RO vs BG cho các tuần không có chi tiết từng mã
  */
 export const HISTORICAL_WEEK_BREAKDOWN: Record<string, { ro: number; bg: number; total: number }> = {
+  // Tháng 6 (Tổng 10.8M = 5 tuần × 2.16M)
+  'W22': { ro: 1296000, bg: 864000, total: 2160000 },
+  'W23': { ro: 1296000, bg: 864000, total: 2160000 },
+  'W24': { ro: 1296000, bg: 864000, total: 2160000 },
+  'W25': { ro: 1296000, bg: 864000, total: 2160000 },
+  'W26': { ro: 1296000, bg: 864000, total: 2160000 },
+  // Tháng 7 (Tổng 7.1M = 4 tuần × 1.775M)
+  'W27': { ro: 1065000, bg: 710000, total: 1775000 },
+  'W28': { ro: 1065000, bg: 710000, total: 1775000 },
+  'W29': { ro: 1065000, bg: 710000, total: 1775000 },
+  'W30': { ro: 1065000, bg: 710000, total: 1775000 },
+  // Tháng 8 (Tổng 6.0M)
+  'W31': { ro: 0, bg: 0, total: 0 },
   'W32': { ro: 1320000, bg: 880000, total: 2200000 },
   'W33': { ro: 360000, bg: 240000, total: 600000 },
   'W34': { ro: 1080000, bg: 720000, total: 1800000 },

@@ -226,15 +226,10 @@ export const Slide5EditorModal: React.FC<Slide5EditorModalProps> = ({
   };
 
   const handleDeleteWeek = (idxToDelete: number) => {
-    if (weeks.length <= 1) {
-      alert('Không thể xóa vì phải giữ lại ít nhất 1 tuần kế hoạch!');
-      return;
-    }
-    if (window.confirm(`Bạn có chắc muốn xóa kế hoạch ${weeks[idxToDelete]?.weekHeader}?`)) {
-      const nextWeeks = weeks.filter((_, i) => i !== idxToDelete);
-      setWeeks(nextWeeks);
-      setActiveWeekIdx(Math.max(0, idxToDelete - 1));
-    }
+    if (weeks.length <= 1) return;
+    const nextWeeks = weeks.filter((_, i) => i !== idxToDelete);
+    setWeeks(nextWeeks);
+    setActiveWeekIdx(Math.max(0, idxToDelete >= nextWeeks.length ? nextWeeks.length - 1 : (idxToDelete === activeWeekIdx ? Math.max(0, activeWeekIdx - 1) : activeWeekIdx)));
   };
 
   const handleSaveAll = () => {

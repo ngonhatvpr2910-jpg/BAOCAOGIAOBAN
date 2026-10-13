@@ -86,24 +86,69 @@ export const Slide6EditorModal: React.FC<Slide6EditorModalProps> = ({
 
   const handleAddNewWeek = () => {
     const lastWeek = currentWeeks[currentWeeks.length - 1];
-    let nextNum = 39;
-    if (lastWeek?.weekHeader) {
-      const match = lastWeek.weekHeader.match(/\d+/);
-      if (match) nextNum = parseInt(match[0], 10) + 1;
+    // Tuần nguồn để lấy dữ liệu: ưu tiên tuần hiện tại đang chọn, hoặc tuần cuối cùng
+    const sourceWeek = (activeWeekIdx >= 0 && activeWeekIdx < currentWeeks.length)
+      ? currentWeeks[activeWeekIdx]
+      : lastWeek;
+
+    let prevNum = 43;
+    const match = (sourceWeek?.weekHeader || lastWeek?.weekHeader || '').match(/\d+/);
+    if (match) {
+      prevNum = parseInt(match[0], 10);
     }
+    const nextNum = prevNum + 1;
+
+    const prevWeekLabel1 = `Tuần ${prevNum}`;
+    const prevWeekLabel2 = `tuần ${prevNum}`;
+    const prevWeekLabel3 = `W${prevNum}`;
+    const prevWeekLabel4 = `w${prevNum}`;
+    const nextWeekLabel = `Tuần ${nextNum}`;
+
+    const replaceWeekRef = (text?: string): string => {
+      if (!text) return '';
+      return text
+        .replaceAll(prevWeekLabel1, nextWeekLabel)
+        .replaceAll(prevWeekLabel2, `tuần ${nextNum}`)
+        .replaceAll(prevWeekLabel3, `W${nextNum}`)
+        .replaceAll(prevWeekLabel4, `w${nextNum}`);
+    };
+
+    // LẤY LẠI TOÀN BỘ DỮ LIỆU TỪ TUẦN CŨ
+    const sourceRows = (sourceWeek?.rows && sourceWeek.rows.length > 0)
+      ? sourceWeek.rows
+      : (lastWeek?.rows && lastWeek.rows.length > 0 ? lastWeek.rows : []);
+
+    const newRows: Slide6TaskRow[] = sourceRows.length > 0
+      ? sourceRows.map(row => ({
+          ...row,
+          task: replaceWeekRef(row.task),
+          detail: replaceWeekRef(row.detail),
+          deadline: replaceWeekRef(row.deadline),
+          highlightedText: row.highlightedText ? replaceWeekRef(row.highlightedText) : undefined,
+          status: row.status || 'in_progress',
+        }))
+      : [
+          {
+            task: `Kế hoạch trọng điểm Tuần ${nextNum}`,
+            detail: `Triển khai các hạng mục nâng cao NSLĐ và kiểm soát 4M Tuần ${nextNum}`,
+            deadline: `Đang lập kế hoạch\nTuần ${nextNum}`,
+            status: 'pending',
+          },
+          {
+            task: 'Kiểm soát tỷ lệ lỗi ngoài BOM & tồn trạm',
+            detail: 'Họp giao ban tổ trưởng line RO và line Bếp Ga hàng ngày',
+            deadline: 'Hàng ngày',
+            status: 'in_progress',
+          }
+        ];
 
     const newWeek: Slide6WeekTaskPlan = {
-      id: `w-${nextNum}`,
+      id: `w-${nextNum}-${Date.now()}`,
       weekHeader: `Tuần ${nextNum}`,
-      weekTitle: `Kế hoạch công việc trọng điểm Tuần ${nextNum}`,
-      rows: [
-        {
-          task: `Kế hoạch công việc Tuần ${nextNum}`,
-          detail: 'Triển khai công việc trọng điểm tuần tiếp theo',
-          deadline: `Tuần ${nextNum}`,
-          status: 'pending',
-        }
-      ]
+      weekTitle: sourceWeek?.weekTitle
+        ? replaceWeekRef(sourceWeek.weekTitle)
+        : `Kế hoạch công việc trọng điểm Tuần ${nextNum}`,
+      rows: newRows,
     };
 
     const newWeeks = [...currentWeeks, newWeek];
@@ -148,23 +193,18 @@ export const Slide6EditorModal: React.FC<Slide6EditorModalProps> = ({
   };
 
   const handleDeleteWeek = (idx: number) => {
-    if (currentWeeks.length <= 1) {
-      alert('Phải giữ lại ít nhất 1 tuần kế hoạch!');
-      return;
-    }
-    if (window.confirm(`Bạn có chắc muốn xóa ${currentWeeks[idx]?.weekHeader}?`)) {
-      const newWeeks = currentWeeks.filter((_, i) => i !== idx);
-      const newIdx = Math.max(0, activeWeekIdx >= newWeeks.length ? newWeeks.length - 1 : activeWeekIdx);
-      setActiveWeekIdx(newIdx);
-      setFormData({
-        ...formData,
-        activeWeekIndex: newIdx,
-        weeks: newWeeks,
-        weekHeader: newWeeks[newIdx].weekHeader,
-        title: newWeeks[newIdx].weekTitle || formData.title,
-        rows: newWeeks[newIdx].rows,
-      });
-    }
+    if (currentWeeks.length <= 1) return;
+    const newWeeks = currentWeeks.filter((_, i) => i !== idx);
+    const newIdx = Math.max(0, activeWeekIdx >= newWeeks.length ? newWeeks.length - 1 : (idx === activeWeekIdx ? Math.max(0, activeWeekIdx - 1) : activeWeekIdx));
+    setActiveWeekIdx(newIdx);
+    setFormData({
+      ...formData,
+      activeWeekIndex: newIdx,
+      weeks: newWeeks,
+      weekHeader: newWeeks[newIdx].weekHeader,
+      title: newWeeks[newIdx].weekTitle || formData.title,
+      rows: newWeeks[newIdx].rows,
+    });
   };
 
   const handleSaveAll = () => {

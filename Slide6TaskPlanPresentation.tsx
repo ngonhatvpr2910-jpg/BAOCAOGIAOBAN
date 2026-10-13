@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClipboardList, Edit3, CheckCircle2, AlertCircle, Clock, Timer, ChevronRight, Plus, Calendar, ChevronLeft, Sparkles } from 'lucide-react';
+import { ClipboardList, Edit3, CheckCircle2, AlertCircle, Clock, Timer, ChevronRight, Plus, Calendar, ChevronLeft, Sparkles, X } from 'lucide-react';
 import { Slide6TaskPlanData, Slide6WeekTaskPlan, Slide6TaskRow } from './types';
 import { StorageService } from './storage';
 
@@ -61,31 +61,69 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
 
   const handleAddNextWeek = () => {
     const lastWeek = weeksList[weeksList.length - 1];
-    let nextNum = 39;
-    if (lastWeek?.weekHeader) {
-      const match = lastWeek.weekHeader.match(/\d+/);
-      if (match) nextNum = parseInt(match[0], 10) + 1;
-    }
+    // Tuần nguồn để lấy dữ liệu: ưu tiên tuần hiện tại đang xem, hoặc tuần cuối cùng
+    const sourceWeek = (activeWeekIndex >= 0 && activeWeekIndex < weeksList.length)
+      ? weeksList[activeWeekIndex]
+      : lastWeek;
 
-    const newRows: Slide6TaskRow[] = [
-      {
-        task: `Kế hoạch trọng điểm Tuần ${nextNum}`,
-        detail: `Triển khai các hạng mục nâng cao NSLĐ và kiểm soát 4M Tuần ${nextNum}`,
-        deadline: `Đang lập kế hoạch\nTuần ${nextNum}`,
-        status: 'pending',
-      },
-      {
-        task: 'Kiểm soát tỷ lệ lỗi ngoài BOM & tồn trạm',
-        detail: 'Họp giao ban tổ trưởng line RO và line Bếp Ga hàng ngày',
-        deadline: 'Hàng ngày',
-        status: 'in_progress',
-      }
-    ];
+    // Xác định số tuần cũ (ví dụ 43) và số tuần mới (ví dụ 44)
+    let prevNum = 43;
+    const match = (sourceWeek?.weekHeader || lastWeek?.weekHeader || '').match(/\d+/);
+    if (match) {
+      prevNum = parseInt(match[0], 10);
+    }
+    const nextNum = prevNum + 1;
+
+    const prevWeekLabel1 = `Tuần ${prevNum}`;
+    const prevWeekLabel2 = `tuần ${prevNum}`;
+    const prevWeekLabel3 = `W${prevNum}`;
+    const prevWeekLabel4 = `w${prevNum}`;
+    const nextWeekLabel = `Tuần ${nextNum}`;
+
+    const replaceWeekRef = (text?: string): string => {
+      if (!text) return '';
+      return text
+        .replaceAll(prevWeekLabel1, nextWeekLabel)
+        .replaceAll(prevWeekLabel2, `tuần ${nextNum}`)
+        .replaceAll(prevWeekLabel3, `W${nextNum}`)
+        .replaceAll(prevWeekLabel4, `w${nextNum}`);
+    };
+
+    // LẤY LẠI TOÀN BỘ DỮ LIỆU TỪ TUẦN CŨ (sao chép đầy đủ các công việc từ tuần cũ sang tuần mới)
+    const sourceRows = (sourceWeek?.rows && sourceWeek.rows.length > 0)
+      ? sourceWeek.rows
+      : (lastWeek?.rows && lastWeek.rows.length > 0 ? lastWeek.rows : []);
+
+    const newRows: Slide6TaskRow[] = sourceRows.length > 0
+      ? sourceRows.map(row => ({
+          ...row,
+          task: replaceWeekRef(row.task),
+          detail: replaceWeekRef(row.detail),
+          deadline: replaceWeekRef(row.deadline),
+          highlightedText: row.highlightedText ? replaceWeekRef(row.highlightedText) : undefined,
+          status: row.status || 'in_progress',
+        }))
+      : [
+          {
+            task: `Kế hoạch trọng điểm Tuần ${nextNum}`,
+            detail: `Triển khai các hạng mục nâng cao NSLĐ và kiểm soát 4M Tuần ${nextNum}`,
+            deadline: `Đang lập kế hoạch\nTuần ${nextNum}`,
+            status: 'pending',
+          },
+          {
+            task: 'Kiểm soát tỷ lệ lỗi ngoài BOM & tồn trạm',
+            detail: 'Họp giao ban tổ trưởng line RO và line Bếp Ga hàng ngày',
+            deadline: 'Hàng ngày',
+            status: 'in_progress',
+          }
+        ];
 
     const newWeek: Slide6WeekTaskPlan = {
-      id: `w-${nextNum}`,
+      id: `w-${nextNum}-${Date.now()}`,
       weekHeader: `Tuần ${nextNum}`,
-      weekTitle: `Kế hoạch công việc trọng điểm Tuần ${nextNum}`,
+      weekTitle: sourceWeek?.weekTitle
+        ? replaceWeekRef(sourceWeek.weekTitle)
+        : `Kế hoạch công việc trọng điểm Tuần ${nextNum}`,
       rows: newRows,
     };
 
@@ -99,6 +137,30 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
       weekHeader: newWeek.weekHeader,
       title: newWeek.weekTitle || data.title,
       rows: newWeek.rows,
+      weeks: newWeeks,
+    };
+
+    StorageService.saveSlide6TaskPlan(updatedData);
+    if (onUpdateData) {
+      onUpdateData(updatedData);
+    }
+  };
+
+  // CHO PHÉP XÓA KHI BẤM VÀO DẤU X (xóa ngay lập tức không bị window.confirm chặn)
+  const handleDeleteWeek = (e: React.MouseEvent, idxToDelete: number) => {
+    e.stopPropagation();
+    if (weeksList.length <= 1) return;
+
+    const newWeeks = weeksList.filter((_, i) => i !== idxToDelete);
+    const newIdx = Math.max(0, Math.min(newWeeks.length - 1, activeWeekIndex >= newWeeks.length ? newWeeks.length - 1 : (idxToDelete === activeWeekIndex ? Math.max(0, activeWeekIndex - 1) : (activeWeekIndex > idxToDelete ? activeWeekIndex - 1 : activeWeekIndex))));
+    setActiveWeekIndex(newIdx);
+
+    const updatedData: Slide6TaskPlanData = {
+      ...data,
+      activeWeekIndex: newIdx,
+      weekHeader: newWeeks[newIdx].weekHeader,
+      title: newWeeks[newIdx].weekTitle || data.title,
+      rows: newWeeks[newIdx].rows,
       weeks: newWeeks,
     };
 
@@ -158,18 +220,29 @@ export const Slide6TaskPlanPresentation: React.FC<Slide6TaskPlanPresentationProp
             {weeksList.map((w, idx) => {
               const isSelected = idx === activeWeekIndex;
               return (
-                <button
-                  key={w.id || idx}
-                  onClick={() => handleSelectWeek(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-[#4472c4] text-white shadow-xs'
-                      : 'text-slate-700 hover:bg-slate-200 hover:text-slate-900'
-                  }`}
-                >
-                  <span>{w.weekHeader}</span>
-                  {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />}
-                </button>
+                <div key={w.id || idx} className="flex items-center">
+                  <button
+                    onClick={() => handleSelectWeek(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                      isSelected
+                        ? 'bg-[#4472c4] text-white shadow-xs'
+                        : 'text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+                    }`}
+                  >
+                    <span>{w.weekHeader}</span>
+                    {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />}
+                  </button>
+                  {weeksList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteWeek(e, idx)}
+                      className="ml-0.5 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
+                      title={`Xóa ${w.weekHeader}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               );
             })}
             <button
