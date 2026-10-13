@@ -206,6 +206,13 @@ export function computeWeeklyAggregations(
       finalRO = HISTORICAL_WEEK_BREAKDOWN[week].ro;
       finalBG = HISTORICAL_WEEK_BREAKDOWN[week].bg;
       finalTotal = HISTORICAL_WEEK_BREAKDOWN[week].total;
+    } else if (!hasItems && baseWeeklyData) {
+      const baseItem = baseWeeklyData.find(w => isSameWeek(w.label, week));
+      if (baseItem && baseItem.value > 0) {
+        finalTotal = baseItem.value * 1000000;
+        finalRO = Math.round(finalTotal * 0.55);
+        finalBG = finalTotal - finalRO;
+      }
     }
 
     weeklyTotals[week] = {
@@ -223,8 +230,13 @@ export function computeWeeklyAggregations(
 
     if (breakdown.total > 0) {
       valInMillions = Number((breakdown.total / 1000000).toFixed(2));
-    } else if (HISTORICAL_WEEKS_BASELINE[weekLabel] !== undefined) {
-      valInMillions = HISTORICAL_WEEKS_BASELINE[weekLabel];
+    } else {
+      const baseItem = baseWeeklyData?.find(w => isSameWeek(w.label, weekLabel));
+      if (baseItem && baseItem.value > 0) {
+        valInMillions = baseItem.value;
+      } else if (HISTORICAL_WEEKS_BASELINE[weekLabel] !== undefined) {
+        valInMillions = HISTORICAL_WEEKS_BASELINE[weekLabel];
+      }
     }
 
     return {
@@ -293,12 +305,7 @@ export function computeMonthlyAggregations(
     let finalRO = 0, finalBG = 0, finalTotal = 0;
 
     // 1. Tự động tính toán tổng hợp từ các tuần thuộc tháng đó (dựa vào dữ liệu tuần)
-    if (month === 'Tháng 10' && sumWeeksTotal === 0 && roItemsCost === 0 && bgItemsCost === 0) {
-      // Tuần 41 chưa cập nhật hư hỏng, đúng ra Tháng 10 là 0
-      finalRO = 0;
-      finalBG = 0;
-      finalTotal = 0;
-    } else if (mNum >= 9 && sumWeeksTotal > 0) {
+    if (mNum >= 9 && sumWeeksTotal > 0) {
       finalRO = sumWeeksRO;
       finalBG = sumWeeksBG;
       finalTotal = sumWeeksTotal;
@@ -307,7 +314,7 @@ export function computeMonthlyAggregations(
       finalBG = bgItemsCost;
       finalTotal = roItemsCost + bgItemsCost;
     } else if (baseMonthlyData && baseMonthlyData.some(m => m.label === month && (Number(m.value) || 0) > 0)) {
-      // 2. Bảo lưu và lưu dữ liệu tháng do người dùng nhập từ modal hoặc storage
+      // 2. Bảo lưu và lưu dữ liệu tháng do người dùng nhập từ modal hoặc storage hoặc upfile
       const customMonth = baseMonthlyData.find(m => m.label === month);
       const val = (Number(customMonth?.value) || 0) * 1000000;
       finalTotal = val;
@@ -336,7 +343,9 @@ export function computeMonthlyAggregations(
   const monthlyData: SlideBarItem[] = sortedMonths.map(month => {
     const b = monthlyTotals[month] || { ro: 0, bg: 0, total: 0 };
     let valInMillions = 0;
-    if (b.total > 0) {
+    if (month === 'Tháng 10' && b.total === 0) {
+      valInMillions = 0;
+    } else if (b.total > 0) {
       valInMillions = Number((b.total / 1000000).toFixed(2));
     } else if (HISTORICAL_MONTH_BASELINE[month] !== undefined) {
       valInMillions = HISTORICAL_MONTH_BASELINE[month];
@@ -345,7 +354,7 @@ export function computeMonthlyAggregations(
       id: `m-${extractWeekNumber(month) || month}`,
       label: month,
       value: valInMillions,
-      displayLabel: valInMillions > 0 ? `${valInMillions}M` : '',
+      displayLabel: valInMillions > 0 ? `${valInMillions}M` : (month === 'Tháng 10' ? '0' : ''),
     };
   });
 

@@ -53,6 +53,12 @@ import {
 interface Slide3DefectCostPresentationProps {
   data: SlideDefectCostData;
   isFullscreen?: boolean;
+  selectedWeek?: string;
+  selectedMonth?: string;
+  timeFrame?: 'both' | 'week' | 'month';
+  onWeekChange?: (week: string) => void;
+  onMonthChange?: (month: string) => void;
+  onTimeFrameChange?: (timeFrame: 'both' | 'week' | 'month') => void;
   onOpenEditor?: () => void;
   onOpenExcelImport?: () => void;
 }
@@ -68,6 +74,12 @@ const formatCurrency = (val: number | undefined): string => {
 export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentationProps> = ({
   data,
   isFullscreen = false,
+  selectedWeek: propSelectedWeek,
+  selectedMonth: propSelectedMonth,
+  timeFrame: propTimeFrame,
+  onWeekChange,
+  onMonthChange,
+  onTimeFrameChange,
   onOpenEditor,
   onOpenExcelImport,
 }) => {
@@ -77,9 +89,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightOnly, setHighlightOnly] = useState(false);
   const [filterByPeriod, setFilterByPeriod] = useState(true);
-  const [selectedWeekLabel, setSelectedWeekLabel] = useState<string>('');
-  const [selectedMonthLabel, setSelectedMonthLabel] = useState<string>('');
-  const [selectionMode, setSelectionMode] = useState<'week' | 'month'>('week');
+  const [selectedWeekLabel, setSelectedWeekLabel] = useState<string>(propSelectedWeek || '');
+  const [selectedMonthLabel, setSelectedMonthLabel] = useState<string>(propSelectedMonth || 'Tháng 10');
+  const [selectionMode, setSelectionMode] = useState<'week' | 'month'>(
+    propTimeFrame === 'month' ? 'month' : 'week'
+  );
 
   const [analysisFilterWeek, setAnalysisFilterWeek] = useState<string>('all');
   const [isGroupedByCode, setIsGroupedByCode] = useState<boolean>(true);
@@ -112,8 +126,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
       }
       return true;
     }).map(m => {
-      if (m.label === 'Tháng 10' && (!m.value || m.value <= 0)) {
-        return { ...m, value: 0, displayLabel: '0' };
+      if (m.label === 'Tháng 10') {
+        const hasOctItems = [...(data.itemsRO || []), ...(data.itemsBG || [])].some(i => ['W41', 'W42', 'W43', 'W44'].includes(i.week || ''));
+        if (!hasOctItems) {
+          return { ...m, value: 0, displayLabel: '0' };
+        }
       }
       return m;
     });
@@ -225,6 +242,28 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
       }
     }
   };
+
+  // Đồng bộ với các props điều khiển từ bên ngoài (PowerPoint slides hoặc Executive Summary)
+  useEffect(() => {
+    if (propSelectedWeek && propSelectedWeek !== selectedWeekLabel) {
+      scrollToWeek(propSelectedWeek);
+    }
+  }, [propSelectedWeek]);
+
+  useEffect(() => {
+    if (propSelectedMonth && propSelectedMonth !== selectedMonthLabel) {
+      setSelectedMonthLabel(propSelectedMonth);
+    }
+  }, [propSelectedMonth]);
+
+  useEffect(() => {
+    if (propTimeFrame) {
+      if (propTimeFrame === 'week' || propTimeFrame === 'month') {
+        setSelectionMode(propTimeFrame);
+        setActiveChartTab(propTimeFrame);
+      }
+    }
+  }, [propTimeFrame]);
 
   // Sliced weekly data for chart: Hỗ trợ xem 4 tuần, 6 tuần, hoặc Xem tất cả tuần cùng lúc
   const slicedWeeklyData = useMemo(() => {
@@ -905,6 +944,8 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                           if (data && data.label) {
                             setSelectedWeekLabel(data.label);
                             setSelectionMode('week');
+                            onWeekChange?.(data.label);
+                            onTimeFrameChange?.('week');
                           }
                         }}
                         className="cursor-pointer"
@@ -991,7 +1032,11 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                           return (
                             <button
                               key={w.id || w.label}
-                              onClick={() => scrollToWeek(w.label)}
+                              onClick={() => {
+                                scrollToWeek(w.label);
+                                onWeekChange?.(w.label);
+                                onTimeFrameChange?.('week');
+                              }}
                               className={`px-1 py-0.5 rounded transition-all cursor-pointer ${
                                 isSelected
                                   ? 'bg-rose-700 text-white font-black scale-105 shadow-2xs'
@@ -1102,6 +1147,8 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                           if (data && data.label) {
                             setSelectedMonthLabel(data.label);
                             setSelectionMode('month');
+                            onMonthChange?.(data.label);
+                            onTimeFrameChange?.('month');
                           }
                         }}
                         className="cursor-pointer"

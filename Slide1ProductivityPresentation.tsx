@@ -20,19 +20,35 @@ interface Slide1ProductivityPresentationProps {
   isFullscreen?: boolean;
   onOpenEditor?: () => void;
   onAddWeek?: (weekLabel: string) => void;
+  selectedWeekNum?: number;
+  onSelectWeekNum?: (weekNum: number) => void;
+  selectedMonth?: string;
+  onSelectMonth?: (month: string) => void;
+  timeFrame?: 'week' | 'month';
+  onTimeFrameChange?: (timeFrame: 'week' | 'month') => void;
 }
 
 export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresentationProps> = ({
   data,
   isFullscreen = false,
   onOpenEditor,
-  onAddWeek
+  onAddWeek,
+  selectedWeekNum: propSelectedWeekNum,
+  onSelectWeekNum,
+  selectedMonth: propSelectedMonth,
+  onSelectMonth,
+  timeFrame: propTimeFrame,
+  onTimeFrameChange,
 }) => {
   // Operational current week of the manufacturing plant is Tuần 41 (W41 - Tháng 10/2026)
   const OPERATIONAL_CURRENT_WEEK = 41;
 
   // Selected week for highlighting and focus (defaults to Tuần 41)
-  const [selectedWeekNum, setSelectedWeekNum] = useState<number>(OPERATIONAL_CURRENT_WEEK);
+  const [internalSelectedWeekNum, setInternalSelectedWeekNum] = useState<number>(
+    propSelectedWeekNum || OPERATIONAL_CURRENT_WEEK
+  );
+
+  const selectedWeekNum = propSelectedWeekNum !== undefined ? propSelectedWeekNum : internalSelectedWeekNum;
 
   // Slider state for Week view - configurable window
   const [weeksToShow, setWeeksToShow] = useState<number>(4);
@@ -62,6 +78,21 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
     return idx41 >= 0 ? idx41 : 0;
   }, [data.pxlr.weekly, selectedWeekNum, currentWeekNum]);
 
+  // Synchronize internal state when propSelectedWeekNum changes
+  useEffect(() => {
+    if (propSelectedWeekNum !== undefined) {
+      setInternalSelectedWeekNum(propSelectedWeekNum);
+      const idx = data.pxlr.weekly.findIndex(w => {
+        const match = w.label.match(/\d+/);
+        return match && parseInt(match[0], 10) === propSelectedWeekNum;
+      });
+      if (idx >= 0) {
+        const target = Math.max(0, Math.min(maxStartIndex, idx - weeksToShow + 1));
+        setWeekStartIndex(target);
+      }
+    }
+  }, [propSelectedWeekNum, data.pxlr.weekly, maxStartIndex, weeksToShow]);
+
   // Initialize slider to position Tuần 41 prominently in view
   useEffect(() => {
     if (totalWeeks > weeksToShow) {
@@ -79,7 +110,9 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
 
   // Jump to a specific week by number and highlight it
   const jumpToWeekNum = (targetWeekNum: number) => {
-    setSelectedWeekNum(targetWeekNum);
+    setInternalSelectedWeekNum(targetWeekNum);
+    onSelectWeekNum?.(targetWeekNum);
+    onTimeFrameChange?.('week');
     const idx = data.pxlr.weekly.findIndex(w => {
       const match = w.label.match(/\d+/);
       return match && parseInt(match[0], 10) === targetWeekNum;
@@ -241,18 +274,30 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
               {/* Month Presets */}
               <button
                 type="button"
-                onClick={() => jumpToWeekNum(37)}
-                className="px-2 py-1 rounded-lg text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+                onClick={() => {
+                  onSelectMonth?.('Tháng 9');
+                  onTimeFrameChange?.('month');
+                  jumpToWeekNum(37);
+                }}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  (propTimeFrame === 'month' && propSelectedMonth === 'Tháng 9') || (propTimeFrame !== 'month' && selectedWeekNum >= 36 && selectedWeekNum <= 40)
+                    ? 'bg-teal-700 text-white shadow-2xs font-black'
+                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
               >
                 Tháng 9 (W36-40)
               </button>
 
               <button
                 type="button"
-                onClick={() => jumpToWeekNum(41)}
+                onClick={() => {
+                  onSelectMonth?.('Tháng 10');
+                  onTimeFrameChange?.('month');
+                  jumpToWeekNum(41);
+                }}
                 className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  selectedWeekNum >= 41 && selectedWeekNum <= 44
-                    ? 'bg-teal-50 border border-teal-500 text-teal-800'
+                  (propTimeFrame === 'month' && propSelectedMonth === 'Tháng 10') || (propTimeFrame !== 'month' && selectedWeekNum >= 41 && selectedWeekNum <= 44)
+                    ? 'bg-teal-700 text-white shadow-2xs font-black'
                     : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                 }`}
               >
@@ -261,16 +306,32 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
 
               <button
                 type="button"
-                onClick={() => jumpToWeekNum(44)}
-                className="px-2 py-1 rounded-lg text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+                onClick={() => {
+                  onSelectMonth?.('Tháng 11');
+                  onTimeFrameChange?.('month');
+                  jumpToWeekNum(44);
+                }}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  (propTimeFrame === 'month' && propSelectedMonth === 'Tháng 11') || (propTimeFrame !== 'month' && selectedWeekNum >= 44 && selectedWeekNum <= 48)
+                    ? 'bg-teal-700 text-white shadow-2xs font-black'
+                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
               >
                 Tháng 11 (W44-48)
               </button>
 
               <button
                 type="button"
-                onClick={() => jumpToWeekNum(48)}
-                className="px-2 py-1 rounded-lg text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-all cursor-pointer"
+                onClick={() => {
+                  onSelectMonth?.('Tháng 12');
+                  onTimeFrameChange?.('month');
+                  jumpToWeekNum(48);
+                }}
+                className={`px-2 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  (propTimeFrame === 'month' && propSelectedMonth === 'Tháng 12') || (propTimeFrame !== 'month' && selectedWeekNum >= 48)
+                    ? 'bg-teal-700 text-white shadow-2xs font-black'
+                    : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
               >
                 Tháng 12 (W48-52)
               </button>
@@ -413,7 +474,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 items={slicedWeekly(data.pxlr.weekly)}
                 height={160}
                 maxScaleCustom={140}
-                highlightWeek={`W${selectedWeekNum}`}
+                highlightWeek={propTimeFrame === 'week' ? `W${selectedWeekNum}` : undefined}
+                onSelectBar={(label) => {
+                  const match = label.match(/\d+/);
+                  if (match) jumpToWeekNum(parseInt(match[0], 10));
+                }}
               />
             </div>
 
@@ -425,6 +490,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 legendLabel="NSLĐ (%)"
                 height={175}
                 maxScaleCustom={155}
+                highlightWeek={propTimeFrame === 'month' ? propSelectedMonth : undefined}
+                onSelectBar={(label) => {
+                  onSelectMonth?.(label);
+                  onTimeFrameChange?.('month');
+                }}
               />
             </div>
 
@@ -446,7 +516,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 items={slicedWeekly(data.ro.weekly)}
                 height={160}
                 maxScaleCustom={140}
-                highlightWeek={`W${selectedWeekNum}`}
+                highlightWeek={propTimeFrame === 'week' ? `W${selectedWeekNum}` : undefined}
+                onSelectBar={(label) => {
+                  const match = label.match(/\d+/);
+                  if (match) jumpToWeekNum(parseInt(match[0], 10));
+                }}
               />
             </div>
 
@@ -456,6 +530,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 items={filterActiveMonthly(data.ro.monthly)}
                 height={175}
                 maxScaleCustom={155}
+                highlightWeek={propTimeFrame === 'month' ? propSelectedMonth : undefined}
+                onSelectBar={(label) => {
+                  onSelectMonth?.(label);
+                  onTimeFrameChange?.('month');
+                }}
               />
             </div>
 
@@ -477,7 +556,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 items={slicedWeekly(data.bg.weekly)}
                 height={160}
                 maxScaleCustom={140}
-                highlightWeek={`W${selectedWeekNum}`}
+                highlightWeek={propTimeFrame === 'week' ? `W${selectedWeekNum}` : undefined}
+                onSelectBar={(label) => {
+                  const match = label.match(/\d+/);
+                  if (match) jumpToWeekNum(parseInt(match[0], 10));
+                }}
               />
             </div>
 
@@ -487,6 +570,11 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 items={filterActiveMonthly(data.bg.monthly)}
                 height={175}
                 maxScaleCustom={155}
+                highlightWeek={propTimeFrame === 'month' ? propSelectedMonth : undefined}
+                onSelectBar={(label) => {
+                  onSelectMonth?.(label);
+                  onTimeFrameChange?.('month');
+                }}
               />
             </div>
 

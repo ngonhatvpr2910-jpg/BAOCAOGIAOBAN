@@ -2,7 +2,135 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { ExcelMatrixBGColumn, ExcelMatrixROColumn } from './types';
 import { StorageService } from './storage';
-import { recalculateBGMatrix, recalculateROMatrix } from './matrixGenerator';
+import { recalculateBGMatrix, recalculateROMatrix, MONTH_NAMES_SHORT } from './matrixGenerator';
+
+function findExcelColIndex(col: { label: string; dateStr?: string }, header: string[], monthIndex0: number): number {
+  const targetLabel = col.label.toLowerCase().trim();
+  // 1. Direct match
+  const directIdx = header.findIndex(h => h.toLowerCase().trim() === targetLabel);
+  if (directIdx !== -1) return directIdx;
+
+  // 2. Day number match
+  const dayMatch = col.label.match(/^(\d{1,2})/);
+  if (dayMatch) {
+    const dayNum = parseInt(dayMatch[1], 10);
+    const dayStr = String(dayNum).padStart(2, '0');
+    const mShort = (MONTH_NAMES_SHORT[monthIndex0] || '').toLowerCase();
+    
+    const dayIdx = header.findIndex(h => {
+      const cleanH = h.toLowerCase().trim();
+      if (cleanH === String(dayNum) || cleanH === dayStr) return true;
+      if (cleanH.startsWith(`${dayStr}-`) || cleanH.startsWith(`${dayNum}-`)) return true;
+      if (cleanH.includes(`${dayStr}/${monthIndex0 + 1}`) || cleanH.includes(`${dayNum}/${monthIndex0 + 1}`)) return true;
+      if (cleanH.includes(mShort) && (cleanH.includes(dayStr) || cleanH.includes(String(dayNum)))) return true;
+      return false;
+    });
+    if (dayIdx !== -1) return dayIdx;
+  }
+  return -1;
+}
+
+function parseBGSheet(rows: any[][], year: number, monthIndex0: number): ExcelMatrixBGColumn[] {
+  // Lấy ma trận hiện tại để giữ cấu trúc (W1, W2, mốc chốt...)
+  const matrix = StorageService.getMatrixBGForMonth(year, monthIndex0);
+  const header = (rows[0] || []).map(h => {
+    if (h instanceof Date) {
+      const d = h.getDate();
+      const m = MONTH_NAMES_SHORT[h.getMonth()] || h.toLocaleString('en-us', { month: 'short' });
+      return `${String(d).padStart(2, '0')}-${m}`;
+    }
+    return String(h || '').trim();
+  });
+  
+  // Mapping labels to data
+  const dataMap: Record<string, any> = {};
+  rows.slice(1).forEach(row => {
+    const metricLabel = String(row[0] || '').trim();
+    const key = bgMetricToKey(metricLabel);
+    if (key) {
+      dataMap[key] = row;
+    }
+  });
+  
+  const updatedMatrix = matrix.map(col => {
+    // Chỉ cập nhật các cột ngày (không phải cột tổng)
+    if (col.isWeeklyTotal || col.isMonthlyTotal) return col;
+    
+    // Tìm index của cột trong header Excel
+    const excelColIdx = findExcelColIndex(col, header, monthIndex0);
+    if (excelColIdx === -1) return col;
+    
+    const updated = { ...col };
+    Object.keys(dataMap).forEach(key => {
+      const rawCell = dataMap[key][excelColIdx];
+      if (rawCell !== undefined && rawCell !== null && String(rawCell).trim() !== '') {
+        let val = parseFloat(String(rawCell).replace(/,/g, ''));
+        if (!isNaN(val)) {
+          // Convert ratios to percentages for specific fields
+          if (key === 'nsldTheoNgay' || key === 'tiLeHoanThanhKhsx') {
+            if (val > 0 && val < 5) val = val * 100;
+          } else if (key === 'tiLeDiLam') {
+            if (val > 0 && val < 2) val = val * 100;
+          }
+          (updated as any)[key] = Number(val.toFixed(1));
+        }
+      }
+    });
+    
+    return updated;
+  });
+
+  return recalculateBGMatrix(updatedMatrix);
+}
+
+function parseROSheet(rows: any[][], year: number, monthIndex0: number): ExcelMatrixROColumn[] {
+  const matrix = StorageService.getMatrixROForMonth(year, monthIndex0);
+  const header = (rows[0] || []).map(h => {
+    if (h instanceof Date) {
+      const d = h.getDate();
+      const m = MONTH_NAMES_SHORT[h.getMonth()] || h.toLocaleString('en-us', { month: 'short' });
+      return `${String(d).padStart(2, '0')}-${m}`;
+    }
+    return String(h || '').trim();
+  });
+  
+  const dataMap: Record<string, any> = {};
+  rows.slice(1).forEach(row => {
+    const metricLabel = String(row[0] || '').trim();
+    const key = roMetricToKey(metricLabel);
+    if (key) {
+      dataMap[key] = row;
+    }
+  });
+  
+  const updatedMatrix = matrix.map(col => {
+    if (col.isWeeklyTotal || col.isMonthlyTotal) return col;
+    
+    const excelColIdx = findExcelColIndex(col, header, monthIndex0);
+    if (excelColIdx === -1) return col;
+    
+    const updated = { ...col };
+    Object.keys(dataMap).forEach(key => {
+      const rawCell = dataMap[key][excelColIdx];
+      if (rawCell !== undefined && rawCell !== null && String(rawCell).trim() !== '') {
+        let val = parseFloat(String(rawCell).replace(/,/g, ''));
+        if (!isNaN(val)) {
+          // Convert ratios to percentages for specific fields
+          if (key === 'nsldTheoNgay' || key === 'tiLeHoanThanhKhsx') {
+            if (val > 0 && val < 5) val = val * 100;
+          } else if (key === 'tiLeDiLam') {
+            if (val > 0 && val < 2) val = val * 100;
+          }
+          (updated as any)[key] = Number(val.toFixed(1));
+        }
+      }
+    });
+    
+    return updated;
+  });
+
+  return recalculateROMatrix(updatedMatrix);
+}
 
 export interface ProductionExcelImportResult {
   success: boolean;
@@ -261,101 +389,6 @@ export async function importProductionExcel(file: File, year: number, monthIndex
   });
 }
 
-function parseBGSheet(rows: any[][], year: number, monthIndex0: number): ExcelMatrixBGColumn[] {
-  // Lấy ma trận hiện tại để giữ cấu trúc (W1, W2, mốc chốt...)
-  const matrix = StorageService.getMatrixBGForMonth(year, monthIndex0);
-  const header = rows[0].map(h => {
-    if (h instanceof Date) {
-      const d = h.getDate();
-      const m = h.toLocaleString('en-us', { month: 'short' });
-      return `${String(d).padStart(2, '0')}-${m}`;
-    }
-    return String(h || '').trim();
-  });
-  
-  // Mapping labels to data
-  const dataMap: Record<string, any> = {};
-  rows.slice(1).forEach(row => {
-    const metricLabel = String(row[0] || '').trim();
-    const key = bgMetricToKey(metricLabel);
-    if (key) {
-      dataMap[key] = row;
-    }
-  });
-  
-  const updatedMatrix = matrix.map(col => {
-    // Chỉ cập nhật các cột ngày (không phải cột tổng)
-    if (col.isWeeklyTotal || col.isMonthlyTotal) return col;
-    
-    // Tìm index của cột trong header Excel
-    const excelColIdx = header.indexOf(col.label);
-    if (excelColIdx === -1) return col;
-    
-    const updated = { ...col };
-    Object.keys(dataMap).forEach(key => {
-      let val = parseFloat(dataMap[key][excelColIdx]) || 0;
-      
-      // Convert ratios to percentages for specific fields
-      if (key === 'nsldTheoNgay' || key === 'tiLeHoanThanhKhsx') {
-        if (val > 0 && val < 5) val = val * 100;
-      } else if (key === 'tiLeDiLam') {
-        if (val > 0 && val < 2) val = val * 100;
-      }
-      
-      (updated as any)[key] = Number(val.toFixed(1));
-    });
-    
-    return updated;
-  });
-
-  return recalculateBGMatrix(updatedMatrix);
-}
-
-function parseROSheet(rows: any[][], year: number, monthIndex0: number): ExcelMatrixROColumn[] {
-  const matrix = StorageService.getMatrixROForMonth(year, monthIndex0);
-  const header = rows[0].map(h => {
-    if (h instanceof Date) {
-      const d = h.getDate();
-      const m = h.toLocaleString('en-us', { month: 'short' });
-      return `${String(d).padStart(2, '0')}-${m}`;
-    }
-    return String(h || '').trim();
-  });
-  
-  const dataMap: Record<string, any> = {};
-  rows.slice(1).forEach(row => {
-    const metricLabel = String(row[0] || '').trim();
-    const key = roMetricToKey(metricLabel);
-    if (key) {
-      dataMap[key] = row;
-    }
-  });
-  
-  const updatedMatrix = matrix.map(col => {
-    if (col.isWeeklyTotal || col.isMonthlyTotal) return col;
-    
-    const excelColIdx = header.indexOf(col.label);
-    if (excelColIdx === -1) return col;
-    
-    const updated = { ...col };
-    Object.keys(dataMap).forEach(key => {
-      let val = parseFloat(dataMap[key][excelColIdx]) || 0;
-      
-      // Convert ratios to percentages for specific fields
-      if (key === 'nsldTheoNgay' || key === 'tiLeHoanThanhKhsx') {
-        if (val > 0 && val < 5) val = val * 100;
-      } else if (key === 'tiLeDiLam') {
-        if (val > 0 && val < 2) val = val * 100;
-      }
-      
-      (updated as any)[key] = Number(val.toFixed(1));
-    });
-    
-    return updated;
-  });
-
-  return recalculateROMatrix(updatedMatrix);
-}
 
 function bgMetricToKey(label: string): string | null {
   const l = label.toUpperCase();

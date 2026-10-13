@@ -261,15 +261,6 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
-        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, or legacy W40 in Month 10, re-initialize with fresh synchronized data
-        const allZeroProduction = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongLineChinh) || 0) === 0 && (Number(c.congChinhThuc) || 0) === 0);
-        const hasLegacyW40InMonth10 = year === 2026 && monthIndex0 === 9 && parsed.some(c => c.label.includes('W40'));
-        if ((allZeroProduction || hasLegacyW40InMonth10) && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
-          const fresh = generateMonthROMatrix(year, monthIndex0);
-          localStorage.setItem(key, JSON.stringify(fresh));
-          return fresh;
-        }
-
         // Only run legacy isOff migration for historical June (monthIndex0 === 5)
         if (monthIndex0 === 5 && year === 2026) {
           parsed = parsed.map((col) => {
@@ -351,14 +342,7 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
-        // Auto-heal: If an older cache had zeroed-out production for Month 9 or 10, or legacy W40 in Month 10, re-initialize with fresh synchronized data
-        const allZeroBG = parsed.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal).every(c => (Number(c.sanLuongBepGa) || 0) === 0 && (Number(c.congBepGa) || 0) === 0);
-        const hasLegacyW40InMonth10 = year === 2026 && monthIndex0 === 9 && parsed.some(c => c.label.includes('W40'));
-        if ((allZeroBG || hasLegacyW40InMonth10) && year === 2026 && (monthIndex0 === 8 || monthIndex0 === 9)) {
-          const fresh = generateMonthBGMatrix(year, monthIndex0);
-          localStorage.setItem(key, JSON.stringify(fresh));
-          return fresh;
-        }
+
 
         parsed = parsed.map((col) => {
           let updatedCol = { ...col };
@@ -542,12 +526,13 @@ export const StorageService = {
         parsed.ro.monthly = ensureAllMonths(parsed.ro.monthly, INITIAL_SLIDE1_NSLD.ro.monthly, 'ro');
         parsed.bg.monthly = ensureAllMonths(parsed.bg.monthly, INITIAL_SLIDE1_NSLD.bg.monthly, 'bg');
 
-        // Fix historical and standard operational values (W32-W44)
+        // Fix historical baseline values (W32-W35)
         const fixValues = (items: any[], prefix: string, values: Record<string, number>) => {
           return items.map(w => {
             const weekId = w.id.replace(`${prefix}-`, '');
             if (values[weekId] !== undefined) {
-              if (w.value === undefined || w.value === null || w.value <= 0 || ['w32', 'w33', 'w34', 'w35', 'w40', 'w41'].includes(weekId)) {
+              // Chỉ ép buộc giá trị mặc định cho các tuần lịch sử W32-W35 hoặc khi chưa có giá trị
+              if (w.value === undefined || w.value === null || w.value <= 0 || ['w32', 'w33', 'w34', 'w35'].includes(weekId)) {
                 return { ...w, value: values[weekId] };
               }
             }
@@ -557,44 +542,85 @@ export const StorageService = {
 
         const standardValuesPXLR: Record<string, number> = {
           'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8,
-          'w36': 114.2, 'w37': 113.8, 'w38': 117.7, 'w39': 117.7,
-          'w40': 119.2, 'w41': 121.5, 'w42': 120.0, 'w43': 122.0, 'w44': 121.0
+          'w36': 116.9, 'w37': 117.1, 'w38': 109.8, 'w39': 113.5,
+          'w40': 119.2, 'w41': 122.6, 'w42': 119.7, 'w43': 119.7, 'w44': 119.6
         };
         const standardValuesRO: Record<string, number> = {
           'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2,
-          'w36': 114.7, 'w37': 115.5, 'w38': 118.2, 'w39': 117.0,
-          'w40': 119.5, 'w41': 121.8, 'w42': 120.5, 'w43': 122.5, 'w44': 121.5
+          'w36': 118.8, 'w37': 119.0, 'w38': 112.0, 'w39': 115.5,
+          'w40': 119.5, 'w41': 123.4, 'w42': 120.9, 'w43': 120.9, 'w44': 120.9
         };
         const standardValuesBG: Record<string, number> = {
           'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7,
-          'w36': 111.4, 'w37': 104.7, 'w38': 115.0, 'w39': 112.2,
-          'w40': 114.5, 'w41': 116.0, 'w42': 115.0, 'w43': 117.0, 'w44': 116.0
+          'w36': 102.7, 'w37': 103.4, 'w38': 93.1, 'w39': 97.0,
+          'w40': 114.5, 'w41': 115.8, 'w42': 112.4, 'w43': 112.2, 'w44': 112.0
         };
 
         parsed.pxlr.weekly = fixValues(parsed.pxlr.weekly, 'pxlr', standardValuesPXLR);
         parsed.ro.weekly = fixValues(parsed.ro.weekly, 'ro', standardValuesRO);
         parsed.bg.weekly = fixValues(parsed.bg.weekly, 'bg', standardValuesBG);
 
+        // Tự động đồng bộ số liệu tuần thực tế từ ma trận của Tab Nhóm RO và Tab Nhóm BG
+        try {
+          const matrixMonths = [8, 9]; // Tháng 9 (W36-W40) và Tháng 10 (W41-W44)
+          matrixMonths.forEach(mIdx => {
+            const mRO = this.getMatrixROForMonth(2026, mIdx) || [];
+            const mBG = this.getMatrixBGForMonth(2026, mIdx) || [];
+            const weeklyRO = mRO.filter(c => c.isWeeklyTotal);
+            weeklyRO.forEach(cRO => {
+              const m = cRO.label.match(/W(\d+)/i);
+              if (m) {
+                const wNum = parseInt(m[1], 10);
+                const weekId = `w${wNum}`;
+                const cBG = mBG.find(b => b.isWeeklyTotal && b.label.includes(`W${wNum}`));
+                const valRO = Number(cRO.nsldTheoNgay) || 0;
+                const valBG = cBG ? (Number(cBG.nsldTheoNgay) || 0) : 0;
+                const slRO = Number(cRO.sanLuongLineChinh) || 0;
+                const dmRO = Number(cRO.dinhMucSlTheoNs) || 0;
+                const slBG = cBG ? ((Number(cBG.sanLuongBepGa) || 0) + (Number(cBG.sanLuongRma) || 0)) : 0;
+                const dmBG = cBG ? (Number(cBG.dinhMucSlTheoNs) || 0) : 0;
+                const totalSL = slRO + slBG;
+                const totalDM = dmRO + dmBG;
+                const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 
+                               (valRO > 0 && valBG > 0 ? Number(((valRO * 0.865) + (valBG * 0.135)).toFixed(1)) : (valRO || valBG));
+
+                if (valRO > 0) {
+                  const it = parsed.ro.weekly.find((i: any) => i.id === `ro-${weekId}` || i.label === `Tuần ${wNum}`);
+                  if (it) it.value = valRO;
+                }
+                if (valBG > 0) {
+                  const it = parsed.bg.weekly.find((i: any) => i.id === `bg-${weekId}` || i.label === `Tuần ${wNum}`);
+                  if (it) it.value = valBG;
+                }
+                if (valPXLR > 0) {
+                  const it = parsed.pxlr.weekly.find((i: any) => i.id === `pxlr-${weekId}` || i.id === `pxlr-w${wNum}` || i.label === `Tuần ${wNum}`);
+                  if (it) it.value = valPXLR;
+                }
+              }
+            });
+          });
+        } catch {}
+
         parsed.pxlr.monthly = parsed.pxlr.monthly.map(m => {
           if (m.id === 'pxlr-m06') return { ...m, value: 131.6 };
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
-          if (m.id === 'pxlr-m09' || m.label === 'Tháng 9') return { ...m, value: 130.0 };
-          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8)) return { ...m, value: 118.7 };
+          if (m.id === 'pxlr-m09' || m.label === 'Tháng 9') return { ...m, value: 116.8 };
+          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8 || m.value === 118.7 || m.value === 121.1)) return { ...m, value: 120.6 };
           return m;
         });
         parsed.ro.monthly = parsed.ro.monthly.map(m => {
           if (m.id === 'ro-m07') return { ...m, value: 117.1 };
           if (m.id === 'ro-m08') return { ...m, value: 111.2 };
-          if (m.id === 'ro-m09' && (!m.value || m.value <= 0)) return { ...m, value: 117.0 };
-          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 120.0)) return { ...m, value: 121.1 };
+          if ((m.id === 'ro-m09' || m.label === 'Tháng 9') && (!m.value || m.value <= 0 || m.value === 117.0)) return { ...m, value: 118.9 };
+          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 120.0 || m.value === 121.1 || m.value === 121.5)) return { ...m, value: 121.7 };
           return m;
         });
         parsed.bg.monthly = parsed.bg.monthly.map(m => {
           if (m.id === 'bg-m07') return { ...m, value: 87.1 };
           if (m.id === 'bg-m08') return { ...m, value: 108.2 };
-          if (m.id === 'bg-m09' && (!m.value || m.value <= 0)) return { ...m, value: 97.0 };
-          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 108.5)) return { ...m, value: 102.7 };
+          if ((m.id === 'bg-m09' || m.label === 'Tháng 9') && (!m.value || m.value <= 0 || m.value === 97.0 || m.value === 103.5)) return { ...m, value: 92.6 };
+          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 108.5 || m.value === 102.7 || m.value === 113.1)) return { ...m, value: 113.3 };
           return m;
         });
 
@@ -814,15 +840,12 @@ export const StorageService = {
               preservedMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
             }
           });
-          // Bổ sung Tháng 10 nếu chưa có (mặc định 0 VNĐ vì tuần 41 chưa cập nhật hư hỏng)
+          // Bổ sung Tháng 10 nếu chưa có (mặc định 0 VNĐ vì tuần 41 chưa cập nhật hư hỏng, đúng ra là 0)
           const m10 = preservedMonthly.find((m: any) => m.label === 'Tháng 10');
-          if (m10) {
-            if (m10.value === 4.5 || !m10.value) {
-              m10.value = 0;
-              m10.displayLabel = '';
-            }
-          } else {
-            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '' });
+          const hasOctDamagedItems = (parsed.itemsRO || []).some((i: any) => ['W41', 'W42', 'W43', 'W44'].includes(i.week)) ||
+                                     (parsed.itemsBG || []).some((i: any) => ['W41', 'W42', 'W43', 'W44'].includes(i.week));
+          if (!m10) {
+            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '0' });
           }
           preservedMonthly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
 
@@ -837,10 +860,6 @@ export const StorageService = {
             if (w.label === 'W39' && (!w.value || w.value <= 0 || w.value === 2.0)) {
               return { ...w, value: 1.0, displayLabel: '1.0M' };
             }
-            if (['W41', 'W42', 'W43', 'W44'].includes(w.label)) {
-              // Tuần 41-44: Chưa cập nhật hư hỏng, đúng ra là 0
-              return { ...w, value: 0, displayLabel: '' };
-            }
             return w;
           });
           // Nếu thiếu tuần lịch sử W32-W35 thì tự động bổ sung
@@ -849,7 +868,7 @@ export const StorageService = {
               preservedWeekly.push({ id: `w-${wLabel.toLowerCase()}`, label: wLabel, value: wVal, displayLabel: `${wVal}M` });
             }
           });
-          // Đảm bảo W38, W39, W40, W41, W42, W43, W44 (Tháng 10 bắt đầu từ W41) có mặt trong danh sách tuần
+          // Đảm bảo W38, W39, W40, W41, W42, W43, W44 có mặt trong danh sách tuần
           if (!preservedWeekly.some((w: any) => w.label === 'W38')) {
             preservedWeekly.push({ id: 'w-38', label: 'W38', value: 1.8, displayLabel: '1.8M' });
           }
@@ -867,26 +886,12 @@ export const StorageService = {
             const existing = preservedWeekly.find((w: any) => w.label === wReq.label);
             if (!existing) {
               preservedWeekly.push(wReq);
-            } else if (['W41', 'W42', 'W43', 'W44'].includes(wReq.label)) {
-              existing.value = 0;
-              existing.displayLabel = '';
             }
           });
           preservedWeekly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
 
           let finalItemsRO = Array.isArray(parsed.itemsRO) && parsed.itemsRO.length > 0 ? [...parsed.itemsRO] : [...INITIAL_SLIDE3_DEFECT_COST.itemsRO];
           let finalItemsBG = Array.isArray(parsed.itemsBG) && parsed.itemsBG.length > 0 ? [...parsed.itemsBG] : [...INITIAL_SLIDE3_DEFECT_COST.itemsBG];
-
-          // Tuần 39 (W39): Line RO KHÔNG CÓ LỖI (0 lỗi, 0 linh kiện hỏng, 0 VNĐ)
-          // Xóa bỏ hoàn toàn mọi item lỗi W39 của Line RO nếu từng bị lưu vào localStorage
-          finalItemsRO = finalItemsRO.filter((item: any) => {
-            const isW39 = (item.week || '').toUpperCase().includes('39');
-            const isRO = item.category === 'RO' || (item.id && String(item.id).startsWith('ro-dam-'));
-            const isFakeW39Id = ['ro-dam-9', 'ro-dam-10', 'ro-dam-11', 'ro-dam-12'].includes(item.id);
-            const isFakeW41Id = ['ro-dam-13', 'ro-dam-14', 'ro-dam-15', 'ro-dam-16', 'ro-dam-17'].includes(item.id);
-            const isW41 = (item.week || '').toUpperCase().includes('41');
-            return !(isFakeW39Id || (isW39 && isRO) || isFakeW41Id || (isW41 && isRO));
-          });
 
           // Đảm bảo vật tư W40 của Line RO có mặt đầy đủ
           const hasW40RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('40'));
@@ -921,7 +926,7 @@ export const StorageService = {
               }
               if (m.label === 'Tháng 10') {
                 // Hiện tại tuần 41 chưa cập nhật hư hỏng, đúng ra Tháng 10 là 0
-                return { ...m, value: 0, displayLabel: '' };
+                return { ...m, value: 0, displayLabel: '0' };
               }
               if (m.label === 'Tháng 11' || m.label === 'Tháng 12') {
                 // Tháng 11 và 12 chưa đến thì không có số liệu (value 0, không nhãn)

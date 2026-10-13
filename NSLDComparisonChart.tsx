@@ -23,6 +23,7 @@ import {
   Maximize2,
   ZoomIn,
 } from 'lucide-react';
+import { StorageService } from './storage';
 import {
   RAW_DAILY_NSLD_DATA,
   RAW_WEEKLY_NSLD_DATA,
@@ -76,15 +77,40 @@ export const NSLDComparisonChart: React.FC = () => {
         week: d.week,
       }));
     } else if (granularity === 'weekly') {
-      return RAW_WEEKLY_NSLD_DATA.map((w) => ({
-        key: w.week,
-        label: w.week,
-        fullDate: w.label,
-        nsld: w.nsld,
-        nsldBG: w.nsldBG,
-        nsldRO: w.nsldRO,
-        daysCount: w.daysCount,
-      }));
+      // Đọc số liệu thực tế từ ma trận Tháng 9 & Tháng 10 nếu có
+      const matrixMapRO: Record<string, number> = {};
+      const matrixMapBG: Record<string, number> = {};
+      try {
+        [8, 9].forEach(mIdx => {
+          const mRO = StorageService.getMatrixROForMonth(2026, mIdx) || [];
+          const mBG = StorageService.getMatrixBGForMonth(2026, mIdx) || [];
+          mRO.filter(c => c.isWeeklyTotal).forEach(c => {
+            const m = c.label.match(/W(\d+)/i);
+            if (m && Number(c.nsldTheoNgay) > 0) matrixMapRO[`W${m[1]}`] = Number(c.nsldTheoNgay);
+          });
+          mBG.filter(c => c.isWeeklyTotal).forEach(c => {
+            const m = c.label.match(/W(\d+)/i);
+            if (m && Number(c.nsldTheoNgay) > 0) matrixMapBG[`W${m[1]}`] = Number(c.nsldTheoNgay);
+          });
+        });
+      } catch {}
+
+      return RAW_WEEKLY_NSLD_DATA.map((w) => {
+        const liveRO = matrixMapRO[w.week] ?? w.nsldRO;
+        const liveBG = matrixMapBG[w.week] ?? w.nsldBG;
+        const livePXLR = matrixMapRO[w.week] && matrixMapBG[w.week]
+          ? Number(((liveRO * 0.865) + (liveBG * 0.135)).toFixed(1))
+          : w.nsld;
+        return {
+          key: w.week,
+          label: w.week,
+          fullDate: w.label,
+          nsld: livePXLR,
+          nsldBG: liveBG,
+          nsldRO: liveRO,
+          daysCount: w.daysCount,
+        };
+      });
     } else {
       if (monthlyHistory && monthlyHistory.length > 0) {
         return monthlyHistory.map((m) => {

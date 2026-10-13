@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useProduction } from './ProductionContext';
 import { StorageService } from './storage';
 import { 
@@ -28,20 +28,54 @@ import {
   Zap
 } from 'lucide-react';
 
+import { Slide1NSLDData, Slide2QualityData } from './types';
+
 interface ExecutiveSummaryCardProps {
   isSlideView?: boolean;
   isFullscreen?: boolean;
+  selectedWeek?: string;
+  selectedMonth?: string;
+  timeFrame?: 'week' | 'month';
+  onWeekChange?: (week: string) => void;
+  onMonthChange?: (month: string) => void;
+  onTimeFrameChange?: (timeFrame: 'week' | 'month') => void;
+  slide1NSLDData?: Slide1NSLDData;
+  slide2QualityData?: Slide2QualityData;
 }
 
 export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   isSlideView = false,
-  isFullscreen = false
+  isFullscreen = false,
+  selectedWeek: propSelectedWeek,
+  selectedMonth: propSelectedMonth,
+  timeFrame: propTimeFrame,
+  onWeekChange,
+  onMonthChange,
+  onTimeFrameChange,
+  slide1NSLDData,
+  slide2QualityData,
 }) => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-  const [timeFrame, setTimeFrame] = useState<'week' | 'month'>('week');
+  const [internalTimeFrame, setInternalTimeFrame] = useState<'week' | 'month'>('week');
   const [isNormsEditorOpen, setIsNormsEditorOpen] = useState(false);
+  const [localVersion, setLocalVersion] = useState(0);
+
+  // Tự động lắng nghe các sự kiện cập nhật dữ liệu để đồng bộ tức thời
+  useEffect(() => {
+    const handleUpdate = () => setLocalVersion(v => v + 1);
+    window.addEventListener('production-data-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('production-data-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
 
   const { monthlyHistory, slide2Quality, dataVersion, globalNorms } = useProduction();
+
+  const activeSlide2 = useMemo(() => {
+    return slide2QualityData || slide2Quality || StorageService.getSlide2Quality();
+  }, [slide2QualityData, slide2Quality, localVersion, dataVersion]);
 
   // Đọc dữ liệu chi phí hư hỏng thực tế từ Storage
   const defectCostData = useMemo(() => {
@@ -49,8 +83,8 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   }, [dataVersion]);
 
   const slide1Data = useMemo(() => {
-    return StorageService.getSlide1NSLD();
-  }, [dataVersion]);
+    return slide1NSLDData || StorageService.getSlide1NSLD();
+  }, [dataVersion, slide1NSLDData]);
 
   const dynamicAvailableWeeks = useMemo(() => {
     const fromData = new Set<string>();
@@ -82,8 +116,97 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   }, [slide1Data]);
 
   // Mặc định chọn Tuần 41 (W41) - Tuần hiện tại của hệ thống điều hành sản xuất
-  const [selectedWeek, setSelectedWeek] = useState<string>('W41');
-  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
+  const [internalSelectedWeek, setInternalSelectedWeek] = useState<string>('W41');
+  const [internalSelectedMonth, setInternalSelectedMonth] = useState<string>('Tháng 10');
+
+  // Luôn đồng bộ internal state với props khi được điều khiển từ bên ngoài (PowerPoint slides hoặc tab khác)
+  useEffect(() => {
+    if (propSelectedWeek && propSelectedWeek !== internalSelectedWeek) {
+      setInternalSelectedWeek(propSelectedWeek);
+    }
+  }, [propSelectedWeek, internalSelectedWeek]);
+
+  useEffect(() => {
+    if (propSelectedMonth && propSelectedMonth !== internalSelectedMonth) {
+      setInternalSelectedMonth(propSelectedMonth);
+    }
+  }, [propSelectedMonth, internalSelectedMonth]);
+
+  useEffect(() => {
+    if (propTimeFrame && propTimeFrame !== internalTimeFrame) {
+      setInternalTimeFrame(propTimeFrame);
+    }
+  }, [propTimeFrame, internalTimeFrame]);
+
+  const selectedWeek = propSelectedWeek || internalSelectedWeek;
+  const selectedMonth = propSelectedMonth || internalSelectedMonth;
+  const timeFrame = propTimeFrame || internalTimeFrame;
+
+  const handleSelectWeek = (w: string) => {
+    setInternalSelectedWeek(w);
+    // Tự động suy luận tháng tương ứng từ tuần đã chọn
+    const wNum = parseInt(w.replace(/\D/g, ''), 10);
+    let m = 'Tháng 10';
+    if (wNum >= 41 && wNum <= 44) m = 'Tháng 10';
+    else if (wNum >= 45 && wNum <= 48) m = 'Tháng 11';
+    else if (wNum >= 49 && wNum <= 52) m = 'Tháng 12';
+    else if (wNum >= 36 && wNum <= 40) m = 'Tháng 9';
+    else if (wNum >= 31 && wNum <= 35) m = 'Tháng 8';
+    else if (wNum >= 27 && wNum <= 30) m = 'Tháng 7';
+    else if (wNum >= 22 && wNum <= 26) m = 'Tháng 6';
+    setInternalSelectedMonth(m);
+    onWeekChange?.(w);
+    onMonthChange?.(m);
+  };
+
+  const handleSelectMonth = (m: string) => {
+    setInternalSelectedMonth(m);
+    // Tự động chọn tuần tiêu biểu của tháng đó
+    const mNum = parseInt(m.replace(/\D/g, ''), 10);
+    let w = 'W41';
+    if (mNum === 10) w = 'W41';
+    else if (mNum === 11) w = 'W45';
+    else if (mNum === 12) w = 'W49';
+    else if (mNum === 9) w = 'W38';
+    else if (mNum === 8) w = 'W35';
+    else if (mNum === 7) w = 'W30';
+    else if (mNum === 6) w = 'W26';
+    setInternalSelectedWeek(w);
+    onMonthChange?.(m);
+    onWeekChange?.(w);
+  };
+
+  const handleSelectTimeFrame = (tf: 'week' | 'month') => {
+    setInternalTimeFrame(tf);
+    if (tf === 'month') {
+      // Khi chuyển sang xem Tháng, tự động chọn tháng tương ứng với tuần đang được hiển thị
+      const wNum = parseInt(selectedWeek.replace(/\D/g, ''), 10);
+      let m = 'Tháng 10';
+      if (wNum >= 41 && wNum <= 44) m = 'Tháng 10';
+      else if (wNum >= 45 && wNum <= 48) m = 'Tháng 11';
+      else if (wNum >= 49 && wNum <= 52) m = 'Tháng 12';
+      else if (wNum >= 36 && wNum <= 40) m = 'Tháng 9';
+      else if (wNum >= 31 && wNum <= 35) m = 'Tháng 8';
+      else if (wNum >= 27 && wNum <= 30) m = 'Tháng 7';
+      else if (wNum >= 22 && wNum <= 26) m = 'Tháng 6';
+      setInternalSelectedMonth(m);
+      onMonthChange?.(m);
+    } else {
+      // Khi chuyển sang xem Tuần, tự động chọn tuần đại diện thuộc tháng đó
+      const mNum = parseInt(selectedMonth.replace(/\D/g, ''), 10);
+      let w = 'W41';
+      if (mNum === 10) w = 'W41';
+      else if (mNum === 11) w = 'W45';
+      else if (mNum === 12) w = 'W49';
+      else if (mNum === 9) w = 'W38';
+      else if (mNum === 8) w = 'W35';
+      else if (mNum === 7) w = 'W30';
+      else if (mNum === 6) w = 'W26';
+      setInternalSelectedWeek(w);
+      onWeekChange?.(w);
+    }
+    onTimeFrameChange?.(tf);
+  };
 
   // Danh sách các tuần trọng tâm xung quanh tuần hiện tại W41
   const visibleWeeks = useMemo(() => {
@@ -107,10 +230,10 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
       defectCostData, 
       monthlyHistory,
       slide1Data,
-      slide2Quality || StorageService.getSlide2Quality(),
+      activeSlide2,
       globalNorms
     );
-  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, slide2Quality, dataVersion, globalNorms]);
+  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, activeSlide2, localVersion, dataVersion, globalNorms]);
 
   const activePeriodLabel = timeFrame === 'week' ? selectedWeek : selectedMonth;
 
@@ -161,7 +284,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           {/* TimeFrame Toggle (Tuần / Tháng) */}
           <div className="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700 text-xs">
             <button
-              onClick={() => setTimeFrame('week')}
+              onClick={() => handleSelectTimeFrame('week')}
               className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
                 timeFrame === 'week' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
               }`}
@@ -170,7 +293,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               <span>Theo Tuần</span>
             </button>
             <button
-              onClick={() => setTimeFrame('month')}
+              onClick={() => handleSelectTimeFrame('month')}
               className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
                 timeFrame === 'month' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
               }`}
@@ -183,7 +306,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           {/* Quick jump to Current W41 or Current Month */}
           {timeFrame === 'week' && selectedWeek !== 'W41' && (
             <button
-              onClick={() => setSelectedWeek('W41')}
+              onClick={() => handleSelectWeek('W41')}
               className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
               title="Chuyển ngay đến Tuần 41 (Hiện tại)"
             >
@@ -194,7 +317,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
           {timeFrame === 'month' && selectedMonth !== 'Tháng 10' && (
             <button
-              onClick={() => setSelectedMonth('Tháng 10')}
+              onClick={() => handleSelectMonth('Tháng 10')}
               className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
               title="Chuyển ngay đến Tháng 10 (Hiện tại)"
             >
@@ -211,7 +334,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   type="button"
                   onClick={() => {
                     const idx = dynamicAvailableWeeks.indexOf(selectedWeek);
-                    if (idx > 0) setSelectedWeek(dynamicAvailableWeeks[idx - 1]);
+                    if (idx > 0) handleSelectWeek(dynamicAvailableWeeks[idx - 1]);
                   }}
                   className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
                   title="Tuần trước"
@@ -225,7 +348,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   return (
                     <button
                       key={`btn-week-${w}`}
-                      onClick={() => setSelectedWeek(w)}
+                      onClick={() => handleSelectWeek(w)}
                       className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
                         isSelected
                           ? isCurrent
@@ -251,7 +374,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   onClick={() => {
                     const idx = dynamicAvailableWeeks.indexOf(selectedWeek);
                     if (idx >= 0 && idx < dynamicAvailableWeeks.length - 1) {
-                      setSelectedWeek(dynamicAvailableWeeks[idx + 1]);
+                      handleSelectWeek(dynamicAvailableWeeks[idx + 1]);
                     }
                   }}
                   className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
@@ -262,7 +385,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
                 <select
                   value={selectedWeek}
-                  onChange={(e) => setSelectedWeek(e.target.value)}
+                  onChange={(e) => handleSelectWeek(e.target.value)}
                   aria-label="Chọn tuần làm việc"
                   className="bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-700 cursor-pointer outline-hidden ml-0.5"
                 >
@@ -279,7 +402,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   type="button"
                   onClick={() => {
                     const idx = dynamicAvailableMonths.indexOf(selectedMonth);
-                    if (idx > 0) setSelectedMonth(dynamicAvailableMonths[idx - 1]);
+                    if (idx > 0) handleSelectMonth(dynamicAvailableMonths[idx - 1]);
                   }}
                   className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
                   title="Tháng trước"
@@ -293,7 +416,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   return (
                     <button
                       key={`btn-month-${m}`}
-                      onClick={() => setSelectedMonth(m)}
+                      onClick={() => handleSelectMonth(m)}
                       className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer text-xs flex items-center gap-1 ${
                         isSelected
                           ? isCurrent
@@ -319,7 +442,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                   onClick={() => {
                     const idx = dynamicAvailableMonths.indexOf(selectedMonth);
                     if (idx >= 0 && idx < dynamicAvailableMonths.length - 1) {
-                      setSelectedMonth(dynamicAvailableMonths[idx + 1]);
+                      handleSelectMonth(dynamicAvailableMonths[idx + 1]);
                     }
                   }}
                   className="px-1.5 py-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700/50 cursor-pointer transition"
@@ -330,7 +453,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
                 <select
                   value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  onChange={(e) => handleSelectMonth(e.target.value)}
                   aria-label="Chọn tháng làm việc"
                   className="bg-slate-900 text-slate-200 text-xs font-bold px-2 py-1 rounded-lg border border-slate-700 cursor-pointer outline-hidden ml-0.5"
                 >

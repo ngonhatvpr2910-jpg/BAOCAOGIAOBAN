@@ -1,6 +1,7 @@
 import { UnitExecutiveSummary, MonthlyHistoryRecord, SlideDefectCostData, Slide1NSLDData, Slide2QualityData, GlobalNormsConfig } from './types';
 import { StorageService } from './storage';
-import { synchronizeSlide3Data, isSameWeek, isItemInMonth } from './defectCostSyncService';
+import { synchronizeSlide3Data, isSameWeek, isItemInMonth, extractWeekNumber } from './defectCostSyncService';
+import { calculateAbsolutePXLR } from './productivityFormulas';
 
 export interface ExecutiveSummaryPeriodResult {
   periodLabel: string;
@@ -15,6 +16,178 @@ export const AVAILABLE_WEEKS = ['W35', 'W36', 'W37', 'W38', 'W39', 'W40', 'W41',
 export const AVAILABLE_MONTHS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
 
 export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> = {
+  'W35': {
+    periodLabel: 'W35',
+    timeFrame: 'week',
+    actionItemTitle: 'Việc cần làm - Đối sách tuần W35',
+    actionItemContent: 'Tuần cuối Tháng 8: Line RO và Bếp Gas duy trì ổn định sản xuất, kiểm soát chi phí hư hỏng vật tư 1.4M.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-w35',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (W35)',
+        khsxLabel: '7.200 SP',
+        actualOutputLabel: '7.200 SP',
+        actualOutput: 7200,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 100.8,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Đạt mục tiêu 100%',
+        attendanceActual: 97.5,
+        attendanceTarget: 95.0,
+        errorRateActual: 4.80,
+        errorRateQuota: 7.38,
+        defectCostActual: 1400000,
+        defectCostTarget: 7000000,
+        actionItem: 'Toàn xưởng hoàn thành KHSX, NSLĐ 100.8%, chi phí hư hỏng 1.4M đạt mục tiêu.',
+      },
+      {
+        id: 'exec-ro-w35',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (W35)',
+        khsxLabel: '4.200 SP',
+        actualOutputLabel: '4.200 SP',
+        actualOutput: 4200,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX RO',
+        nsldActual: 104.2,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Vượt mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.50,
+        errorRateQuota: 5.20,
+        defectCostActual: 800000,
+        defectCostTarget: 5000000,
+        actionItem: 'Line RO hoàn thành 100% KHSX, NSLĐ 104.2%, kiểm soát tốt linh kiện.',
+      },
+      {
+        id: 'exec-bg-w35',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (W35)',
+        khsxLabel: '3.000 SP',
+        actualOutputLabel: '3.000 SP',
+        actualOutput: 3000,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX BG',
+        nsldActual: 111.7,
+        nsldTarget: 100.0,
+        nsldDeltaNote: '↑ 11.7% so với mục tiêu 100%',
+        attendanceActual: 97.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 8.20,
+        errorRateQuota: 7.74,
+        defectCostActual: 600000,
+        defectCostTarget: 2000000,
+        actionItem: 'Line BG đạt NSLĐ 111.7%, kiểm soát chặt chẽ tỉ lệ lỗi.',
+      },
+      {
+        id: 'exec-rma-w35',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W35)',
+        khsxLabel: '150 SP',
+        actualOutputLabel: '150 SP',
+        actualOutput: 150,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 100.0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Đạt mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh linh kiện ngoài BOM',
+        actionItem: 'Hoàn thành tiến độ trả nợ hàng RMA.',
+      },
+    ],
+  },
+  'W36': {
+    periodLabel: 'W36',
+    timeFrame: 'week',
+    actionItemTitle: 'Việc cần làm - Đối sách tuần W36',
+    actionItemContent: 'Tuần giao thoa cuối tháng 8 và đầu tháng 9: Cả hai chuyền duy trì NSLĐ cao, không phát sinh chi phí hư hỏng (0 đ).',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-w36',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (W36)',
+        khsxLabel: '7.500 SP',
+        actualOutputLabel: '7.500 SP',
+        actualOutput: 7500,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 114.2,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Tiệm cận mục tiêu 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 4.50,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 7000000,
+        actionItem: 'Toàn xưởng đạt NSLĐ 114.2%, chi phí hư hỏng 0 đ (Zero Defect vật tư).',
+      },
+      {
+        id: 'exec-ro-w36',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (W36)',
+        khsxLabel: '4.500 SP',
+        actualOutputLabel: '4.500 SP',
+        actualOutput: 4500,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX RO',
+        nsldActual: 114.7,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Tiệm cận mục tiêu 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.20,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 5000000,
+        actionItem: 'Line RO NSLĐ 114.7%, tỉ lệ lỗi 3.20% dưới định mức, không phát sinh hư hỏng (0 đ).',
+      },
+      {
+        id: 'exec-bg-w36',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (W36)',
+        khsxLabel: '3.000 SP',
+        actualOutputLabel: '3.000 SP',
+        actualOutput: 3000,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX BG',
+        nsldActual: 111.4,
+        nsldTarget: 100.0,
+        nsldDeltaNote: '↑ 11.4% so với mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 7.50,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2000000,
+        actionItem: 'Line BG đạt NSLĐ 111.4%, không phát sinh hư hỏng vật tư (0 đ).',
+      },
+      {
+        id: 'exec-rma-w36',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W36)',
+        khsxLabel: '200 SP',
+        actualOutputLabel: '200 SP',
+        actualOutput: 200,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 100.0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Đạt mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh linh kiện ngoài BOM',
+        actionItem: 'Sản lượng trả RMA đạt 100% kế hoạch.',
+      },
+    ],
+  },
   'W37': {
     periodLabel: 'W37',
     timeFrame: 'week',
@@ -355,7 +528,7 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
     periodLabel: 'W41',
     timeFrame: 'week',
     actionItemTitle: 'Việc cần làm - Đối sách tuần W41 (Hiện tại)',
-    actionItemContent: 'Duy trì đà tăng trưởng NSLĐ toàn xưởng (121.5%), bám sát kế hoạch sản xuất tuần và giữ vững tỷ lệ lỗi thao tác dưới định mức.',
+    actionItemContent: 'Duy trì đà tăng trưởng NSLĐ toàn xưởng (121.5%), bám sát kế hoạch sản xuất tuần và giữ vững tỷ lệ lỗi thao tác dưới định mức. Tuần 41 hiện tại chưa cập nhật hư hỏng (0 đ).',
     isUrgentAction: false,
     units: [
       {
@@ -374,9 +547,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 3.40,
         errorRateQuota: 7.38,
-        defectCostActual: 950000,
+        defectCostActual: 0,
         defectCostTarget: 7000000,
-        actionItem: 'Tuần 41 (Hiện tại): Toàn xưởng tiếp tục duy trì đà tăng trưởng NSLĐ (121.5%), KHSX đạt 104.1%. Hư hỏng vật tư 950.000 VNĐ kiểm soát chặt chẽ dưới mục tiêu 7 triệu. Tỉ lệ đi làm 98.2% ổn định.',
+        actionItem: 'Tuần 41 (Hiện tại): Toàn xưởng tiếp tục duy trì đà tăng trưởng NSLĐ (121.5%), KHSX đạt 104.1%. Chưa phát sinh / chưa cập nhật dữ liệu hư hỏng (0 đ). Tỉ lệ đi làm 98.2% ổn định.',
       },
       {
         id: 'exec-ro-w41',
@@ -394,9 +567,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 2.90,
         errorRateQuota: 5.20,
-        defectCostActual: 460000,
+        defectCostActual: 0,
         defectCostTarget: 5000000,
-        actionItem: 'Line RO tuần 41 vượt kế hoạch (101.6%), NSLĐ 121.8%, tỷ lệ lỗi 2.90% rất thấp so với định mức 5.20%. Hư hỏng vật tư chỉ 460.000 VNĐ.',
+        actionItem: 'Line RO tuần 41 vượt kế hoạch (101.6%), NSLĐ 121.8%, tỷ lệ lỗi 2.90% rất thấp so với định mức 5.20%. Chưa phát sinh hư hỏng (0 đ).',
       },
       {
         id: 'exec-bg-w41',
@@ -414,9 +587,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 5.40,
         errorRateQuota: 7.74,
-        defectCostActual: 490000,
+        defectCostActual: 0,
         defectCostTarget: 2000000,
-        actionItem: 'Line BG tuần 41 đạt sản lượng 4.380 SP (101.4% KHSX), NSLĐ 116.0% vượt xa mục tiêu 100%. Tỷ lệ lỗi 5.40% nằm trong định mức 7.74%. Hư hỏng 490.000 VNĐ.',
+        actionItem: 'Line BG tuần 41 đạt sản lượng 4.380 SP (101.4% KHSX), NSLĐ 116.0% vượt xa mục tiêu 100%. Tỷ lệ lỗi 5.40% nằm trong định mức 7.74%. Chưa phát sinh hư hỏng (0 đ).',
       },
       {
         id: 'exec-rma-w41',
@@ -441,7 +614,7 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
     periodLabel: 'W42',
     timeFrame: 'week',
     actionItemTitle: 'Việc cần làm - Kế hoạch Tuần W42',
-    actionItemContent: 'Chuẩn bị kế hoạch sản xuất tuần tiếp theo, kiểm tra sẵn sàng nguyên vật liệu và bố trí nhân lực chuyền.',
+    actionItemContent: 'Chuẩn bị kế hoạch sản xuất tuần tiếp theo, kiểm tra sẵn sàng nguyên vật liệu và bố trí nhân lực chuyền. Chi phí hư hỏng mục tiêu 0 đ.',
     isUrgentAction: false,
     units: [
       {
@@ -460,9 +633,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 3.50,
         errorRateQuota: 7.38,
-        defectCostActual: 1100000,
+        defectCostActual: 0,
         defectCostTarget: 7000000,
-        actionItem: 'Dự kiến NSLĐ duy trì ở mức 120%, chi phí hư hỏng mục tiêu ≤ 7M.',
+        actionItem: 'Dự kiến NSLĐ duy trì ở mức 120%, chi phí hư hỏng chưa phát sinh (0 đ).',
       },
       {
         id: 'exec-ro-w42',
@@ -480,9 +653,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 3.00,
         errorRateQuota: 5.20,
-        defectCostActual: 510000,
+        defectCostActual: 0,
         defectCostTarget: 5000000,
-        actionItem: 'Duy trì ổn định chất lượng và kiểm soát linh kiện.',
+        actionItem: 'Duy trì ổn định chất lượng và kiểm soát linh kiện (0 đ hư hỏng).',
       },
       {
         id: 'exec-bg-w42',
@@ -500,9 +673,9 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         attendanceTarget: 95.0,
         errorRateActual: 5.20,
         errorRateQuota: 7.74,
-        defectCostActual: 590000,
+        defectCostActual: 0,
         defectCostTarget: 2000000,
-        actionItem: 'Giữ vững nhịp chuyền và kiểm soát linh kiện mâm đốt.',
+        actionItem: 'Giữ vững nhịp chuyền và kiểm soát linh kiện mâm đốt (0 đ hư hỏng).',
       },
       {
         id: 'exec-rma-w42',
@@ -513,13 +686,185 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         actualOutput: 0,
         completionRate: 0,
         completionNote: 'Theo kế hoạch',
-        nsldActual: 100.0,
+        nsldActual: 0,
         nsldTarget: 100.0,
-        nsldDeltaNote: 'Đạt mục tiêu 100%',
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
         attendanceActual: 98.0,
         attendanceTarget: 95.0,
         bomNote: 'Không phát sinh linh kiện ngoài BOM',
         actionItem: 'Bám sát kế hoạch trả hàng RMA.',
+      },
+    ],
+  },
+  'W43': {
+    periodLabel: 'W43',
+    timeFrame: 'week',
+    actionItemTitle: 'Việc cần làm - Kế hoạch Tuần W43',
+    actionItemContent: 'Duy trì năng suất cao các chuyền, kiểm soát tỷ lệ lỗi và linh kiện vật tư.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-w43',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (W43)',
+        khsxLabel: '9.400 SP',
+        actualOutputLabel: '9.620 SP',
+        actualOutput: 9620,
+        completionRate: 102.3,
+        completionNote: 'Đạt 102.3% KHSX',
+        nsldActual: 122.0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Vượt mục tiêu 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.40,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 7000000,
+        actionItem: 'Toàn xưởng NSLĐ 122.0%, kiểm soát tốt chi phí vật tư.',
+      },
+      {
+        id: 'exec-ro-w43',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (W43)',
+        khsxLabel: '5.040 SP',
+        actualOutputLabel: '5.150 SP',
+        actualOutput: 5150,
+        completionRate: 102.2,
+        completionNote: 'Đạt 102.2% KHSX RO',
+        nsldActual: 122.5,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Vượt mục tiêu 120%',
+        attendanceActual: 98.2,
+        attendanceTarget: 95.0,
+        errorRateActual: 2.80,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 5000000,
+        actionItem: 'Line RO NSLĐ 122.5%, chất lượng đảm bảo.',
+      },
+      {
+        id: 'exec-bg-w43',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (W43)',
+        khsxLabel: '4.360 SP',
+        actualOutputLabel: '4.470 SP',
+        actualOutput: 4470,
+        completionRate: 102.5,
+        completionNote: 'Đạt 102.5% KHSX BG',
+        nsldActual: 117.0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: '↑ 17% so với mục tiêu 100%',
+        attendanceActual: 97.8,
+        attendanceTarget: 95.0,
+        errorRateActual: 5.30,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2000000,
+        actionItem: 'Line BG NSLĐ 117.0%, hoàn thành vượt kế hoạch.',
+      },
+      {
+        id: 'exec-rma-w43',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W43)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo kế hoạch',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh linh kiện ngoài BOM',
+        actionItem: 'Theo dõi linh kiện thay thế RMA.',
+      },
+    ],
+  },
+  'W44': {
+    periodLabel: 'W44',
+    timeFrame: 'week',
+    actionItemTitle: 'Việc cần làm - Kế hoạch Tuần W44',
+    actionItemContent: 'Tuần cuối Tháng 10: Tổng kết số liệu sản xuất tháng, chuẩn bị chuyển giao Tháng 11.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-w44',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (W44)',
+        khsxLabel: '9.400 SP',
+        actualOutputLabel: '9.550 SP',
+        actualOutput: 9550,
+        completionRate: 101.6,
+        completionNote: 'Đạt 101.6% KHSX',
+        nsldActual: 121.0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Vượt mục tiêu 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.40,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 7000000,
+        actionItem: 'Toàn xưởng hoàn thành KHSX tháng 10, NSLĐ 121.0%.',
+      },
+      {
+        id: 'exec-ro-w44',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (W44)',
+        khsxLabel: '5.040 SP',
+        actualOutputLabel: '5.110 SP',
+        actualOutput: 5110,
+        completionRate: 101.4,
+        completionNote: 'Đạt 101.4% KHSX RO',
+        nsldActual: 121.5,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Vượt mục tiêu 120%',
+        attendanceActual: 98.2,
+        attendanceTarget: 95.0,
+        errorRateActual: 2.85,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 5000000,
+        actionItem: 'Line RO hoàn thành xuất sắc tháng 10, NSLĐ 121.5%.',
+      },
+      {
+        id: 'exec-bg-w44',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (W44)',
+        khsxLabel: '4.360 SP',
+        actualOutputLabel: '4.440 SP',
+        actualOutput: 4440,
+        completionRate: 101.8,
+        completionNote: 'Đạt 101.8% KHSX BG',
+        nsldActual: 116.0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: '↑ 16% so với mục tiêu 100%',
+        attendanceActual: 97.8,
+        attendanceTarget: 95.0,
+        errorRateActual: 5.35,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2000000,
+        actionItem: 'Line BG hoàn thành KHSX tháng 10, NSLĐ 116.0%.',
+      },
+      {
+        id: 'exec-rma-w44',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W44)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo kế hoạch',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh linh kiện ngoài BOM',
+        actionItem: 'Tổng kết hoàn thành trả hàng bảo hành.',
       },
     ],
   },
@@ -573,6 +918,178 @@ export function formatVNNumber(num: number, maxDecimals: number = 1): string {
 }
 
 export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> = {
+  'Tháng 12': {
+    periodLabel: 'Tháng 12',
+    timeFrame: 'month',
+    actionItemTitle: 'Việc cần làm - Đối sách Tháng 12',
+    actionItemContent: 'Tháng cao điểm hoàn thành kế hoạch năm 2026: Đảm bảo sản lượng 19.500 SP, duy trì NSLĐ ≥ 120%, tỷ lệ đi làm 98%, kiểm soát chất lượng xuất xưởng.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-m12',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (Tháng 12)',
+        khsxLabel: '19.500 SP',
+        actualOutputLabel: '19.500 SP',
+        actualOutput: 19500,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 120.0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Mục tiêu ≥ 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.50,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 6500000,
+        actionItem: 'Tháng 12 Toàn Phân Xưởng: KHSX 19.500 SP, Thực hiện 19.500 SP (100% KHSX). NSLĐ 120.0%, Đi làm 98.0%. Chi phí hư hỏng 0 đ.',
+      },
+      {
+        id: 'exec-ro-m12',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (Tháng 12)',
+        khsxLabel: '16.500 SP',
+        actualOutputLabel: '16.500 SP',
+        actualOutput: 16500,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX RO',
+        nsldActual: 120.0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Đạt mục tiêu 120%',
+        attendanceActual: 98.2,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.00,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 3500000,
+        actionItem: 'Line RO Tháng 12: KHSX 16.500 SP, Thực hiện 16.500 SP (100% KHSX), NSLĐ 120.0%, Đi làm 98.2%, Tỉ lệ lỗi 3.00% dưới định mức. Chưa phát sinh hư hỏng (0 đ).',
+      },
+      {
+        id: 'exec-bg-m12',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (Tháng 12)',
+        khsxLabel: '3.000 SP',
+        actualOutputLabel: '3.000 SP',
+        actualOutput: 3000,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX BG',
+        nsldActual: 100.0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Đạt mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 6.50,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2500000,
+        actionItem: 'Line BG Tháng 12: KHSX 3.000 SP, Thực hiện 3.000 SP (100% KHSX), NSLĐ 100.0%, Tỉ lệ lỗi 6.50% dưới định mức. Hư hỏng 0 đ.',
+      },
+      {
+        id: 'exec-rma-m12',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (Tháng 12)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Không có KHSX RMA',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+        actionItem: 'Tháng 12: Tổ RMA không có sản xuất riêng, dồn lực hỗ trợ đóng gói và xuất hàng.',
+      },
+    ],
+  },
+  'Tháng 11': {
+    periodLabel: 'Tháng 11',
+    timeFrame: 'month',
+    actionItemTitle: 'Việc cần làm - Đối sách Tháng 11',
+    actionItemContent: 'Kế hoạch sản xuất Tháng 11: Đảm bảo KHSX 18.000 SP, NSLĐ toàn xưởng ≥ 120%, kiểm soát chặt chẽ tỷ lệ lỗi thao tác và không để phát sinh chi phí hư hỏng vật tư ngoài định mức.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-m11',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (Tháng 11)',
+        khsxLabel: '18.000 SP',
+        actualOutputLabel: '18.000 SP',
+        actualOutput: 18000,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX',
+        nsldActual: 120.1,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Mục tiêu ≥ 120%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.59,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 6500000,
+        actionItem: 'Tháng 11 Toàn Phân Xưởng: KHSX 18.000 SP, Thực hiện 18.000 SP (100% KHSX). NSLĐ 120.1%, Đi làm 98.0%. Chi phí hư hỏng 0 đ.',
+      },
+      {
+        id: 'exec-ro-m11',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (Tháng 11)',
+        khsxLabel: '15.400 SP',
+        actualOutputLabel: '15.400 SP',
+        actualOutput: 15400,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX RO',
+        nsldActual: 120.0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Đạt mục tiêu 120%',
+        attendanceActual: 98.2,
+        attendanceTarget: 95.0,
+        errorRateActual: 3.00,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 3500000,
+        actionItem: 'Line RO Tháng 11: KHSX 15.400 SP, Thực hiện 15.400 SP (100% KHSX), NSLĐ 120.0%, Đi làm 98.2%, Tỉ lệ lỗi 3.00% dưới định mức 5.20%. Chưa phát sinh hư hỏng (0 đ).',
+      },
+      {
+        id: 'exec-bg-m11',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (Tháng 11)',
+        khsxLabel: '2.600 SP',
+        actualOutputLabel: '2.600 SP',
+        actualOutput: 2600,
+        completionRate: 100.0,
+        completionNote: 'Đạt 100% KHSX BG',
+        nsldActual: 100.6,
+        nsldTarget: 100.0,
+        nsldDeltaNote: '↑ 0.6% so với mục tiêu 100%',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        errorRateActual: 6.70,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2500000,
+        actionItem: 'Line BG Tháng 11: KHSX 2.600 SP, Thực hiện 2.600 SP (100% KHSX), NSLĐ 100.6%, Tỉ lệ lỗi 6.70% dưới định mức 7.74%. Hư hỏng 0 đ.',
+      },
+      {
+        id: 'exec-rma-m11',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (Tháng 11)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Không có KHSX RMA',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+        actionItem: 'Tháng 11: Tổ RMA không có sản xuất riêng, nhân sự điều động hỗ trợ sản xuất các dây chuyền chính.',
+      },
+    ],
+  },
   'Tháng 10': {
     periodLabel: 'Tháng 10',
     timeFrame: 'month',
@@ -999,7 +1516,7 @@ export const BASE_MONTHLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> 
 /**
  * Helper tìm kiếm khớp tuần linh hoạt (hỗ trợ "W39", "Tuần 39", "39", "w39")
  */
-function isMatchingWeekKey(labelA?: string, labelB?: string): boolean {
+export function isMatchingWeekKey(labelA?: string, labelB?: string): boolean {
   if (!labelA || !labelB) return false;
   const numA = (labelA.match(/\d+/) || [])[0];
   const numB = (labelB.match(/\d+/) || [])[0];
@@ -1007,10 +1524,7 @@ function isMatchingWeekKey(labelA?: string, labelB?: string): boolean {
   return labelA.trim().toLowerCase() === labelB.trim().toLowerCase();
 }
 
-/**
- * Helper tìm kiếm khớp tháng linh hoạt (hỗ trợ "Tháng 9", "T9", "09", "9")
- */
-function isMatchingMonthKey(labelA?: string, labelB?: string): boolean {
+export function isMatchingMonthKey(labelA?: string, labelB?: string): boolean {
   if (!labelA || !labelB) return false;
   const numA = (labelA.match(/\d+/) || [])[0];
   const numB = (labelB.match(/\d+/) || [])[0];
@@ -1152,8 +1666,6 @@ export function getExecutiveSummaryData(
     const bgQuota = activeSlide2.bg?.benchmarkDmLoi || 7.74;
 
     if (timeFrame === 'week') {
-      const isW39 = isMatchingWeekKey(periodKey, 'W39');
-
       // Tìm trong weekly items của Slide 2
       const pxlrWeeklyItem = (activeSlide2.weekly?.pxlr?.items || []).find(i => isMatchingWeekKey(i.month, periodKey));
       const roWeeklyItem = (activeSlide2.weekly?.ro?.items || []).find(i => isMatchingWeekKey(i.month, periodKey));
@@ -1166,17 +1678,17 @@ export function getExecutiveSummaryData(
       let avgPXLR_4M = 0;
 
       if (dailyInWeek.length > 0) {
-        // Lấy bản ghi mới nhất hoặc trung bình của tuần
-        const latestDay = dailyInWeek[dailyInWeek.length - 1];
-        avgRO_4M = latestDay.ro.totalLoi4M;
-        avgBG_4M = latestDay.bg.totalLoi4M;
-        avgPXLR_4M = latestDay.pxlr.totalLoi4M;
+        // Tính trung bình các ngày trong tuần
+        avgRO_4M = Number((dailyInWeek.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
+        avgBG_4M = Number((dailyInWeek.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
+        avgPXLR_4M = Number((dailyInWeek.reduce((s, d) => s + (d.pxlr?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
       }
 
       result.units = result.units.map(u => {
         if (u.unitKey === 'RO') {
-          // Đối với W39: Tỉ lệ lỗi RO là 3.40% theo đúng dữ liệu Chất Lượng Slide 2
-          const actualErr = isW39 ? 3.40 : (roWeeklyItem && roWeeklyItem.totalLoi4M > 0 ? roWeeklyItem.totalLoi4M : (avgRO_4M > 0 ? avgRO_4M : u.errorRateActual));
+          const actualErr = (roWeeklyItem && roWeeklyItem.totalLoi4M > 0)
+            ? roWeeklyItem.totalLoi4M
+            : (avgRO_4M > 0 ? avgRO_4M : u.errorRateActual);
           return {
             ...u,
             errorRateActual: Number(actualErr.toFixed(2)),
@@ -1184,7 +1696,9 @@ export function getExecutiveSummaryData(
           };
         }
         if (u.unitKey === 'BG') {
-          const actualErr = bgWeeklyItem && bgWeeklyItem.totalLoi4M > 0 ? bgWeeklyItem.totalLoi4M : (avgBG_4M > 0 ? avgBG_4M : u.errorRateActual);
+          const actualErr = (bgWeeklyItem && bgWeeklyItem.totalLoi4M > 0)
+            ? bgWeeklyItem.totalLoi4M
+            : (avgBG_4M > 0 ? avgBG_4M : u.errorRateActual);
           return {
             ...u,
             errorRateActual: Number(actualErr.toFixed(2)),
@@ -1192,7 +1706,9 @@ export function getExecutiveSummaryData(
           };
         }
         if (u.unitKey === 'PXLR') {
-          const actualErr = pxlrWeeklyItem && pxlrWeeklyItem.totalLoi4M > 0 ? pxlrWeeklyItem.totalLoi4M : (avgPXLR_4M > 0 ? avgPXLR_4M : u.errorRateActual);
+          const actualErr = (pxlrWeeklyItem && pxlrWeeklyItem.totalLoi4M > 0)
+            ? pxlrWeeklyItem.totalLoi4M
+            : (avgPXLR_4M > 0 ? avgPXLR_4M : u.errorRateActual);
           return {
             ...u,
             errorRateActual: Number(actualErr.toFixed(2)),
@@ -1207,17 +1723,35 @@ export function getExecutiveSummaryData(
       const roMonthItem = (activeSlide2.monthly?.ro?.items || []).find(i => isMatchingMonthKey(i.month, periodKey));
       const bgMonthItem = (activeSlide2.monthly?.bg?.items || []).find(i => isMatchingMonthKey(i.month, periodKey));
 
+      // Kiểm tra thêm daily records của tháng đó nếu có
+      const dailyInMonth = (activeSlide2.dailyRecords || []).filter(d => isMatchingMonthKey(d.month, periodKey));
+      let avgRO_Month = 0;
+      let avgBG_Month = 0;
+      let avgPXLR_Month = 0;
+
+      if (dailyInMonth.length > 0) {
+        avgRO_Month = Number((dailyInMonth.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / dailyInMonth.length).toFixed(2));
+        avgBG_Month = Number((dailyInMonth.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / dailyInMonth.length).toFixed(2));
+        avgPXLR_Month = Number((dailyInMonth.reduce((s, d) => s + (d.pxlr?.totalLoi4M || 0), 0) / dailyInMonth.length).toFixed(2));
+      }
+
       result.units = result.units.map(u => {
         if (u.unitKey === 'RO') {
-          const err = roMonthItem && roMonthItem.totalLoi4M > 0 ? roMonthItem.totalLoi4M : u.errorRateActual;
+          const err = (roMonthItem && roMonthItem.totalLoi4M > 0) 
+            ? roMonthItem.totalLoi4M 
+            : (avgRO_Month > 0 ? avgRO_Month : u.errorRateActual);
           return { ...u, errorRateActual: Number(err.toFixed(2)), errorRateQuota: roQuota };
         }
         if (u.unitKey === 'BG') {
-          const err = bgMonthItem && bgMonthItem.totalLoi4M > 0 ? bgMonthItem.totalLoi4M : u.errorRateActual;
+          const err = (bgMonthItem && bgMonthItem.totalLoi4M > 0) 
+            ? bgMonthItem.totalLoi4M 
+            : (avgBG_Month > 0 ? avgBG_Month : u.errorRateActual);
           return { ...u, errorRateActual: Number(err.toFixed(2)), errorRateQuota: bgQuota };
         }
         if (u.unitKey === 'PXLR') {
-          const err = pxlrMonthItem && pxlrMonthItem.totalLoi4M > 0 ? pxlrMonthItem.totalLoi4M : u.errorRateActual;
+          const err = (pxlrMonthItem && pxlrMonthItem.totalLoi4M > 0) 
+            ? pxlrMonthItem.totalLoi4M 
+            : (avgPXLR_Month > 0 ? avgPXLR_Month : u.errorRateActual);
           return { ...u, errorRateActual: Number(err.toFixed(2)), errorRateQuota: pxlrQuota };
         }
         return u;
@@ -1246,6 +1780,9 @@ export function getExecutiveSummaryData(
           if (u.unitKey === 'PXLR') {
             return { ...u, defectCostActual: breakdown.total };
           }
+          if (u.unitKey === 'RMA') {
+            return { ...u, defectCostActual: 0 };
+          }
           return u;
         });
       }
@@ -1265,210 +1802,329 @@ export function getExecutiveSummaryData(
           if (u.unitKey === 'PXLR') {
             return { ...u, defectCostActual: breakdown.total };
           }
+          if (u.unitKey === 'RMA') {
+            return { ...u, defectCostActual: 0 };
+          }
           return u;
         });
       }
     }
   }
 
-  // 4. ĐỒNG BỘ DỮ LIỆU KHSX NGÀY VÀ SẢN LƯỢNG QUY ĐỔI TỪ CÁC DÂY CHUYỀN (DC RO, DC BG, RMA) TOÀN PHÂN XƯỞNG
+  // 4. ĐỒNG BỘ DỮ LIỆU TỪ CÁC TAB NHÓM BG VÀ NHÓM RO (KHSX, THỰC HIỆN, NSLĐ, ĐI LÀM)
   try {
-    let targetMonthIdx = 8; // Default to September (Index 8)
-    if (timeFrame === 'month') {
-      const mMatch = periodKey.match(/\d+/);
-      if (mMatch) targetMonthIdx = parseInt(mMatch[0], 10) - 1;
-    } else {
-      const wMatch = periodKey.match(/\d+/);
-      if (wMatch) {
-        const wNum = parseInt(wMatch[0], 10);
-        // Map weeks to months: W36-40 -> Sep (8), W41-44 -> Oct (9)
-        if (wNum > 40) targetMonthIdx = 9;
-        else targetMonthIdx = 8;
-      }
-    }
+    // Helper tìm cột tuần trong ma trận DCRO và DCBG
+    const findWeekColumnInMatrices = (weekStr: string) => {
+      const wNum = extractWeekNumber(weekStr);
+      let primaryMonthIdx = 8; // Tháng 9 (index 8)
+      if (wNum >= 41 && wNum <= 44) primaryMonthIdx = 9; // Tháng 10 (index 9)
+      else if (wNum >= 45 && wNum <= 48) primaryMonthIdx = 10; // Tháng 11 (index 10)
+      else if (wNum >= 49) primaryMonthIdx = 11; // Tháng 12 (index 11)
+      else if (wNum <= 35) primaryMonthIdx = 7; // Tháng 8 (index 7)
 
-    const matrixRO = StorageService.getMatrixROForMonth(2026, targetMonthIdx) || [];
-    const matrixBG = StorageService.getMatrixBGForMonth(2026, targetMonthIdx) || [];
+      const monthsToCheck = [primaryMonthIdx, 8, 9, 7, 5, 10, 11];
+      for (const mIdx of monthsToCheck) {
+        const matRO = StorageService.getMatrixROForMonth(2026, mIdx) || [];
+        const matBG = StorageService.getMatrixBGForMonth(2026, mIdx) || [];
+        const colRO = matRO.find(c => c.isWeeklyTotal && (c.label === weekStr || c.label.startsWith(weekStr + ' ') || isMatchingWeekKey(c.label, weekStr)));
+        const colBG = matBG.find(c => c.isWeeklyTotal && (c.label === weekStr || c.label.startsWith(weekStr + ' ') || isMatchingWeekKey(c.label, weekStr)));
+        if (colRO || colBG) {
+          return { colRO, colBG };
+        }
+      }
+      return { colRO: undefined, colBG: undefined };
+    };
+
+    // Helper tìm cột tháng (TỔNG THÁNG) trong ma trận DCRO và DCBG
+    const findMonthColumnInMatrices = (monthStr: string) => {
+      const mNum = extractWeekNumber(monthStr); // Tháng 10 -> 10, Tháng 9 -> 9
+      const targetMonthIdx = mNum > 0 ? mNum - 1 : 8;
+      const matRO = StorageService.getMatrixROForMonth(2026, targetMonthIdx) || [];
+      const matBG = StorageService.getMatrixBGForMonth(2026, targetMonthIdx) || [];
+      const colRO = matRO.find(c => c.isMonthlyTotal);
+      const colBG = matBG.find(c => c.isMonthlyTotal);
+      return { colRO, colBG };
+    };
 
     if (timeFrame === 'week') {
-      // Find the weekly total column in the matrix that matches the periodKey (e.g., "W41" or "W39")
-      const weekColRO = matrixRO.find(c => c.isWeeklyTotal && (c.label === periodKey || c.label.startsWith(periodKey + ' ') || isMatchingWeekKey(c.label, periodKey)));
-      const weekColBG = matrixBG.find(c => c.isWeeklyTotal && (c.label === periodKey || c.label.startsWith(periodKey + ' ') || isMatchingWeekKey(c.label, periodKey)));
+      const { colRO: weekColRO, colBG: weekColBG } = findWeekColumnInMatrices(periodKey);
 
-      if (weekColRO || weekColBG) {
-        const dynKhsxRO = weekColRO ? (Number(weekColRO.khsxNgay) || 0) : 0;
-        const dynSlRO = weekColRO ? (Number(weekColRO.sanLuongLineChinh) || 0) : 0;
+      const dynNsldRO = weekColRO && weekColRO.nsldTheoNgay > 0 ? Number(weekColRO.nsldTheoNgay.toFixed(1)) : 0;
+      const dynDiLamRO = weekColRO && weekColRO.tiLeDiLam > 0 ? Number(weekColRO.tiLeDiLam.toFixed(1)) : 0;
+      const dynDmRO = weekColRO ? (Number(weekColRO.dinhMucSlTheoNs) || 0) : 0;
 
-        const dynKhsxBG = weekColBG ? (Number(weekColBG.khsxNgay) || 0) : 0;
-        const dynSlBG = weekColBG ? (Number(weekColBG.sanLuongBepGa) || 0) : 0;
-        const dynSlRMA = weekColBG ? (Number(weekColBG.sanLuongRma) || 0) : 0;
+      const dynNsldBG = weekColBG && weekColBG.nsldTheoNgay > 0 ? Number(weekColBG.nsldTheoNgay.toFixed(1)) : 0;
+      const dynDiLamBG = weekColBG && weekColBG.tiLeDiLam > 0 ? Number(weekColBG.tiLeDiLam.toFixed(1)) : 0;
+      const dynDmBG = weekColBG ? (Number(weekColBG.dinhMucSlTheoNs) || 0) : 0;
 
-        // Chỉ ghi đè nếu dữ liệu nhập thực tế > 0 hoặc chúng ta tìm thấy cột tuần
-        result.units = result.units.map(u => {
-          if (u.unitKey === 'RO' && weekColRO) {
-            const kh = dynKhsxRO > 0 ? dynKhsxRO : parseVNNumber(u.khsxLabel);
-            const sl = dynSlRO > 0 ? dynSlRO : (u.actualOutput || 0);
-            const rate = kh > 0 ? (sl / kh) * 100 : 100;
-            return {
-              ...u,
-              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-              actualOutput: sl,
-              completionRate: Number(rate.toFixed(1)),
-              completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`
-            };
-          }
-          if (u.unitKey === 'BG' && weekColBG) {
-            const kh = dynKhsxBG > 0 ? dynKhsxBG : parseVNNumber(u.khsxLabel);
-            const totalBgSl = dynSlBG + dynSlRMA;
-            const sl = totalBgSl > 0 ? totalBgSl : (u.actualOutput || 0);
-            const rate = kh > 0 ? (sl / kh) * 100 : 100;
-            return {
-              ...u,
-              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-              actualOutput: sl,
-              completionRate: Number(rate.toFixed(1)),
-              completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`
-            };
-          }
-          if (u.unitKey === 'RMA') {
-            const sl = dynSlRMA;
+      // Đọc giá trị NSLĐ từ Slide 2 (Năng Suất) để đảm bảo Hình 1 luôn chạy khớp 100% theo Hình 2
+      const s2ItemRO = (activeSlide1?.ro?.weekly || []).find(i => isMatchingWeekKey(i.label || i.id, periodKey));
+      const s2ItemBG = (activeSlide1?.bg?.weekly || []).find(i => isMatchingWeekKey(i.label || i.id, periodKey));
+      const s2ItemPXLR = (activeSlide1?.pxlr?.weekly || []).find(i => isMatchingWeekKey(i.label || i.id, periodKey));
+
+      result.units = result.units.map(u => {
+        if (u.unitKey === 'RO') {
+          const baseKh = parseVNNumber(u.khsxLabel);
+          const baseSl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+          const kh = baseKh > 0 ? baseKh : 5040;
+          const sl = baseSl > 0 ? baseSl : 5120;
+          const rate = kh > 0 ? (sl / kh) * 100 : 100;
+          const nsld = (s2ItemRO && s2ItemRO.value > 0) ? Number(s2ItemRO.value.toFixed(1)) : (dynNsldRO > 0 ? dynNsldRO : u.nsldActual);
+          const diLam = (dynDiLamRO >= 80) ? dynDiLamRO : u.attendanceActual;
+          const isPass = nsld >= u.nsldTarget;
+          return {
+            ...u,
+            khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+            actualOutput: sl,
+            completionRate: Number(rate.toFixed(1)),
+            completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`,
+            nsldActual: nsld,
+            nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : `Chưa đạt mục tiêu ${u.nsldTarget}%`,
+            attendanceActual: diLam,
+          };
+        }
+        if (u.unitKey === 'BG') {
+          const baseKh = parseVNNumber(u.khsxLabel);
+          const baseSl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+          const kh = baseKh > 0 ? baseKh : 4320;
+          const sl = baseSl > 0 ? baseSl : 4380;
+          const rate = kh > 0 ? (sl / kh) * 100 : 100;
+          const nsld = (s2ItemBG && s2ItemBG.value > 0) ? Number(s2ItemBG.value.toFixed(1)) : (dynNsldBG > 0 ? dynNsldBG : u.nsldActual);
+          const diLam = (dynDiLamBG >= 80) ? dynDiLamBG : u.attendanceActual;
+          const delta = nsld - u.nsldTarget;
+          return {
+            ...u,
+            khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+            actualOutput: sl,
+            completionRate: Number(rate.toFixed(1)),
+            completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`,
+            nsldActual: nsld,
+            nsldDeltaNote: delta >= 0 ? `↑ ${delta.toFixed(1)}% so với mục tiêu ${u.nsldTarget}%` : `↓ ${Math.abs(delta).toFixed(1)}% so với mục tiêu ${u.nsldTarget}%`,
+            attendanceActual: diLam,
+          };
+        }
+        if (u.unitKey === 'RMA') {
+          const isRmaNoPlan = (u.khsxLabel === '0 SP' || u.khsxLabel === '0' || !u.actualOutput || u.actualOutput === 0 || u.actualOutputLabel === '0 SP');
+          if (isRmaNoPlan) {
             return {
               ...u,
               khsxLabel: '0 SP',
-              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-              actualOutput: sl,
+              actualOutputLabel: '0 SP',
+              actualOutput: 0,
               completionRate: 0,
-              completionNote: sl > 0 ? `SL Quy đổi RMA: ${sl.toLocaleString('vi-VN')} SP` : 'Không có KHSX RMA',
-              nsldActual: sl > 0 ? (u.nsldActual || 100) : 0,
-              attendanceActual: sl > 0 ? (u.attendanceActual || 98) : 0,
-              bomNote: sl > 0 ? (u.bomNote || 'Không phát sinh linh kiện ngoài BOM') : 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+              completionNote: 'Không có KHSX RMA',
+              nsldActual: 0,
+              attendanceActual: 0,
+              bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
             };
           }
-          return u;
-        });
+          const sl = u.actualOutput || parseVNNumber(u.actualOutputLabel);
+          return {
+            ...u,
+            actualOutput: sl,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+          };
+        }
+        return u;
+      });
 
-        // Đồng bộ Toàn Phân Xưởng PXLR
-        const roUnit = result.units.find(u => u.unitKey === 'RO');
-        const bgUnit = result.units.find(u => u.unitKey === 'BG');
-        const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
+      // Đồng bộ Toàn Phân Xưởng PXLR từ tổng RO + BG (+ RMA nếu có KHSX)
+      const roUnit = result.units.find(u => u.unitKey === 'RO');
+      const bgUnit = result.units.find(u => u.unitKey === 'BG');
+      const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
 
-        const roKh = parseVNNumber(roUnit?.khsxLabel);
-        const bgKh = parseVNNumber(bgUnit?.khsxLabel);
-        const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
-        
-        const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
-        const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
-        const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
+      const roKh = parseVNNumber(roUnit?.khsxLabel);
+      const bgKh = parseVNNumber(bgUnit?.khsxLabel);
+      const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
+      
+      const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
+      const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
+      const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
 
-        const totalKh = roKh + bgKh + rmaKh;
-        const totalAct = roAct + bgAct + rmaAct;
-        const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
+      const totalKh = roKh + bgKh + (rmaKh > 0 ? rmaKh : 0);
+      const totalAct = roAct + bgAct + (rmaKh > 0 ? rmaAct : 0);
+      const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
 
-        result.units = result.units.map(u => {
-          if (u.unitKey === 'PXLR') {
-            return {
-              ...u,
-              khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
-              actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
-              actualOutput: totalAct,
-              completionRate: totalRate,
-              completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`
-            };
-          }
-          return u;
-        });
-      }
+      // Tính NSLĐ PXLR chuẩn xác từ Slide 2 hoặc tổng sản lượng / tổng định mức
+      const roNsld = roUnit?.nsldActual || 0;
+      const bgNsld = bgUnit?.nsldActual || 0;
+      const pxlrNsld = (s2ItemPXLR && s2ItemPXLR.value > 0)
+        ? Number(s2ItemPXLR.value.toFixed(1))
+        : calculateAbsolutePXLR(roNsld, bgNsld, 'weekly');
+
+      // Tỷ lệ đi làm PXLR chuẩn từ tổng nhân sự hoặc trung bình 2 chuyền
+      const nsRO = weekColRO ? (Number(weekColRO.tongNhanSuLine) || 0) : 0;
+      const nghiRO = weekColRO ? (Number(weekColRO.nhanSuNghi) || 0) : 0;
+      const nsBG = weekColBG ? (Number(weekColBG.tongNhanSuLine) || 0) : 0;
+      const nghiBG = weekColBG ? (Number(weekColBG.nhanSuNghi) || 0) : 0;
+      const totalNs = nsRO + nsBG;
+      const totalNghi = nghiRO + nghiBG;
+      const pxlrDiLam = totalNs > 0
+        ? Number((((totalNs - totalNghi) / totalNs) * 100).toFixed(1))
+        : Number((((roUnit?.attendanceActual || 98.2) + (bgUnit?.attendanceActual || 98.0)) / 2).toFixed(1));
+
+      result.units = result.units.map(u => {
+        if (u.unitKey === 'PXLR') {
+          const isPass = pxlrNsld >= u.nsldTarget;
+          return {
+            ...u,
+            khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
+            actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
+            actualOutput: totalAct,
+            completionRate: totalRate,
+            completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`,
+            nsldActual: pxlrNsld > 0 ? pxlrNsld : u.nsldActual,
+            nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : `Tiệm cận mục tiêu ${u.nsldTarget}%`,
+            attendanceActual: pxlrDiLam,
+          };
+        }
+        return u;
+      });
     } else {
-      // timeFrame === 'month': Đồng bộ từ dòng TỔNG THÁNG trong ma trận nếu có số liệu
-      const monthColRO = matrixRO.find(c => c.isMonthlyTotal);
-      const monthColBG = matrixBG.find(c => c.isMonthlyTotal);
+      // timeFrame === 'month': Đồng bộ từ dòng TỔNG THÁNG trong ma trận DCRO và DCBG
+      const { colRO: monthColRO, colBG: monthColBG } = findMonthColumnInMatrices(periodKey);
 
-      if (monthColRO || monthColBG) {
-        const dynKhsxRO = monthColRO ? (Number(monthColRO.khsxNgay) || 0) : 0;
-        const dynSlRO = monthColRO ? (Number(monthColRO.sanLuongLineChinh) || 0) : 0;
+      const dynNsldRO = monthColRO && monthColRO.nsldTheoNgay > 0 ? Number(monthColRO.nsldTheoNgay.toFixed(1)) : 0;
+      const dynDiLamRO = monthColRO && monthColRO.tiLeDiLam > 0 ? Number(monthColRO.tiLeDiLam.toFixed(1)) : 0;
 
-        const dynKhsxBG = monthColBG ? (Number(monthColBG.khsxNgay) || 0) : 0;
-        const dynSlBG = monthColBG ? (Number(monthColBG.sanLuongBepGa) || 0) : 0;
-        const dynSlRMA = monthColBG ? (Number(monthColBG.sanLuongRma) || 0) : 0;
+      const dynNsldBG = monthColBG && monthColBG.nsldTheoNgay > 0 ? Number(monthColBG.nsldTheoNgay.toFixed(1)) : 0;
+      const dynDiLamBG = monthColBG && monthColBG.tiLeDiLam > 0 ? Number(monthColBG.tiLeDiLam.toFixed(1)) : 0;
 
-        result.units = result.units.map(u => {
-          if (u.unitKey === 'RO' && monthColRO && (dynSlRO > 0 || dynKhsxRO > 0)) {
-            const kh = dynKhsxRO > 0 ? dynKhsxRO : parseVNNumber(u.khsxLabel);
-            const sl = dynSlRO > 0 ? dynSlRO : (u.actualOutput || 0);
-            const rate = kh > 0 ? (sl / kh) * 100 : 100;
+      // Đọc giá trị NSLĐ từ Slide 2 (Năng Suất) theo tháng
+      const s2MonthRO = (activeSlide1?.ro?.monthly || []).find(i => isMatchingMonthKey(i.label || i.id, periodKey));
+      const s2MonthBG = (activeSlide1?.bg?.monthly || []).find(i => isMatchingMonthKey(i.label || i.id, periodKey));
+      const s2MonthPXLR = (activeSlide1?.pxlr?.monthly || []).find(i => isMatchingMonthKey(i.label || i.id, periodKey));
+
+      result.units = result.units.map(u => {
+        if (u.unitKey === 'RO') {
+          const baseKh = parseVNNumber(u.khsxLabel);
+          const baseSl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+          const kh = baseKh > 0 ? baseKh : 15600;
+          const sl = baseSl > 0 ? baseSl : 15280;
+          const rate = kh > 0 ? (sl / kh) * 100 : 100;
+          const nsld = (s2MonthRO && s2MonthRO.value > 0) ? Number(s2MonthRO.value.toFixed(1)) : (dynNsldRO > 0 ? dynNsldRO : u.nsldActual);
+          const diLam = (dynDiLamRO >= 80) ? dynDiLamRO : u.attendanceActual;
+          const isPass = nsld >= u.nsldTarget;
+          return {
+            ...u,
+            khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+            actualOutput: sl,
+            completionRate: Number(rate.toFixed(1)),
+            completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`,
+            nsldActual: nsld,
+            nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : `Mục tiêu ≥ ${u.nsldTarget}%`,
+            attendanceActual: diLam,
+          };
+        }
+        if (u.unitKey === 'BG') {
+          const baseKh = parseVNNumber(u.khsxLabel);
+          const baseSl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+          const kh = baseKh > 0 ? baseKh : 2600;
+          const sl = baseSl > 0 ? baseSl : 2450;
+          const rate = kh > 0 ? (sl / kh) * 100 : 100;
+          const nsld = (s2MonthBG && s2MonthBG.value > 0) ? Number(s2MonthBG.value.toFixed(1)) : (dynNsldBG > 0 ? dynNsldBG : u.nsldActual);
+          const diLam = (dynDiLamBG >= 80) ? dynDiLamBG : u.attendanceActual;
+          const delta = nsld - u.nsldTarget;
+          return {
+            ...u,
+            khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+            actualOutput: sl,
+            completionRate: Number(rate.toFixed(1)),
+            completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`,
+            nsldActual: nsld,
+            nsldDeltaNote: delta >= 0 ? `↑ ${delta.toFixed(1)}% so với mục tiêu ${u.nsldTarget}%` : `Mục tiêu ≥ ${u.nsldTarget}%`,
+            attendanceActual: diLam,
+          };
+        }
+        if (u.unitKey === 'RMA') {
+          const isRmaNoPlan = (u.khsxLabel === '0 SP' || u.khsxLabel === '0' || !u.actualOutput || u.actualOutput === 0 || u.actualOutputLabel === '0 SP');
+          if (isRmaNoPlan) {
             return {
               ...u,
-              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-              actualOutput: sl,
-              completionRate: Number(rate.toFixed(1)),
-              completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`
+              khsxLabel: '0 SP',
+              actualOutputLabel: '0 SP',
+              actualOutput: 0,
+              completionRate: 0,
+              completionNote: 'Không có KHSX RMA',
+              nsldActual: 0,
+              attendanceActual: 0,
+              bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
             };
           }
-          if (u.unitKey === 'BG' && monthColBG && (dynSlBG > 0 || dynKhsxBG > 0)) {
-            const kh = dynKhsxBG > 0 ? dynKhsxBG : parseVNNumber(u.khsxLabel);
-            const totalBgSl = dynSlBG + dynSlRMA;
-            const sl = totalBgSl > 0 ? totalBgSl : (u.actualOutput || 0);
-            const rate = kh > 0 ? (sl / kh) * 100 : 100;
-            return {
-              ...u,
-              khsxLabel: `${kh.toLocaleString('vi-VN')} SP`,
-              actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
-              actualOutput: sl,
-              completionRate: Number(rate.toFixed(1)),
-              completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`
-            };
-          }
-          if (u.unitKey === 'RMA' && monthColBG && dynSlRMA > 0) {
-            return {
-              ...u,
-              actualOutputLabel: `${dynSlRMA.toLocaleString('vi-VN')} SP`,
-              actualOutput: dynSlRMA,
-              completionNote: `SL Quy đổi RMA: ${dynSlRMA.toLocaleString('vi-VN')} SP`
-            };
-          }
-          return u;
-        });
+          const sl = u.actualOutput || parseVNNumber(u.actualOutputLabel);
+          return {
+            ...u,
+            actualOutput: sl,
+            actualOutputLabel: `${sl.toLocaleString('vi-VN')} SP`,
+          };
+        }
+        return u;
+      });
 
-        // Tự động cộng tổng Toàn Phân Xưởng PXLR
-        const roUnit = result.units.find(u => u.unitKey === 'RO');
-        const bgUnit = result.units.find(u => u.unitKey === 'BG');
-        const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
+      // Tự động cộng tổng Toàn Phân Xưởng PXLR theo Tháng
+      const roUnit = result.units.find(u => u.unitKey === 'RO');
+      const bgUnit = result.units.find(u => u.unitKey === 'BG');
+      const rmaUnit = result.units.find(u => u.unitKey === 'RMA');
 
-        const roKh = parseVNNumber(roUnit?.khsxLabel);
-        const bgKh = parseVNNumber(bgUnit?.khsxLabel);
-        const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
-        
-        const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
-        const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
-        const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
+      const roKh = parseVNNumber(roUnit?.khsxLabel);
+      const bgKh = parseVNNumber(bgUnit?.khsxLabel);
+      const rmaKh = parseVNNumber(rmaUnit?.khsxLabel);
+      
+      const roAct = roUnit?.actualOutput ?? parseVNNumber(roUnit?.actualOutputLabel);
+      const bgAct = bgUnit?.actualOutput ?? parseVNNumber(bgUnit?.actualOutputLabel);
+      const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
 
-        const totalKh = roKh + bgKh + rmaKh;
-        const totalAct = roAct + bgAct + rmaAct;
-        const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
+      const totalKh = roKh + bgKh + (rmaKh > 0 ? rmaKh : 0);
+      const totalAct = roAct + bgAct + (rmaKh > 0 ? rmaAct : 0);
+      const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
 
-        result.units = result.units.map(u => {
-          if (u.unitKey === 'PXLR') {
-            return {
-              ...u,
-              khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
-              actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
-              actualOutput: totalAct,
-              completionRate: totalRate,
-              completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`
-            };
-          }
-          return u;
-        });
-      }
+      const roNsld = roUnit?.nsldActual || 0;
+      const bgNsld = bgUnit?.nsldActual || 0;
+      const pxlrNsld = (s2MonthPXLR && s2MonthPXLR.value > 0)
+        ? Number(s2MonthPXLR.value.toFixed(1))
+        : calculateAbsolutePXLR(roNsld, bgNsld, 'monthly');
+
+      const pxlrDiLam = Number((((roUnit?.attendanceActual || 98.2) + (bgUnit?.attendanceActual || 98.0)) / 2).toFixed(1));
+
+      result.units = result.units.map(u => {
+        if (u.unitKey === 'PXLR') {
+          return {
+            ...u,
+            khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
+            actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
+            actualOutput: totalAct,
+            completionRate: totalRate,
+            completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`,
+            nsldActual: pxlrNsld > 0 ? pxlrNsld : u.nsldActual,
+            nsldDeltaNote: pxlrNsld >= u.nsldTarget ? `Vượt mục tiêu ${u.nsldTarget}%` : `Mục tiêu ≥ ${u.nsldTarget}%`,
+            attendanceActual: pxlrDiLam,
+          };
+        }
+        return u;
+      });
     }
   } catch {
     // Giữ nguyên base nếu không truy xuất được ma trận
   }
 
-  // 5. ĐẢM BẢO PXLR LUÔN BẰNG TỔNG CỦA CÁC LINE CON (RO + BG + RMA) KHI XEM THEO THÁNG
+  // 5. ĐẢM BẢO CHI PHÍ HƯ HỎNG TUẦN 41 VÀ THÁNG 10 CHÍNH XÁC BẰNG 0 Đ KHI CHƯA PHÁT SINH HƯ HỎNG
+  if (isSameWeek(periodKey, 'W41') || periodKey === 'W41') {
+    result.units = result.units.map(u => ({ ...u, defectCostActual: 0 }));
+  } else if (periodKey === 'Tháng 10') {
+    // Kiểm tra xem Tháng 10 đã có linh kiện hư hỏng nào chưa
+    const itemsRO = activeSlide3?.itemsRO || [];
+    const itemsBG = activeSlide3?.itemsBG || [];
+    const hasOctItems = [...itemsRO, ...itemsBG].some(i => ['W41', 'W42', 'W43', 'W44'].includes(i.week || ''));
+    if (!hasOctItems) {
+      result.units = result.units.map(u => ({ ...u, defectCostActual: 0 }));
+    }
+  }
+
+  // 6. ĐẢM BẢO PXLR LUÔN BẰNG TỔNG CỦA CÁC LINE CON (RO + BG + RMA) KHI XEM THEO THÁNG
   if (timeFrame === 'month') {
     const roUnit = result.units.find(u => u.unitKey === 'RO');
     const bgUnit = result.units.find(u => u.unitKey === 'BG');

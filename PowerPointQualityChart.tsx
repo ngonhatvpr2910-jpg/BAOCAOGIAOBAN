@@ -9,6 +9,8 @@ interface PowerPointQualityChartProps {
   benchmarkColor?: 'green' | 'purple';
   lineColor?: 'blue' | 'red';
   height?: number;
+  highlightKey?: string;
+  onSelectPeriod?: (label: string) => void;
   onPrev?: () => void;
   onNext?: () => void;
   canPrev?: boolean;
@@ -22,6 +24,8 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
   benchmarkColor = 'green',
   lineColor = 'blue',
   height = 200,
+  highlightKey,
+  onSelectPeriod,
   onPrev,
   onNext,
   canPrev = false,
@@ -251,10 +255,37 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
                 </th>
                 {safeItems.map((item, idx) => {
                   const isLatest = idx === safeItems.length - 1;
+                  const numA = (item.month.match(/\d+/) || [])[0];
+                  const numB = (highlightKey ? (highlightKey.match(/\d+/) || [])[0] : null);
+                  const isSelected = Boolean(highlightKey && (
+                    item.month.toLowerCase() === highlightKey.toLowerCase() ||
+                    item.month.replace('Tuần ', 'W').toLowerCase() === highlightKey.toLowerCase() ||
+                    (numA && numB && parseInt(numA, 10) === parseInt(numB, 10))
+                  ));
+
                   return (
-                    <th key={idx} className={`py-2 px-1.5 border-r border-slate-300 font-black text-xs whitespace-nowrap ${isLatest ? 'bg-amber-100/70 text-amber-950 font-black' : ''}`}>
+                    <th 
+                      key={idx} 
+                      onClick={() => onSelectPeriod?.(item.month)}
+                      className={`py-2 px-1.5 border-r border-slate-300 font-black text-xs whitespace-nowrap cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'bg-emerald-500 text-slate-950 font-black ring-2 ring-emerald-300 shadow-md' 
+                          : isLatest 
+                            ? 'bg-amber-100/70 text-amber-950 font-black hover:bg-amber-200' 
+                            : 'hover:bg-slate-200'
+                      }`}
+                      title={`Bấm để chọn đồng bộ ${item.month}`}
+                    >
                       {item.month}
-                      {isLatest && <span className="block text-[8.5px] font-sans font-extrabold text-amber-700 leading-none mt-0.5">MỚI NHẤT</span>}
+                      {isSelected ? (
+                        <span className="block text-[8px] font-sans font-extrabold text-slate-950 bg-emerald-300 px-1 py-0.5 rounded leading-none mt-0.5 shadow-2xs">
+                          ĐANG CHỌN
+                        </span>
+                      ) : isLatest ? (
+                        <span className="block text-[8.5px] font-sans font-extrabold text-amber-700 leading-none mt-0.5">
+                          MỚI NHẤT
+                        </span>
+                      ) : null}
                     </th>
                   );
                 })}

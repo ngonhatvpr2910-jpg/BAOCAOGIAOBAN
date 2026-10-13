@@ -9,6 +9,7 @@ interface PowerPointBarChartProps {
   highlightThreshold?: number; // e.g. 100%
   height?: number;
   highlightWeek?: string;
+  onSelectBar?: (label: string, item: SlideBarItem) => void;
 }
 
 export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
@@ -18,6 +19,7 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
   maxScaleCustom,
   height = 220,
   highlightWeek,
+  onSelectBar,
 }) => {
   // Compute nice scale ceiling (with headroom for labels on top of bars)
   const maxVal = Math.max(...items.map(i => i.value), 100);
@@ -91,7 +93,14 @@ export const PowerPointBarChart: React.FC<PowerPointBarChartProps> = ({
             const isHighlighted = (item as any).isHighlighted || (highlightWeek && (item.label.includes(highlightWeek) || item.label.replace('Tuần ', 'W') === highlightWeek));
 
             return (
-              <g key={item.id || idx} className="group cursor-default">
+              <g 
+                key={item.id || idx} 
+                className={`group ${onSelectBar ? 'cursor-pointer hover:opacity-90' : 'cursor-default'}`}
+                onClick={() => onSelectBar?.(item.label, item)}
+                role={onSelectBar ? 'button' : undefined}
+                tabIndex={onSelectBar ? 0 : undefined}
+                title={onSelectBar ? `Bấm để xem chi tiết Báo Cáo Tổng Thể cho ${item.label}` : undefined}
+              >
                 {/* Highlight Background Glow */}
                 {isHighlighted && !isZero && (
                   <rect

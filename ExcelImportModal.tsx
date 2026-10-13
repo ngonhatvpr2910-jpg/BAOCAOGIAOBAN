@@ -84,12 +84,12 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
   const handleApply = () => {
     if (!importResult) return;
 
-    let finalRO = importResult.itemsRO;
-    let finalBG = importResult.itemsBG;
+    let finalRO = (importResult.itemsRO && importResult.itemsRO.length > 0) ? importResult.itemsRO : (currentData.itemsRO || []);
+    let finalBG = (importResult.itemsBG && importResult.itemsBG.length > 0) ? importResult.itemsBG : (currentData.itemsBG || []);
 
     if (importMode === 'merge') {
-      finalRO = [...(currentData.itemsRO || []), ...importResult.itemsRO];
-      finalBG = [...(currentData.itemsBG || []), ...importResult.itemsBG];
+      finalRO = [...(currentData.itemsRO || []), ...(importResult.itemsRO || [])];
+      finalBG = [...(currentData.itemsBG || []), ...(importResult.itemsBG || [])];
     }
 
     onApplyImport({

@@ -789,6 +789,44 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const updateMatrixROForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixROColumn[]) => {
     StorageService.saveMatrixROForMonth(year, monthIndex0, columns);
     
+    // Extract day columns to update daily dcroRecords
+    const dayCols = columns.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal && c.dateStr);
+    if (dayCols.length > 0) {
+      setDcroRecords(prev => {
+        const updated = [...prev];
+        dayCols.forEach(col => {
+          if (!col.dateStr) return;
+          const rec: DailyDCRORecord = {
+            id: col.id,
+            date: col.dateStr,
+            congChinhThuc: Number(col.congChinhThuc) || 0,
+            congThoiVu: Number(col.congThoiVu) || 0,
+            sanLuongLineChinh: Number(col.sanLuongLineChinh) || 0,
+            dinhMucSlTheoNs: Number(col.dinhMucSlTheoNs) || 0,
+            tongNhanSuLine: Number(col.tongNhanSuLine) || 0,
+            nhanSuNghi: Number(col.nhanSuNghi) || 0,
+            chiPhiHangHong: 0,
+            tiLeLoiThaoTac: Number(col.tiLeLoiThaoTac) || 0,
+            ghiChu: '',
+            tongCong: (Number(col.congChinhThuc) || 0) + (Number(col.congThoiVu) || 0),
+            tongSanLuongQuyDoi: Number(col.sanLuongLineChinh) || 0,
+            nsldTheoNgay: Number(col.nsldTheoNgay) || 0,
+            tiLeDiLam: Number(col.tiLeDiLam) || 100,
+            khsxNgay: Number(col.khsxNgay) || 0,
+            tiLeHoanThanhKhsx: Number(col.tiLeHoanThanhKhsx) || 0,
+          };
+          const existingIdx = updated.findIndex(r => r.date === col.dateStr);
+          if (existingIdx !== -1) {
+            updated[existingIdx] = { ...updated[existingIdx], ...rec };
+          } else {
+            updated.push(rec);
+          }
+        });
+        StorageService.saveDCRORecords(updated);
+        return updated;
+      });
+    }
+
     // If it matches what we are currently viewing in dashboard, sync state
     if (year === dashboardYear && monthIndex0 === dashboardMonthIndex0) {
       setMatrixRO(columns);
@@ -814,6 +852,46 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const updateMatrixBGForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixBGColumn[]) => {
     StorageService.saveMatrixBGForMonth(year, monthIndex0, columns);
     
+    // Extract day columns to update daily dcbgRecords
+    const dayCols = columns.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal && c.dateStr);
+    if (dayCols.length > 0) {
+      setDcbgRecords(prev => {
+        const updated = [...prev];
+        dayCols.forEach(col => {
+          if (!col.dateStr) return;
+          const rec: DailyDCBGRecord = {
+            id: col.id,
+            date: col.dateStr,
+            congBepGa: Number(col.congBepGa) || 0,
+            congThoiVu: Number(col.congThoiVu) || 0,
+            congRma: Number(col.congRma) || 0,
+            sanLuongBepGa: Number(col.sanLuongBepGa) || 0,
+            sanLuongRma: Number(col.sanLuongRma) || 0,
+            dinhMucSlTheoNs: Number(col.dinhMucSlTheoNs) || 0,
+            tongNhanSuLine: Number(col.tongNhanSuLine) || 0,
+            nhanSuNghi: Number(col.nhanSuNghi) || 0,
+            chiPhiHangHong: 0,
+            tiLeLoiThaoTac: Number(col.tiLeLoiThaoTac) || 0,
+            ghiChu: '',
+            tongCong: (Number(col.congBepGa) || 0) + (Number(col.congThoiVu) || 0) + (Number(col.congRma) || 0),
+            tongSanLuongQuyDoi: (Number(col.sanLuongBepGa) || 0) + (Number(col.sanLuongRma) || 0),
+            nsldTheoNgay: Number(col.nsldTheoNgay) || 0,
+            tiLeDiLam: Number(col.tiLeDiLam) || 100,
+            khsxNgay: Number(col.khsxNgay) || 0,
+            tiLeHoanThanhKhsx: Number(col.tiLeHoanThanhKhsx) || 0,
+          };
+          const existingIdx = updated.findIndex(r => r.date === col.dateStr);
+          if (existingIdx !== -1) {
+            updated[existingIdx] = { ...updated[existingIdx], ...rec };
+          } else {
+            updated.push(rec);
+          }
+        });
+        StorageService.saveDCBGRecords(updated);
+        return updated;
+      });
+    }
+
     if (year === dashboardYear && monthIndex0 === dashboardMonthIndex0) {
       setMatrixBG(columns);
     }

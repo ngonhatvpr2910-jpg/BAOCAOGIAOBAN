@@ -3,6 +3,7 @@ import { SlideDefectCostData, DamagedItemRecord, DefectCostBarItem } from './typ
 import { INITIAL_SLIDE3_DEFECT_COST } from './initialData';
 import { exportDefectCostTemplate, parseDefectCostExcelFile } from './excelDefectService';
 import { synchronizeSlide3Data } from './defectCostSyncService';
+import { StorageService } from './storage';
 import { isWeekLocked } from './ProductionContext';
 import { 
   X, 
@@ -69,14 +70,21 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
       const file = e.target.files[0];
       try {
         const result = await parseDefectCostExcelFile(file);
-        setFormData(prev => ({
-          ...prev,
-          itemsRO: autoHighlightTop3(result.itemsRO),
-          itemsBG: autoHighlightTop3(result.itemsBG),
-          weeklyData: result.weeklyData && result.weeklyData.length > 0 ? result.weeklyData : prev.weeklyData,
-          monthlyData: result.monthlyData && result.monthlyData.length > 0 ? result.monthlyData : prev.monthlyData,
-        }));
-        showNotification(`Đã nạp thành công ${result.itemsRO.length + result.itemsBG.length} mục vật tư từ file Excel!`);
+        const newRO = (result.itemsRO && result.itemsRO.length > 0) ? result.itemsRO : formData.itemsRO;
+        const newBG = (result.itemsBG && result.itemsBG.length > 0) ? result.itemsBG : formData.itemsBG;
+        const updatedData: SlideDefectCostData = {
+          ...formData,
+          itemsRO: autoHighlightTop3(newRO),
+          itemsBG: autoHighlightTop3(newBG),
+          weeklyData: (result.weeklyData && result.weeklyData.length > 0) ? result.weeklyData : formData.weeklyData,
+          monthlyData: (result.monthlyData && result.monthlyData.length > 0) ? result.monthlyData : formData.monthlyData,
+        };
+        const { syncedData } = synchronizeSlide3Data(updatedData);
+        setFormData(syncedData);
+        // Tự động lưu kiên cố vào StorageService và kích hoạt onSave để đảm bảo không bao giờ bị mất số liệu
+        StorageService.saveSlide3DefectCost(syncedData);
+        onSave(syncedData);
+        showNotification(`Đã nạp & lưu thành công ${newRO.length + newBG.length} mục vật tư từ file Excel!`);
       } catch (err: any) {
         alert(err?.message || 'Có lỗi khi đọc file Excel.');
       }

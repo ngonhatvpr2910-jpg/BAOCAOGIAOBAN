@@ -248,13 +248,20 @@ export function rollupDailyToQualityCharts(
       });
     } else {
       // Lấy từ baseWeekly nếu chưa có dữ liệu ngày nhập cho tuần này
-      const prevRo = baseWeekly?.ro.items.find(i => i.month === wLabel);
-      const prevBg = baseWeekly?.bg.items.find(i => i.month === wLabel);
-      const prevPxlr = baseWeekly?.pxlr.items.find(i => i.month === wLabel);
+      const isWeekMatch = (itemMonth?: string) => {
+        if (!itemMonth) return false;
+        return itemMonth === wLabel || 
+               itemMonth === wKey || 
+               itemMonth.replace('Tuần ', 'W') === wKey ||
+               itemMonth.replace('W', 'Tuần ') === wLabel;
+      };
+      const prevRo = baseWeekly?.ro.items.find(i => isWeekMatch(i.month));
+      const prevBg = baseWeekly?.bg.items.find(i => isWeekMatch(i.month));
+      const prevPxlr = baseWeekly?.pxlr.items.find(i => isWeekMatch(i.month));
 
-      weeklyRoItems.push(prevRo || { id: `ro-${wKey}`, month: wLabel, dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.2 });
-      weeklyBgItems.push(prevBg || { id: `bg-${wKey}`, month: wLabel, dmVatTu: 4.03, vatTu: 4.03, totalLoi4M: 8.5 });
-      weeklyPxlrItems.push(prevPxlr || { id: `pxlr-${wKey}`, month: wLabel, dmVatTu: 2.5, vatTu: 1.2, totalLoi4M: 3.2 });
+      weeklyRoItems.push(prevRo || { id: `ro-${wKey}`, month: wLabel, dmVatTu: 2.4, vatTu: 0.6, totalLoi4M: 2.9 });
+      weeklyBgItems.push(prevBg || { id: `bg-${wKey}`, month: wLabel, dmVatTu: 4.03, vatTu: 1.6, totalLoi4M: 5.4 });
+      weeklyPxlrItems.push(prevPxlr || { id: `pxlr-${wKey}`, month: wLabel, dmVatTu: 2.5, vatTu: 0.85, totalLoi4M: 3.4 });
     }
   });
 

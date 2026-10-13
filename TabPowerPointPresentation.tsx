@@ -139,6 +139,41 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [syncVersion, setSyncVersion] = useState(0);
   const [summaryView, setSummaryView] = useState<'auto' | 'slide1' | 'slide2' | 'both'>('auto');
+
+  // Shared Period State for PowerPoint Slides (especially Slide 1 Báo Cáo Tổng Thể & Slide 2 Năng Suất)
+  const [selectedWeek, setSelectedWeek] = useState<string>('W41');
+  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
+  const [presentationTimeFrame, setPresentationTimeFrame] = useState<'week' | 'month'>('week');
+  
+  // Tự động suy luận tháng tương ứng từ tuần đã chọn và cập nhật toàn bộ các slide
+  const handleWeekChangeSlide = (w: string) => {
+    setSelectedWeek(w);
+    const wNum = parseInt(w.replace(/\D/g, ''), 10);
+    let m = 'Tháng 10';
+    if (wNum >= 41 && wNum <= 44) m = 'Tháng 10';
+    else if (wNum >= 45 && wNum <= 48) m = 'Tháng 11';
+    else if (wNum >= 49 && wNum <= 52) m = 'Tháng 12';
+    else if (wNum >= 36 && wNum <= 40) m = 'Tháng 9';
+    else if (wNum >= 31 && wNum <= 35) m = 'Tháng 8';
+    else if (wNum >= 27 && wNum <= 30) m = 'Tháng 7';
+    else if (wNum >= 22 && wNum <= 26) m = 'Tháng 6';
+    setSelectedMonth(m);
+  };
+
+  // Tự động chọn tuần tiêu biểu của tháng tương ứng và cập nhật toàn bộ các slide
+  const handleMonthChangeSlide = (m: string) => {
+    setSelectedMonth(m);
+    const mNum = parseInt(m.replace(/\D/g, ''), 10);
+    let w = 'W41';
+    if (mNum === 10) w = 'W41';
+    else if (mNum === 11) w = 'W45';
+    else if (mNum === 12) w = 'W49';
+    else if (mNum === 9) w = 'W38';
+    else if (mNum === 8) w = 'W35';
+    else if (mNum === 7) w = 'W30';
+    else if (mNum === 6) w = 'W26';
+    setSelectedWeek(w);
+  };
   
   const slide0Ref = useRef<HTMLDivElement>(null);
   const slide1Ref = useRef<HTMLDivElement>(null);
@@ -366,13 +401,18 @@ export const TabPowerPointPresentation: React.FC = () => {
     updateSlide2Quality(newData);
     setSlide2Data(newData);
     setIsSlide2EditorOpen(false);
-    showToast('Đã lưu và đồng bộ thành công số liệu Slide 2: Chất Lượng sang PXLR Tổng Hợp!');
+    window.dispatchEvent(new CustomEvent('production-data-updated'));
+    showToast('Đã lưu và đồng bộ thành công số liệu Slide Chất Lượng sang Báo Cáo Tổng Thể!');
   };
 
   const handleTimeFrameChangeSlide2 = (timeFrame: 'month' | 'week' | 'day') => {
     const updated = applyTimeFrameToSlide2Data(slide2Data, timeFrame);
     setSlide2Data(updated);
     updateSlide2Quality(updated);
+    if (timeFrame === 'week' || timeFrame === 'month') {
+      setPresentationTimeFrame(timeFrame);
+    }
+    window.dispatchEvent(new CustomEvent('production-data-updated'));
   };
 
   const handleResetSlide2 = () => {
@@ -380,6 +420,7 @@ export const TabPowerPointPresentation: React.FC = () => {
       const reset = StorageService.resetSlide2Quality();
       updateSlide2Quality(reset);
       setSlide2Data(reset);
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
       showToast('Đã khôi phục số liệu gốc Slide 2 theo ảnh PowerPoint và đồng bộ sang PXLR!');
     }
   };
@@ -1074,7 +1115,18 @@ export const TabPowerPointPresentation: React.FC = () => {
           )}
 
           {/* Slide 1 Presentation Layout: Executive Summary */}
-          <ExecutiveSummaryCard isSlideView={true} isFullscreen={false} />
+          <ExecutiveSummaryCard 
+            isSlideView={true} 
+            isFullscreen={false} 
+            selectedWeek={selectedWeek}
+            selectedMonth={selectedMonth}
+            timeFrame={presentationTimeFrame}
+            onWeekChange={handleWeekChangeSlide}
+            onMonthChange={handleMonthChangeSlide}
+            onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
+            slide1NSLDData={slideData}
+            slide2QualityData={slide2Data}
+          />
         </section>
 
         {/* ================= POWERPOINT SLIDE CONNECTOR 1 -> 2 ================= */}
@@ -1127,7 +1179,23 @@ export const TabPowerPointPresentation: React.FC = () => {
           )}
 
           {/* Slide 2 Presentation Layout */}
-          <Slide1ProductivityPresentation data={slideData} isFullscreen={false} />
+          <Slide1ProductivityPresentation 
+            data={slideData} 
+            isFullscreen={false} 
+            onOpenEditor={() => setIsEditorOpen(true)}
+            selectedWeekNum={parseInt(selectedWeek.replace(/\D/g, ''), 10) || 41}
+            onSelectWeekNum={(wNum) => {
+              handleWeekChangeSlide(`W${wNum}`);
+              setPresentationTimeFrame('week');
+            }}
+            selectedMonth={selectedMonth}
+            onSelectMonth={(m) => {
+              handleMonthChangeSlide(m);
+              setPresentationTimeFrame('month');
+            }}
+            timeFrame={presentationTimeFrame}
+            onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
+          />
         </section>
 
         {/* ================= POWERPOINT SLIDE CONNECTOR 2 -> 3 ================= */}
@@ -1183,7 +1251,17 @@ export const TabPowerPointPresentation: React.FC = () => {
           <Slide2QualityPresentation 
             data={slide2Data} 
             isFullscreen={false} 
-            onTimeFrameChange={handleTimeFrameChangeSlide2}
+            selectedWeek={selectedWeek}
+            selectedMonth={selectedMonth}
+            timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+            onTimeFrameChange={(tf) => {
+              handleTimeFrameChangeSlide2(tf);
+              if (tf === 'week' || tf === 'month') {
+                setPresentationTimeFrame(tf);
+              }
+            }}
+            onWeekChange={handleWeekChangeSlide}
+            onMonthChange={handleMonthChangeSlide}
             onOpenEditor={() => setIsSlide2EditorOpen(true)}
           />
         </section>
@@ -1241,6 +1319,16 @@ export const TabPowerPointPresentation: React.FC = () => {
           <Slide3DefectCostPresentation 
             data={slide3Data} 
             isFullscreen={false} 
+            selectedWeek={selectedWeek}
+            selectedMonth={selectedMonth}
+            timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+            onWeekChange={handleWeekChangeSlide}
+            onMonthChange={handleMonthChangeSlide}
+            onTimeFrameChange={(tf) => {
+              if (tf === 'week' || tf === 'month') {
+                setPresentationTimeFrame(tf);
+              }
+            }}
             onOpenEditor={() => setIsSlide3EditorOpen(true)}
             onOpenExcelImport={() => setIsExcelImportModalOpen(true)}
           />
@@ -1579,12 +1667,39 @@ export const TabPowerPointPresentation: React.FC = () => {
 
           {/* Fullscreen Slide 1 View: Executive Summary */}
           <div className="snap-start min-h-screen h-screen w-full flex items-center justify-center p-4 sm:p-8 shrink-0">
-            <ExecutiveSummaryCard isSlideView={true} isFullscreen={true} />
+            <ExecutiveSummaryCard 
+              isSlideView={true} 
+              isFullscreen={true} 
+              selectedWeek={selectedWeek}
+              selectedMonth={selectedMonth}
+              timeFrame={presentationTimeFrame}
+              onWeekChange={handleWeekChangeSlide}
+              onMonthChange={handleMonthChangeSlide}
+              onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
+              slide1NSLDData={slideData}
+              slide2QualityData={slide2Data}
+            />
           </div>
 
           {/* Fullscreen Slide 2 View: Productivity */}
           <div className="snap-start min-h-screen h-screen w-full flex items-center justify-center p-4 sm:p-8 shrink-0">
-            <Slide1ProductivityPresentation data={slideData} isFullscreen={true} />
+            <Slide1ProductivityPresentation 
+              data={slideData} 
+              isFullscreen={true} 
+              onOpenEditor={() => setIsEditorOpen(true)}
+              selectedWeekNum={parseInt(selectedWeek.replace(/\D/g, ''), 10) || 41}
+              onSelectWeekNum={(wNum) => {
+                handleWeekChangeSlide(`W${wNum}`);
+                setPresentationTimeFrame('week');
+              }}
+              selectedMonth={selectedMonth}
+              onSelectMonth={(m) => {
+                handleMonthChangeSlide(m);
+                setPresentationTimeFrame('month');
+              }}
+              timeFrame={presentationTimeFrame}
+              onTimeFrameChange={(tf) => setPresentationTimeFrame(tf)}
+            />
           </div>
 
           {/* Fullscreen Slide 3 View: Quality */}
@@ -1592,7 +1707,17 @@ export const TabPowerPointPresentation: React.FC = () => {
             <Slide2QualityPresentation 
               data={slide2Data} 
               isFullscreen={true} 
-              onTimeFrameChange={handleTimeFrameChangeSlide2}
+              selectedWeek={selectedWeek}
+              selectedMonth={selectedMonth}
+              timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+              onTimeFrameChange={(tf) => {
+                handleTimeFrameChangeSlide2(tf);
+                if (tf === 'week' || tf === 'month') {
+                  setPresentationTimeFrame(tf);
+                }
+              }}
+              onWeekChange={handleWeekChangeSlide}
+              onMonthChange={handleMonthChangeSlide}
               onOpenEditor={() => setIsSlide2EditorOpen(true)}
             />
           </div>
@@ -1602,6 +1727,16 @@ export const TabPowerPointPresentation: React.FC = () => {
             <Slide3DefectCostPresentation 
               data={slide3Data} 
               isFullscreen={true} 
+              selectedWeek={selectedWeek}
+              selectedMonth={selectedMonth}
+              timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+              onWeekChange={handleWeekChangeSlide}
+              onMonthChange={handleMonthChangeSlide}
+              onTimeFrameChange={(tf) => {
+                if (tf === 'week' || tf === 'month') {
+                  setPresentationTimeFrame(tf);
+                }
+              }}
               onOpenEditor={() => setIsSlide3EditorOpen(true)}
               onOpenExcelImport={() => setIsExcelImportModalOpen(true)}
             />

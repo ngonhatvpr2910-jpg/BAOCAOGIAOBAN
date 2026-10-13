@@ -6,26 +6,59 @@ import { Calendar, Layers, Activity, Sparkles, Edit3, ChevronLeft, ChevronRight,
 interface Slide2QualityPresentationProps {
   data: Slide2QualityData;
   isFullscreen?: boolean;
+  timeFrame?: 'month' | 'week' | 'day';
+  selectedWeek?: string;
+  selectedMonth?: string;
   onTimeFrameChange?: (timeFrame: 'month' | 'week' | 'day') => void;
+  onWeekChange?: (week: string) => void;
+  onMonthChange?: (month: string) => void;
   onOpenEditor?: () => void;
 }
 
 export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps> = ({
   data,
   isFullscreen = false,
+  timeFrame: propTimeFrame,
+  selectedWeek,
+  selectedMonth,
   onTimeFrameChange,
+  onWeekChange,
+  onMonthChange,
   onOpenEditor,
 }) => {
   const [internalTimeFrame, setInternalTimeFrame] = useState<'month' | 'week' | 'day'>(
-    data.activeTimeFrame || 'month'
+    propTimeFrame || data.activeTimeFrame || 'month'
   );
 
-  const activeFrame = data.activeTimeFrame || internalTimeFrame;
+  const activeFrame = propTimeFrame || data.activeTimeFrame || internalTimeFrame;
 
   // Slider state for Day view
   const [dayStartIndex, setDayStartIndex] = useState<number>(0);
   // Slider state for Week view
   const [weekStartIndex, setWeekStartIndex] = useState<number>(0);
+
+  // Synchronize internal timeFrame with propTimeFrame
+  useEffect(() => {
+    if (propTimeFrame) {
+      setInternalTimeFrame(propTimeFrame);
+    }
+  }, [propTimeFrame]);
+
+  // Tự động căn chỉnh slider Tuần khi selectedWeek thay đổi
+  useEffect(() => {
+    if (activeFrame === 'week' && data.weekly && selectedWeek) {
+      const totalWeeks = data.weekly.pxlr.items.length;
+      const targetIdx = data.weekly.pxlr.items.findIndex(i => {
+        const numA = (i.month.match(/\d+/) || [])[0];
+        const numB = (selectedWeek.match(/\d+/) || [])[0];
+        return numA && numB ? numA === numB : i.month.toLowerCase() === selectedWeek.toLowerCase();
+      });
+      if (targetIdx >= 0) {
+        const newStart = Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 2));
+        setWeekStartIndex(newStart);
+      }
+    }
+  }, [activeFrame, selectedWeek, data.weekly]);
 
   // Initialize slider to show the most recent 7 days / 4 weeks
   useEffect(() => {
@@ -36,7 +69,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
       } else {
         setDayStartIndex(0);
       }
-    } else if (activeFrame === 'week' && data.weekly) {
+    } else if (activeFrame === 'week' && data.weekly && !selectedWeek) {
       const totalWeeks = data.weekly.pxlr.items.length;
       if (totalWeeks > 4) {
         setWeekStartIndex(totalWeeks - 4);
@@ -44,12 +77,22 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
         setWeekStartIndex(0);
       }
     }
-  }, [activeFrame, data.daily?.pxlr.items.length, data.weekly?.pxlr.items.length]);
+  }, [activeFrame, data.daily?.pxlr.items.length, data.weekly?.pxlr.items.length, selectedWeek]);
 
   const handleToggleFrame = (frame: 'month' | 'week' | 'day') => {
     setInternalTimeFrame(frame);
     if (onTimeFrameChange) {
       onTimeFrameChange(frame);
+    }
+  };
+
+  const handleSelectPeriod = (label: string) => {
+    if (activeFrame === 'week') {
+      const num = (label.match(/\d+/) || ['41'])[0];
+      onWeekChange?.(`W${num}`);
+    } else if (activeFrame === 'month') {
+      const num = (label.match(/\d+/) || ['10'])[0];
+      onMonthChange?.(`Tháng ${num}`);
     }
   };
 
@@ -300,6 +343,8 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 benchmarkColor={currentCharts.pxlr.benchmarkColor || 'green'}
                 lineColor={currentCharts.pxlr.lineColor || 'blue'}
                 height={180}
+                highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                onSelectPeriod={handleSelectPeriod}
               />
             </div>
 
@@ -312,6 +357,8 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 benchmarkColor={currentCharts.ro.benchmarkColor || 'purple'}
                 lineColor={currentCharts.ro.lineColor || 'red'}
                 height={180}
+                highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                onSelectPeriod={handleSelectPeriod}
               />
             </div>
 
@@ -324,6 +371,8 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 benchmarkColor={currentCharts.bg.benchmarkColor || 'green'}
                 lineColor={currentCharts.bg.lineColor || 'blue'}
                 height={180}
+                highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                onSelectPeriod={handleSelectPeriod}
               />
             </div>
           </div>
