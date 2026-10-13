@@ -79,7 +79,8 @@ export const TabPowerPointPresentation: React.FC = () => {
     monthlyHistory,
     updateAllMonthlyRecords,
     slide2Quality,
-    updateSlide2Quality
+    updateSlide2Quality,
+    refreshData
   } = useProduction();
   const showNotes = false; // Luôn ẩn các ghi chú theo yêu cầu
   const [activeSlide, setActiveSlide] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>(0);
@@ -442,6 +443,8 @@ export const TabPowerPointPresentation: React.FC = () => {
     StorageService.saveSlide3DefectCost(newData);
     setSlide3Data(newData);
     setIsSlide3EditorOpen(false);
+    window.dispatchEvent(new CustomEvent('production-data-updated'));
+    refreshData();
     showToast('Đã lưu thành công số liệu Slide 3: Tỉ Lệ Hư Hỏng & Tổn Thất Vật Tư!');
   };
 
@@ -449,6 +452,8 @@ export const TabPowerPointPresentation: React.FC = () => {
     if (window.confirm('Khôi phục toàn bộ số liệu Slide 3 về mặc định theo ảnh PowerPoint?')) {
       const reset = StorageService.resetSlide3DefectCost();
       setSlide3Data(reset);
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+      refreshData();
       showToast('Đã khôi phục số liệu gốc Slide 3 theo ảnh PowerPoint!');
     }
   };
@@ -568,10 +573,13 @@ export const TabPowerPointPresentation: React.FC = () => {
       updateAllMonthlyRecords(productivityData);
     }
 
+    window.dispatchEvent(new CustomEvent('production-data-updated'));
+    refreshData();
+
     const roCount = importedData.itemsRO?.length || 0;
     const bgCount = importedData.itemsBG?.length || 0;
     const prodMsg = (productivityData && productivityData.length > 0) ? ` và ${productivityData.length} tháng Năng suất & Công` : '';
-    showToast(`Đã nạp thành công ${roCount + bgCount} mục vật tư${prodMsg} từ file Excel!`);
+    showToast(`Đã nạp & tự động đồng bộ thành công ${roCount + bgCount} mục vật tư${prodMsg} sang Báo Cáo Tổng Thể!`);
   };
 
   // Đồng bộ thủ công dữ liệu mới hiện hữu khi cần cưỡng bức làm mới

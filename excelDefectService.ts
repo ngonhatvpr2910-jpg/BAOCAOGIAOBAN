@@ -400,16 +400,12 @@ export async function parseDefectCostExcelFile(file: File): Promise<ExcelImportR
           }).filter(p => p.month);
         }
 
-        // Đảm bảo dữ liệu biểu đồ Tuần & Tháng được tính toán đồng bộ theo danh sách vật tư nạp vào
-        if (!weeklyData || weeklyData.length === 0) {
-          const resW = computeWeeklyAggregations(itemsRO, itemsBG);
-          weeklyData = resW.weeklyData;
-        }
-        if (!monthlyData || monthlyData.length === 0) {
-          const resW = computeWeeklyAggregations(itemsRO, itemsBG, weeklyData);
-          const resM = computeMonthlyAggregations(resW.weeklyData, resW.weeklyTotals, itemsRO, itemsBG);
-          monthlyData = resM.monthlyData;
-        }
+        // Luôn luôn tính toán đồng bộ dữ liệu biểu đồ Tuần & Tháng theo đúng danh sách vật tư nạp vào
+        const resW = computeWeeklyAggregations(itemsRO, itemsBG, weeklyData);
+        weeklyData = resW.weeklyData;
+
+        const resM = computeMonthlyAggregations(resW.weeklyData, resW.weeklyTotals, itemsRO, itemsBG, monthlyData);
+        monthlyData = resM.monthlyData;
 
         const totalRO = itemsRO.reduce((acc, curr) => acc + curr.amount, 0);
         const totalBG = itemsBG.reduce((acc, curr) => acc + curr.amount, 0);
@@ -453,83 +449,66 @@ function extractItemsFromRows(rows: any[], defaultCat: 'RO' | 'BG'): DamagedItem
   return result;
 }
 
-function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): DamagedItemRecord | null {
-  // Tìm mã vật tư
-  const itemCode = String(
-    row['Mã Vật Tư'] || 
-    row['Mã VT'] || 
-    row['Mã VT (item)'] || 
-    row['Ma VT'] || 
-    row['Item Code'] || 
-    row['itemCode'] || 
-    row['Mã'] || 
-    ''
-  ).trim();
+function getNormalizedKey(k: string): string {
+  return String(k || '').toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
 
-  // Tìm tên vật tư
-  const itemName = String(
-    row['Tên Vật Tư Mô Tả'] || 
-    row['Tên vật tư mô tả'] || 
-    row['Tên Vật Tư'] || 
-    row['Tên VT'] || 
-    row['Ten Vat Tu'] || 
-    row['Item Name'] || 
-    row['itemName'] || 
-    row['Tên'] || 
-    ''
-  ).trim();
+function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): DamagedItemRecord | null {
+  const keys = Object.keys(row);
+  if (keys.length === 0) return null;
+
+  // Helper tìm giá trị cell theo nhiều khả năng tên cột
+  const getVal = (candidates: string[]): string => {
+    for (const cand of candidates) {
+      const matchKey = keys.find(k => {
+        const norm = getNormalizedKey(k);
+        const candNorm = getNormalizedKey(cand);
+        return norm === candNorm || norm.includes(candNorm);
+      });
+      if (matchKey && row[matchKey] !== undefined && row[matchKey] !== null) {
+        return String(row[matchKey]).trim();
+      }
+    }
+    return '';
+  };
+
+  // 1. Mã vật tư
+  const itemCode = getVal([
+    'mã vật tư', 'mã vt', 'mã vt (item)', 'ma vt', 'item code', 'itemcode', 'mã', 'part number', 'code'
+  ]);
+
+  // 2. Tên vật tư
+  const itemName = getVal([
+    'tên vật tư mô tả', 'tên vật tư', 'tên vt', 'ten vat tu', 'item name', 'itemname', 'tên', 'mô tả', 'description'
+  ]);
 
   if (!itemCode && !itemName) {
     return null;
   }
 
-  // Số lượng
-  const quantity = parseFloat(String(
-    row['Số Lượng'] || 
-    row['Số lượng'] || 
-    row['So Luong'] || 
-    row['SL'] || 
-    row['quantity'] || 
-    row['Qty'] || 
-    1
-  ).replace(/,/g, '')) || 1;
+  // 3. Số lượng
+  const rawQty = getVal(['số lượng', 'so luong', 'sl', 'quantity', 'qty', 'phế phẩm', 'số lượng hỏng']);
+  const quantity = parseFloat(rawQty.replace(/,/g, '')) || 1;
 
-  // Đơn giá
-  const unitPrice = parseFloat(String(
-    row['Đơn Giá (VNĐ)'] || 
-    row['Đơn giá'] || 
-    row['Don Gia'] || 
-    row['Đơn Giá'] || 
-    row['unitPrice'] || 
-    row['Price'] || 
-    0
-  ).replace(/,/g, '')) || 0;
+  // 4. Đơn giá
+  const rawUnitPrice = getVal(['đơn giá (vnđ)', 'đơn giá', 'don gia', 'unitprice', 'price', 'giá']);
+  const unitPrice = parseFloat(rawUnitPrice.replace(/,/g, '')) || 0;
 
-  // Thành tiền
-  let amount = parseFloat(String(
-    row['Thành Tiền (VNĐ)'] || 
-    row['Thành tiền (đ)'] || 
-    row['Thành tiền'] || 
-    row['Thanh Tien'] || 
-    row['amount'] || 
-    row['Total'] || 
-    0
-  ).replace(/,/g, '')) || (quantity * unitPrice);
-
+  // 5. Thành tiền / Chi phí
+  const rawAmount = getVal([
+    'thành tiền (vnđ)', 'thành tiền (đ)', 'thành tiền', 'thanh tien', 'amount', 'total',
+    'chi phí', 'chi phí hư hỏng', 'giá trị tổn thất', 'tổn thất', 'giá trị'
+  ]);
+  let amount = parseFloat(rawAmount.replace(/,/g, '')) || (quantity * unitPrice);
   if (amount === 0 && unitPrice > 0) {
     amount = quantity * unitPrice;
   }
 
-  // Highlight
-  const highlightVal = String(
-    row['Mục Trọng Điểm (Có/Không)'] || 
-    row['Mục Trọng Điểm'] || 
-    row['Trọng Điểm'] || 
-    row['isHighlighted'] || 
-    row['Highlight'] || 
-    ''
-  ).toLowerCase().trim();
-
+  // 6. Highlight (Mục trọng điểm)
+  const rawHighlight = getVal(['mục trọng điểm (có/không)', 'mục trọng điểm', 'trọng điểm', 'ishighlighted', 'highlight']);
+  const highlightVal = rawHighlight.toLowerCase();
   const isHighlighted = 
     highlightVal === 'có' || 
     highlightVal === 'co' || 
@@ -539,24 +518,28 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
     itemName.toLowerCase().includes('mặt kính') ||
     itemName.toLowerCase().includes('vỏ hộp');
 
-  // Tìm cột tuần linh hoạt từ mọi biến thể tên cột
-  const weekKey = Object.keys(row).find(k => {
-    const clean = k.toLowerCase().replace(/[\s_\-()]/g, '');
-    return clean.includes('tuan') || clean.includes('tuần') || clean.includes('week');
-  });
-  const rawWeek = weekKey ? String(row[weekKey] || '').trim() : '';
+  // 7. Tuần (ví dụ: W38, W41, Tuần 38, ...)
+  let rawWeek = getVal(['tuần', 'tuan', 'week', 'ky', 'kỳ', 'w']);
+
+  // Nếu không tìm thấy cột tuần bằng tên, duyệt qua tất cả các giá trị của dòng xem có giá trị dạng W38 / Tuần 38 không
+  if (!rawWeek) {
+    for (const k of keys) {
+      const v = String(row[k] || '').trim();
+      if (/^(w|tuần)\s*\d+/i.test(v) || /^\d{2}$/.test(v)) {
+        rawWeek = v;
+        break;
+      }
+    }
+  }
+
   const weekMatch = rawWeek.match(/\d+/);
   let week = weekMatch ? `W${parseInt(weekMatch[0], 10)}` : (rawWeek ? rawWeek.toUpperCase() : '');
 
-  // Nếu không có cột tuần, thử suy luận từ cột ngày nếu có
+  // Nếu vẫn không có cột tuần, suy luận từ cột ngày nếu có
   if (!week) {
-    const dateKey = Object.keys(row).find(k => {
-      const clean = k.toLowerCase().replace(/[\s_\-()]/g, '');
-      return clean.includes('ngay') || clean.includes('ngày') || clean.includes('date');
-    });
-    if (dateKey && row[dateKey]) {
-      const dateVal = String(row[dateKey]).trim();
-      const dayMatch = dateVal.match(/(\d{1,2})[\/\-](\d{1,2})/);
+    const rawDate = getVal(['ngày', 'ngay', 'date', 'thời gian']);
+    if (rawDate) {
+      const dayMatch = rawDate.match(/(\d{1,2})[\/\-](\d{1,2})/);
       if (dayMatch) {
         const day = parseInt(dayMatch[1], 10);
         const month = parseInt(dayMatch[2], 10);
@@ -576,6 +559,11 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
     }
   }
 
+  // Nếu hoàn toàn không xác định được tuần, gán tuần mặc định là W41 để không bị mất dữ liệu
+  if (!week) {
+    week = 'W41';
+  }
+
   return {
     id: `${defaultCat.toLowerCase()}-imported-${idx + 1}-${Date.now()}`,
     itemCode: itemCode || `VT-${idx + 1}`,
@@ -585,6 +573,6 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
     amount,
     category: defaultCat,
     isHighlighted,
-    week: week || undefined,
+    week,
   } as any;
 }

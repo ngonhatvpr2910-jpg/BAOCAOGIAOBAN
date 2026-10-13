@@ -84,6 +84,7 @@ export const Slide3EditorModal: React.FC<Slide3EditorModalProps> = ({
         // Tự động lưu kiên cố vào StorageService và kích hoạt onSave để đảm bảo không bao giờ bị mất số liệu
         StorageService.saveSlide3DefectCost(syncedData);
         onSave(syncedData);
+        window.dispatchEvent(new CustomEvent('production-data-updated'));
         showNotification(`Đã nạp & lưu thành công ${newRO.length + newBG.length} mục vật tư từ file Excel!`);
       } catch (err: any) {
         alert(err?.message || 'Có lỗi khi đọc file Excel.');

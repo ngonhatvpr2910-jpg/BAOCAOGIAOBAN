@@ -275,14 +275,17 @@ export const Slide6EditorModal: React.FC<Slide6EditorModalProps> = ({
                     <span>{w.weekHeader}</span>
                     {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />}
                   </button>
-                  {isSelected && currentWeeks.length > 1 && (
+                  {currentWeeks.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => handleDeleteWeek(idx)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWeek(idx);
+                      }}
                       title={`Xóa ${w.weekHeader}`}
-                      className="ml-1 p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                      className="ml-0.5 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>

@@ -163,33 +163,56 @@ export const Slide5EditorModal: React.FC<Slide5EditorModalProps> = ({
     updateCurrentWeek({ rows: updated });
   };
 
-  // Add new upcoming week
+  // Add new upcoming week: LẤY LẠI TOÀN BỘ DỮ LIỆU TỪ TUẦN CŨ (ví dụ thêm Tuần 44 thì lấy lại toàn bộ từ Tuần 43)
   const handleAddNewWeek = () => {
+    const sourceWeek = (activeWeekIdx >= 0 && activeWeekIdx < weeks.length)
+      ? weeks[activeWeekIdx]
+      : weeks[weeks.length - 1];
     const lastWeek = weeks[weeks.length - 1];
-    let nextNum = 39;
-    if (lastWeek?.weekHeader) {
-      const match = lastWeek.weekHeader.match(/\d+/);
-      if (match) nextNum = parseInt(match[0], 10) + 1;
-    }
 
-    const lastDate = lastWeek?.rows?.[lastWeek.rows.length - 1]?.date || '27/09/2026';
+    let prevNum = 43;
+    const match = (sourceWeek?.weekHeader || lastWeek?.weekHeader || '').match(/\d+/);
+    if (match) prevNum = parseInt(match[0], 10);
+    const nextNum = prevNum + 1;
+
+    const lastDate = sourceWeek?.rows?.[sourceWeek.rows.length - 1]?.date 
+      || lastWeek?.rows?.[lastWeek.rows.length - 1]?.date 
+      || '18/10/2026';
     const nextDates = generateNextDates(lastDate);
 
-    const newRows: Slide5PlanRow[] = nextDates.map(date => ({
-      date,
-      planDCLR: lastWeek?.rows?.[0]?.planDCLR || 'BLOCK',
-      rmaBg: 'RMA + BG',
-      manpowerLine: lastWeek?.rows?.[0]?.manpowerLine || '54 NS CT + 14TV',
-      manpowerRma: lastWeek?.rows?.[0]?.manpowerRma || '12 NS CT + 2TV',
-    }));
+    const replaceWeekRef = (text?: string): string => {
+      if (!text) return '';
+      return text
+        .replaceAll(`Tuần ${prevNum}`, `Tuần ${nextNum}`)
+        .replaceAll(`tuần ${prevNum}`, `tuần ${nextNum}`)
+        .replaceAll(`W${prevNum}`, `W${nextNum}`)
+        .replaceAll(`w${prevNum}`, `w${nextNum}`);
+    };
+
+    const sourceRows = (sourceWeek?.rows && sourceWeek.rows.length > 0)
+      ? sourceWeek.rows
+      : (lastWeek?.rows && lastWeek.rows.length > 0 ? lastWeek.rows : []);
+
+    const newRows: Slide5PlanRow[] = nextDates.map((date, idx) => {
+      const srcRow: Partial<Slide5PlanRow> = sourceRows[idx] || sourceRows[0] || {};
+      return {
+        date,
+        planDCLR: replaceWeekRef(srcRow.planDCLR) || 'CHẠY ĐẠI TRÀ DCLR',
+        rmaBg: replaceWeekRef(srcRow.rmaBg) || 'RMA + BG',
+        manpowerLine: srcRow.manpowerLine || '56 NS CT + 12TV',
+        manpowerRma: srcRow.manpowerRma || '12 NS CT + 2TV',
+      };
+    });
 
     const newWeek: Slide5WeekPlan = {
       id: `w-${nextNum}-${Date.now()}`,
       weekHeader: `Tuần ${nextNum}`,
-      weekTitle: `Kế hoạch tuần tiếp theo`,
+      weekTitle: sourceWeek?.weekTitle 
+        ? replaceWeekRef(sourceWeek.weekTitle) 
+        : `Kế hoạch sản xuất Tuần ${nextNum} (${nextDates[0].slice(0, 5)} - ${nextDates[6].slice(0, 5)})`,
       dateRange: `${nextDates[0].slice(0, 5)} – ${nextDates[6].slice(0, 5)}`,
-      manpowerSummary: lastWeek?.manpowerSummary || '54/57 NS Line',
-      rmaSummary: lastWeek?.rmaSummary || 'RMA 12/14NS',
+      manpowerSummary: sourceWeek?.manpowerSummary || lastWeek?.manpowerSummary || '56/57 NS Line',
+      rmaSummary: sourceWeek?.rmaSummary || lastWeek?.rmaSummary || 'RMA 12/14NS',
       rows: newRows,
     };
 
@@ -200,11 +223,11 @@ export const Slide5EditorModal: React.FC<Slide5EditorModalProps> = ({
 
   // Clone current week into a new week
   const handleCloneCurrentWeek = () => {
-    let nextNum = 40;
+    let nextNum = 44;
     const match = currentWeek.weekHeader.match(/\d+/);
     if (match) nextNum = parseInt(match[0], 10) + 1;
 
-    const lastDate = currentWeek.rows?.[currentWeek.rows.length - 1]?.date || '27/09/2026';
+    const lastDate = currentWeek.rows?.[currentWeek.rows.length - 1]?.date || '18/10/2026';
     const nextDates = generateNextDates(lastDate);
 
     const newRows: Slide5PlanRow[] = currentWeek.rows.map((r, i) => ({
@@ -280,25 +303,39 @@ export const Slide5EditorModal: React.FC<Slide5EditorModalProps> = ({
             {weeks.map((w, idx) => {
               const isSelected = idx === activeWeekIdx;
               return (
-                <button
-                  key={w.id || idx}
-                  type="button"
-                  onClick={() => setActiveWeekIdx(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
-                    isSelected
-                      ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-400 ring-offset-1 font-black'
-                      : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
-                  }`}
-                >
-                  <span>{w.weekHeader}</span>
-                  {w.dateRange && (
-                    <span className={`text-[10px] px-1 py-0.2 rounded font-normal ${
-                      isSelected ? 'bg-white/20 text-white' : 'text-slate-500 bg-slate-100'
-                    }`}>
-                      {w.dateRange}
-                    </span>
+                <div key={w.id || idx} className="flex items-center shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setActiveWeekIdx(idx)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      isSelected
+                        ? 'bg-blue-700 text-white shadow-sm ring-2 ring-blue-400 ring-offset-1 font-black'
+                        : 'bg-white hover:bg-slate-200 text-slate-700 border border-slate-300'
+                    }`}
+                  >
+                    <span>{w.weekHeader}</span>
+                    {w.dateRange && (
+                      <span className={`text-[10px] px-1 py-0.2 rounded font-normal ${
+                        isSelected ? 'bg-white/20 text-white' : 'text-slate-500 bg-slate-100'
+                      }`}>
+                        {w.dateRange}
+                      </span>
+                    )}
+                  </button>
+                  {weeks.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWeek(idx);
+                      }}
+                      className="ml-0.5 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition cursor-pointer"
+                      title={`Xóa ${w.weekHeader}`}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
