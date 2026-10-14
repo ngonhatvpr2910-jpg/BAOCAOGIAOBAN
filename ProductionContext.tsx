@@ -772,30 +772,57 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateWeeklyDCBG = useCallback((records: WeeklyDCBGRecord[]) => {
     setWeeklyDCBG(records);
-  }, []);
+    StorageService.saveWeeklyDCBG(records);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const resetWeeklyDCBG = useCallback(() => {
     setWeeklyDCBG(INITIAL_WEEKLY_DCBG);
     StorageService.saveWeeklyDCBG(INITIAL_WEEKLY_DCBG);
-  }, []);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const updateMonthlyNSLDDCBG = useCallback((records: MonthlyNSLDDCBGRecord[]) => {
     setMonthlyNSLDDCBG(records);
-  }, []);
+    StorageService.saveMonthlyNSLDDCBG(records);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const resetMonthlyNSLDDCBG = useCallback(() => {
     setMonthlyNSLDDCBG(INITIAL_MONTHLY_NSLD_DCBG);
     StorageService.saveMonthlyNSLDDCBG(INITIAL_MONTHLY_NSLD_DCBG);
-  }, []);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const updateDailyNSLDRMA = useCallback((records: DailyNSLDRMARecord[]) => {
     setDailyNSLDRMA(records);
-  }, []);
+    StorageService.saveDailyNSLDRMA(records);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const resetDailyNSLDRMA = useCallback(() => {
     setDailyNSLDRMA(INITIAL_DAILY_NSLD_RMA);
     StorageService.saveDailyNSLDRMA(INITIAL_DAILY_NSLD_RMA);
-  }, []);
+    refreshData();
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated'));
+    });
+  }, [refreshData]);
 
   const updateMatrixRO = useCallback((columns: ExcelMatrixROColumn[]) => {
     setMatrixRO(columns);

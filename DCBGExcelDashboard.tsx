@@ -245,6 +245,11 @@ export const DCBGExcelDashboard: React.FC = () => {
     updateWeeklyDCBG(localWeekly);
     updateMonthlyNSLDDCBG(localMonthly);
     updateDailyNSLDRMA(localRMA);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', {
+        detail: { type: 'summary-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }
+      }));
+    }
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };

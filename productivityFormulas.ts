@@ -139,7 +139,7 @@ export function autoComputeSlideDataFromInputs(
 
   // Tự động đồng bộ các tuần tiếp theo (W40..W52) từ Ma Trận Tháng 9, 10, 11, 12 nếu có dữ liệu
   try {
-    const monthsToCheck = [8, 9, 10, 11]; // T9 (8), T10 (9), T11 (10), T12 (11)
+    const monthsToCheck = [5, 6, 7, 8, 9, 10, 11]; // T6..T12
     monthsToCheck.forEach(mIdx => {
       const matRO = StorageService.getMatrixROForMonth(2026, mIdx);
       const matBG = StorageService.getMatrixBGForMonth(2026, mIdx);

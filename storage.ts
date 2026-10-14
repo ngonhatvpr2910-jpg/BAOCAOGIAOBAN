@@ -480,6 +480,13 @@ export const StorageService = {
         if (parsed.subTitle === 'So Sánh NSLĐ Tháng' || !parsed.subTitle) {
           parsed.subTitle = 'Năng Suất';
         }
+        const HISTORICAL_ITEM_IDS = new Set([
+          'pxlr-w35', 'ro-w35', 'bg-w35',
+          'pxlr-m06', 'pxlr-m07', 'pxlr-m08', 'pxlr-m09',
+          'ro-m07', 'ro-m08',
+          'bg-m07', 'bg-m08',
+        ]);
+        const isHistoricalItem = (id: string) => HISTORICAL_ITEM_IDS.has(id);
         // Helper to ensure all weeks from INITIAL are present in stored data, plus new ones
         const ensureAllWeeks = (stored: any[], initial: any[], prefix: string) => {
           const combined = [...stored];
@@ -527,13 +534,12 @@ export const StorageService = {
         parsed.ro.monthly = ensureAllMonths(parsed.ro.monthly, INITIAL_SLIDE1_NSLD.ro.monthly, 'ro');
         parsed.bg.monthly = ensureAllMonths(parsed.bg.monthly, INITIAL_SLIDE1_NSLD.bg.monthly, 'bg');
 
-        // Fix historical baseline values (W32-W35)
+        // Fix historical baseline values (W32-W35 only)
         const fixValues = (items: any[], prefix: string, values: Record<string, number>) => {
           return items.map(w => {
             const weekId = w.id.replace(`${prefix}-`, '');
-            if (values[weekId] !== undefined) {
-              // Chỉ ép buộc giá trị mặc định cho các tuần lịch sử W32-W35 hoặc khi chưa có giá trị
-              if (w.value === undefined || w.value === null || w.value <= 0 || ['w32', 'w33', 'w34', 'w35'].includes(weekId)) {
+            if (['w32', 'w33', 'w34', 'w35'].includes(weekId) && values[weekId] !== undefined) {
+              if (w.value === undefined || w.value === null || w.value <= 0) {
                 return { ...w, value: values[weekId] };
               }
             }
@@ -542,19 +548,13 @@ export const StorageService = {
         };
 
         const standardValuesPXLR: Record<string, number> = {
-          'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8,
-          'w36': 116.9, 'w37': 117.1, 'w38': 109.8, 'w39': 113.5,
-          'w40': 119.2, 'w41': 122.6, 'w42': 119.7, 'w43': 119.7, 'w44': 119.6
+          'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8
         };
         const standardValuesRO: Record<string, number> = {
-          'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2,
-          'w36': 118.8, 'w37': 119.0, 'w38': 112.0, 'w39': 115.5,
-          'w40': 119.5, 'w41': 123.4, 'w42': 120.9, 'w43': 120.9, 'w44': 120.9
+          'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2
         };
         const standardValuesBG: Record<string, number> = {
-          'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7,
-          'w36': 102.7, 'w37': 103.4, 'w38': 93.1, 'w39': 97.0,
-          'w40': 114.5, 'w41': 115.8, 'w42': 112.4, 'w43': 112.2, 'w44': 112.0
+          'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7
         };
 
         parsed.pxlr.weekly = fixValues(parsed.pxlr.weekly, 'pxlr', standardValuesPXLR);
@@ -563,7 +563,7 @@ export const StorageService = {
 
         // Tự động đồng bộ số liệu tuần thực tế từ ma trận của Tab Nhóm RO và Tab Nhóm BG
         try {
-          const matrixMonths = [8, 9]; // Tháng 9 (W36-W40) và Tháng 10 (W41-W44)
+          const matrixMonths = [5, 6, 7, 8, 9, 10, 11]; // All months
           matrixMonths.forEach(mIdx => {
             const mRO = this.getMatrixROForMonth(2026, mIdx) || [];
             const mBG = this.getMatrixBGForMonth(2026, mIdx) || [];
@@ -582,20 +582,19 @@ export const StorageService = {
                 const dmBG = cBG ? (Number(cBG.dinhMucSlTheoNs) || 0) : 0;
                 const totalSL = slRO + slBG;
                 const totalDM = dmRO + dmBG;
-                const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 
-                               (valRO > 0 && valBG > 0 ? Number(((valRO * 0.865) + (valBG * 0.135)).toFixed(1)) : (valRO || valBG));
+                const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 0;
 
-                if (valRO > 0) {
+                if (cRO) {
                   const it = parsed.ro.weekly.find((i: any) => i.id === `ro-${weekId}` || i.label === `Tuần ${wNum}`);
-                  if (it) it.value = valRO;
+                  if (it && !isHistoricalItem(it.id)) it.value = valRO;
                 }
-                if (valBG > 0) {
+                if (cBG) {
                   const it = parsed.bg.weekly.find((i: any) => i.id === `bg-${weekId}` || i.label === `Tuần ${wNum}`);
-                  if (it) it.value = valBG;
+                  if (it && !isHistoricalItem(it.id)) it.value = valBG;
                 }
-                if (valPXLR > 0) {
+                if (cRO || cBG) {
                   const it = parsed.pxlr.weekly.find((i: any) => i.id === `pxlr-${weekId}` || i.id === `pxlr-w${wNum}` || i.label === `Tuần ${wNum}`);
-                  if (it) it.value = valPXLR;
+                  if (it && !isHistoricalItem(it.id)) it.value = valPXLR;
                 }
               }
             });
