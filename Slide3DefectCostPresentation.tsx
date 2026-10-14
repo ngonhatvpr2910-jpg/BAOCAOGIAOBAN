@@ -1375,7 +1375,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                       className="px-2 py-0.5 rounded text-[10.5px] font-bold bg-slate-800 hover:bg-amber-400 hover:text-slate-950 text-slate-200 border border-slate-600 transition-colors cursor-pointer"
                       title={`Chuyển sang xem chi tiết ${w}`}
                     >
-                      {w} {isSameWeek(w, 'W41') ? '★' : ''}
+                      {w} {isSameWeek(w, 'W42') ? '★' : ''}
                     </button>
                   ))}
                 </div>
@@ -1386,15 +1386,15 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
             <div className="flex flex-col space-y-2.5 flex-1">
               {/* 1. THẺ SO SÁNH TRỌNG ĐIỂM HƯ HỎNG 2 DÂY CHUYỀN (KPI COMPARISON CARDS) */}
               <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-750 rounded-xl p-3 shadow-sm text-white font-sans">
-                {/* Thông báo RMA & Tháng 10 khi xem Tháng 10 hoặc Tuần 41 */}
-                {((selectionMode === 'week' && matchWeek(targetDisplayWeek, 'W41')) || (selectionMode === 'month' && selectedMonthLabel === 'Tháng 10')) && (
+                {/* Thông báo RMA & Tháng 10 khi xem Tháng 10 hoặc Tuần 42 */}
+                {((selectionMode === 'week' && (matchWeek(targetDisplayWeek, 'W42') || matchWeek(targetDisplayWeek, 'W41'))) || (selectionMode === 'month' && selectedMonthLabel === 'Tháng 10')) && (
                   <div className="mb-2 bg-blue-950/80 border border-blue-500/50 rounded-lg px-3 py-1.5 flex items-center justify-between text-[11px] text-blue-200 flex-wrap gap-2">
                     <div className="flex items-center gap-2">
                       <span className="px-1.5 py-0.5 rounded bg-blue-600 text-white font-black text-[9.5px]">
-                        THÁNG 10 / W41
+                        THÁNG 10 / W42
                       </span>
                       <span className="font-medium text-slate-200">
-                        Tuần 41 hiện tại chưa cập nhật hư hỏng (0 đ) • Tổ RMA tuần vừa qua không có sản xuất cũng như không có dữ liệu báo cáo.
+                        Tuần 42 hiện tại chưa cập nhật hư hỏng (0 đ) • Tổ RMA tuần vừa qua không có sản xuất cũng như không có dữ liệu báo cáo.
                       </span>
                     </div>
                     <span className="text-[10px] text-amber-300 font-bold bg-slate-900/80 px-2 py-0.5 rounded border border-amber-400/30">

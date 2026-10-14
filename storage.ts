@@ -44,6 +44,7 @@ import {
   recalculateBGMatrix,
   recalculateROMatrix,
 } from './matrixGenerator';
+import { synchronizeSlide3Data } from './defectCostSyncService';
 
 const STORAGE_KEYS = {
   DCBG: 'pxlr_dcbg_records_v1',
@@ -801,163 +802,45 @@ export const StorageService = {
         localStorage.getItem('pxlr_slide3_defect_cost_v1') || 
         localStorage.getItem('pxlr_slide3_defect_cost');
 
-      // Chuẩn hóa dữ liệu lịch sử cố định từ Tháng 6 đến Tháng 8
-      const historicalMonths: Record<string, number> = {
-        'Tháng 6': 10.8,
-        'Tháng 7': 7.1,
-        'Tháng 8': 5.9,
-      };
-      const historicalWeeks: Record<string, number> = {
-        'W32': 2.2,
-        'W33': 0.6,
-        'W34': 1.8,
-        'W35': 1.4,
-      };
-
-      const getNum = (label: string) => {
-        const m = (label || '').match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
-      };
-
       if (data) {
         const parsed = JSON.parse(data);
         if (parsed && typeof parsed === 'object') {
+          const rawRO = Array.isArray(parsed.itemsRO) ? parsed.itemsRO : INITIAL_SLIDE3_DEFECT_COST.itemsRO;
+          const rawBG = Array.isArray(parsed.itemsBG) ? parsed.itemsBG : INITIAL_SLIDE3_DEFECT_COST.itemsBG;
           const rawWeekly = Array.isArray(parsed.weeklyData) && parsed.weeklyData.length > 0 ? parsed.weeklyData : INITIAL_SLIDE3_DEFECT_COST.weeklyData;
           const rawMonthly = Array.isArray(parsed.monthlyData) && parsed.monthlyData.length > 0 ? parsed.monthlyData : INITIAL_SLIDE3_DEFECT_COST.monthlyData;
 
-          // Bảo lưu nguyên vẹn 100% dữ liệu lịch sử từ Tháng 6 đến Tháng 8
-          const preservedMonthly = rawMonthly.map((m: any) => {
-            const hist = historicalMonths[m.label];
-            if (hist !== undefined && (!m.value || m.value <= 0)) {
-              return { ...m, value: hist, displayLabel: `${hist}M` };
-            }
-            return m;
-          });
-
-          // Nếu thiếu Tháng 6, 7, 8 thì tự động bổ sung
-          Object.entries(historicalMonths).forEach(([mLabel, mVal]) => {
-            if (!preservedMonthly.some((m: any) => m.label === mLabel)) {
-              preservedMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
-            }
-          });
-          // Bổ sung Tháng 10 nếu chưa có (mặc định 0 VNĐ vì tuần 41 chưa cập nhật hư hỏng, đúng ra là 0)
-          const m10 = preservedMonthly.find((m: any) => m.label === 'Tháng 10');
-          const hasOctDamagedItems = (parsed.itemsRO || []).some((i: any) => ['W41', 'W42', 'W43', 'W44'].includes(i.week)) ||
-                                     (parsed.itemsBG || []).some((i: any) => ['W41', 'W42', 'W43', 'W44'].includes(i.week));
-          if (!m10) {
-            preservedMonthly.push({ id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '0' });
-          }
-          preservedMonthly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
-
-          const preservedWeekly = rawWeekly.map((w: any) => {
-            const hist = historicalWeeks[w.label];
-            if (hist !== undefined && (!w.value || w.value <= 0)) {
-              return { ...w, value: hist, displayLabel: `${hist}M` };
-            }
-            if (w.label === 'W38' && (!w.value || w.value <= 0)) {
-              return { ...w, value: 1.8, displayLabel: '1.8M' };
-            }
-            if (w.label === 'W39' && (!w.value || w.value <= 0 || w.value === 2.0)) {
-              return { ...w, value: 1.0, displayLabel: '1.0M' };
-            }
-            return w;
-          });
-          // Nếu thiếu tuần lịch sử W32-W35 thì tự động bổ sung
-          Object.entries(historicalWeeks).forEach(([wLabel, wVal]) => {
-            if (!preservedWeekly.some((w: any) => w.label === wLabel)) {
-              preservedWeekly.push({ id: `w-${wLabel.toLowerCase()}`, label: wLabel, value: wVal, displayLabel: `${wVal}M` });
-            }
-          });
-          // Đảm bảo W38, W39, W40, W41, W42, W43, W44 có mặt trong danh sách tuần
-          if (!preservedWeekly.some((w: any) => w.label === 'W38')) {
-            preservedWeekly.push({ id: 'w-38', label: 'W38', value: 1.8, displayLabel: '1.8M' });
-          }
-          if (!preservedWeekly.some((w: any) => w.label === 'W39')) {
-            preservedWeekly.push({ id: 'w-39', label: 'W39', value: 1.0, displayLabel: '1.0M' });
-          }
-          const octWeeksToEnsure = [
-            { id: 'w-40', label: 'W40', value: 1.2, displayLabel: '1.2M' },
-            { id: 'w-41', label: 'W41', value: 0, displayLabel: '' },
-            { id: 'w-42', label: 'W42', value: 0, displayLabel: '' },
-            { id: 'w-43', label: 'W43', value: 0, displayLabel: '' },
-            { id: 'w-44', label: 'W44', value: 0, displayLabel: '' },
-          ];
-          octWeeksToEnsure.forEach(wReq => {
-            const existing = preservedWeekly.find((w: any) => w.label === wReq.label);
-            if (!existing) {
-              preservedWeekly.push(wReq);
-            }
-          });
-          preservedWeekly.sort((a: any, b: any) => getNum(a.label) - getNum(b.label));
-
-          let finalItemsRO = Array.isArray(parsed.itemsRO) && parsed.itemsRO.length > 0 ? [...parsed.itemsRO] : [...INITIAL_SLIDE3_DEFECT_COST.itemsRO];
-          let finalItemsBG = Array.isArray(parsed.itemsBG) && parsed.itemsBG.length > 0 ? [...parsed.itemsBG] : [...INITIAL_SLIDE3_DEFECT_COST.itemsBG];
-
-          // Đảm bảo vật tư W40 của Line RO có mặt đầy đủ
-          const hasW40RO = finalItemsRO.some((item: any) => (item.week || '').toUpperCase().includes('40'));
-          if (!hasW40RO) {
-            const w40RO = INITIAL_SLIDE3_DEFECT_COST.itemsRO.filter(i => (i.week || '').toUpperCase().includes('40'));
-            finalItemsRO = [...finalItemsRO, ...w40RO];
-          }
-
-          const hasW39BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('39'));
-          if (!hasW39BG) {
-            const w39BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('39'));
-            finalItemsBG = [...finalItemsBG, ...w39BG];
-          }
-
-          // Xóa các vật tư W41 giả định của Bếp Gas (Tuần 41 chưa cập nhật hư hỏng)
-          finalItemsBG = finalItemsBG.filter((item: any) => {
-            const isFakeW41Id = ['bg-dam-21', 'bg-dam-22', 'bg-dam-23', 'bg-dam-24', 'bg-dam-25'].includes(item.id);
-            const isW41 = (item.week || '').toUpperCase().includes('41');
-            return !(isFakeW41Id || (isW41 && item.category === 'BG'));
-          });
-
-          const hasW40BG = finalItemsBG.some((item: any) => (item.week || '').toUpperCase().includes('40'));
-          if (!hasW40BG) {
-            const w40BG = INITIAL_SLIDE3_DEFECT_COST.itemsBG.filter(i => (i.week || '').toUpperCase().includes('40'));
-            finalItemsBG = [...finalItemsBG, ...w40BG];
-          }
-
-          const preservedMonthlyFinal = preservedMonthly
-            .map((m: any) => {
-              if (m.label === 'Tháng 9' && (!m.value || m.value <= 0)) {
-                return { ...m, value: 5.2, displayLabel: '5.2M' };
-              }
-              if (m.label === 'Tháng 10') {
-                // Hiện tại tuần 41 chưa cập nhật hư hỏng, đúng ra Tháng 10 là 0
-                return { ...m, value: 0, displayLabel: '0' };
-              }
-              if (m.label === 'Tháng 11' || m.label === 'Tháng 12') {
-                // Tháng 11 và 12 chưa đến thì không có số liệu (value 0, không nhãn)
-                return { ...m, value: 0, displayLabel: '' };
-              }
-              return m;
-            });
-
-          const result: SlideDefectCostData = {
+          const rawData: SlideDefectCostData = {
             ...INITIAL_SLIDE3_DEFECT_COST,
             ...parsed,
-            weeklyData: preservedWeekly,
-            monthlyData: preservedMonthlyFinal,
-            itemsRO: finalItemsRO,
-            itemsBG: finalItemsBG,
+            itemsRO: rawRO,
+            itemsBG: rawBG,
+            weeklyData: rawWeekly,
+            monthlyData: rawMonthly,
           };
 
-          // Đồng bộ lưu lại vào storage key chuẩn
-          localStorage.setItem(STORAGE_KEYS.SLIDE3_DEFECT_COST, JSON.stringify(result));
-          return result;
+          const { syncedData } = synchronizeSlide3Data(rawData);
+          // Đồng bộ lưu lại vào storage key chuẩn để luôn luôn lưu giữ dữ liệu người dùng nạp vào
+          localStorage.setItem(STORAGE_KEYS.SLIDE3_DEFECT_COST, JSON.stringify(syncedData));
+          return syncedData;
         }
       }
-      return INITIAL_SLIDE3_DEFECT_COST;
+      const { syncedData } = synchronizeSlide3Data(INITIAL_SLIDE3_DEFECT_COST);
+      return syncedData;
     } catch {
-      return INITIAL_SLIDE3_DEFECT_COST;
+      const { syncedData } = synchronizeSlide3Data(INITIAL_SLIDE3_DEFECT_COST);
+      return syncedData;
     }
   },
 
   saveSlide3DefectCost(data: SlideDefectCostData) {
     try {
       localStorage.setItem(STORAGE_KEYS.SLIDE3_DEFECT_COST, JSON.stringify(data));
+      if (typeof window !== 'undefined') {
+        queueMicrotask(() => {
+          window.dispatchEvent(new Event('production-data-updated'));
+        });
+      }
     } catch (e) {
       console.error('Failed to save slide 3 Defect Cost data', e);
     }

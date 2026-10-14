@@ -40,10 +40,10 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
   timeFrame: propTimeFrame,
   onTimeFrameChange,
 }) => {
-  // Operational current week of the manufacturing plant is Tuần 41 (W41 - Tháng 10/2026)
-  const OPERATIONAL_CURRENT_WEEK = 41;
+  // Operational current week of the manufacturing plant is Tuần 42 (W42 - Tháng 10/2026)
+  const OPERATIONAL_CURRENT_WEEK = 42;
 
-  // Selected week for highlighting and focus (defaults to Tuần 41)
+  // Selected week for highlighting and focus (defaults to Tuần 42)
   const [internalSelectedWeekNum, setInternalSelectedWeekNum] = useState<number>(
     propSelectedWeekNum || OPERATIONAL_CURRENT_WEEK
   );
@@ -57,7 +57,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
   const totalWeeks = data.pxlr.weekly.length;
   const maxStartIndex = Math.max(0, totalWeeks - weeksToShow);
 
-  // Detect current ISO week (fall back to 41 if outside the active factory season [32..44])
+  // Detect current ISO week (fall back to 42 if outside the active factory season [32..44])
   const currentWeekNum = useMemo(() => {
     const detected = getWeekNumber(new Date());
     if (detected < 32 || detected > 44) {
@@ -66,7 +66,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
     return detected;
   }, []);
 
-  // Find index of the active week or nearest (prioritizes selectedWeekNum, then currentWeekNum, then W41)
+  // Find index of the active week or nearest (prioritizes selectedWeekNum, then currentWeekNum, then W42)
   const currentWeekIndex = useMemo(() => {
     const target = selectedWeekNum || currentWeekNum || OPERATIONAL_CURRENT_WEEK;
     const idx = data.pxlr.weekly.findIndex(w => {
@@ -74,8 +74,8 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
       return match && parseInt(match[0], 10) === target;
     });
     if (idx >= 0) return idx;
-    const idx41 = data.pxlr.weekly.findIndex(w => w.label.includes('41'));
-    return idx41 >= 0 ? idx41 : 0;
+    const idx42 = data.pxlr.weekly.findIndex(w => w.label.includes('42'));
+    return idx42 >= 0 ? idx42 : 0;
   }, [data.pxlr.weekly, selectedWeekNum, currentWeekNum]);
 
   // Synchronize internal state when propSelectedWeekNum changes

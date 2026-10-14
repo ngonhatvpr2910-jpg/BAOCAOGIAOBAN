@@ -559,9 +559,9 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
     }
   }
 
-  // Nếu hoàn toàn không xác định được tuần, gán tuần mặc định là W41 để không bị mất dữ liệu
+  // Nếu hoàn toàn không xác định được tuần, gán tuần mặc định là W42 để không bị mất dữ liệu
   if (!week) {
-    week = 'W41';
+    week = 'W42';
   }
 
   return {

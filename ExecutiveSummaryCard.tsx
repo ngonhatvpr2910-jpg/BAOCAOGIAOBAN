@@ -66,7 +66,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
   // Tự động lắng nghe các sự kiện cập nhật dữ liệu để đồng bộ tức thời
   useEffect(() => {
-    const handleUpdate = () => setLocalVersion(v => v + 1);
+    const handleUpdate = () => {
+      queueMicrotask(() => {
+        setLocalVersion(v => v + 1);
+      });
+    };
     window.addEventListener('production-data-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
     return () => {
@@ -75,16 +79,16 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     };
   }, []);
 
-  const { monthlyHistory, slide2Quality, dataVersion, globalNorms } = useProduction();
+  const { monthlyHistory, slide2Quality, slide3DefectCost, dataVersion, globalNorms } = useProduction();
 
   const activeSlide2 = useMemo(() => {
     return slide2QualityData || slide2Quality || StorageService.getSlide2Quality();
   }, [slide2QualityData, slide2Quality, localVersion, dataVersion]);
 
-  // Đọc dữ liệu chi phí hư hỏng thực tế từ props hoặc Storage
+  // Đọc dữ liệu chi phí hư hỏng thực tế từ props, context hoặc Storage
   const defectCostData = useMemo(() => {
-    return slide3DefectCostData || StorageService.getSlide3DefectCost();
-  }, [slide3DefectCostData, dataVersion, localVersion]);
+    return slide3DefectCostData || slide3DefectCost || StorageService.getSlide3DefectCost();
+  }, [slide3DefectCostData, slide3DefectCost, dataVersion, localVersion]);
 
   const slide1Data = useMemo(() => {
     return slide1NSLDData || StorageService.getSlide1NSLD();
@@ -119,8 +123,8 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     });
   }, [slide1Data]);
 
-  // Mặc định chọn Tuần 41 (W41) - Tuần hiện tại của hệ thống điều hành sản xuất
-  const [internalSelectedWeek, setInternalSelectedWeek] = useState<string>('W41');
+  // Mặc định chọn Tuần 42 (W42) - Tuần hiện tại của hệ thống điều hành sản xuất
+  const [internalSelectedWeek, setInternalSelectedWeek] = useState<string>('W42');
   const [internalSelectedMonth, setInternalSelectedMonth] = useState<string>('Tháng 10');
 
   // Luôn đồng bộ internal state với props khi được điều khiển từ bên ngoài (PowerPoint slides hoặc tab khác)
@@ -160,7 +164,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     setInternalSelectedMonth(m);
     const weeksInMonth = getWeeksForMonth(m);
     if (!weeksInMonth.includes(selectedWeek)) {
-      const repWeek = weeksInMonth[0] || 'W41';
+      const repWeek = weeksInMonth[0] || 'W42';
       setInternalSelectedWeek(repWeek);
       onWeekChange?.(repWeek);
     }
@@ -176,7 +180,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     } else {
       const weeksInMonth = getWeeksForMonth(selectedMonth);
       if (!weeksInMonth.includes(selectedWeek)) {
-        const repWeek = weeksInMonth[0] || 'W41';
+        const repWeek = weeksInMonth[0] || 'W42';
         setInternalSelectedWeek(repWeek);
         onWeekChange?.(repWeek);
       }
@@ -300,15 +304,15 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             </button>
           </div>
 
-          {/* Quick jump to Current W41 or Current Month */}
-          {timeFrame === 'week' && selectedWeek !== 'W41' && (
+          {/* Quick jump to Current W42 or Current Month */}
+          {timeFrame === 'week' && selectedWeek !== 'W42' && (
             <button
-              onClick={() => handleSelectWeek('W41')}
+              onClick={() => handleSelectWeek('W42')}
               className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
-              title="Chuyển ngay đến Tuần 41 (Hiện tại)"
+              title="Chuyển ngay đến Tuần 42 (Hiện tại)"
             >
               <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-              <span>Xem W41 (Hiện tại)</span>
+              <span>Xem W42 (Hiện tại)</span>
             </button>
           )}
 
@@ -355,7 +359,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <div className="flex items-center gap-1 max-w-[420px] overflow-x-auto scrollbar-none py-0.5">
                   {visibleWeeks.map(w => {
                     const isSelected = selectedWeek === w;
-                    const isCurrent = w === 'W41';
+                    const isCurrent = w === 'W42';
                     return (
                       <button
                         key={`btn-week-${w}`}
@@ -403,7 +407,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 >
                   {dynamicAvailableWeeks.map(w => (
                     <option key={`opt-w-${w}`} value={w}>
-                      {w} {w === 'W41' ? '(Tuần hiện tại)' : ''}
+                      {w} {w === 'W42' ? '(Tuần hiện tại)' : ''}
                     </option>
                   ))}
                 </select>

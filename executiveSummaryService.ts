@@ -647,8 +647,8 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
   'W42': {
     periodLabel: 'W42',
     timeFrame: 'week',
-    actionItemTitle: 'Việc cần làm - Kế hoạch Tuần W42',
-    actionItemContent: 'Chuẩn bị kế hoạch sản xuất tuần tiếp theo, kiểm tra sẵn sàng nguyên vật liệu và bố trí nhân lực chuyền. Chi phí hư hỏng mục tiêu 0 đ.',
+    actionItemTitle: 'Việc cần làm - Đối sách tuần W42 (Hiện tại)',
+    actionItemContent: 'Tuần 42 hiện tại: Toàn xưởng duy trì đà tăng trưởng NSLĐ 120.0% (đạt mục tiêu 120%), bám sát KHSX đạt 101.9% (9.580/9.400 SP) và kiểm soát tỷ lệ lỗi thao tác 3.50% dưới định mức 7.38%. Chi phí hư hỏng hiện tại giữ vững 0 đ (Zero Defect).',
     isUrgentAction: false,
     units: [
       {
@@ -669,7 +669,7 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
         errorRateQuota: 7.38,
         defectCostActual: 0,
         defectCostTarget: 7000000,
-        actionItem: 'Dự kiến NSLĐ duy trì ở mức 120%, chi phí hư hỏng chưa phát sinh (0 đ).',
+        actionItem: 'Tuần 42 (Hiện tại): Toàn xưởng tiếp tục duy trì đà tăng trưởng NSLĐ 120.0% (đạt mục tiêu 120%), KHSX đạt 101.9% (9.580/9.400 SP), tỷ lệ lỗi 3.50% (dưới định mức 7.38%), chi phí hư hỏng 0 đ (Zero Defect).',
       },
       {
         id: 'exec-ro-w42',
@@ -1976,11 +1976,6 @@ export function getWeeklyExecutiveSummaryData(
       return u;
     });
   } catch {}
-
-  // Đảm bảo W41 và các tuần không hư hỏng có defectCostActual = 0
-  if (isSameWeek(weekKey, 'W41') || weekKey === 'W41') {
-    result.units = result.units.map(u => ({ ...u, defectCostActual: 0 }));
-  }
 
   // Tự động đồng bộ nội dung thông báo hành động (Action Items) theo số liệu thực tế đã khớp
   const pxlrFinal = result.units.find(u => u.unitKey === 'PXLR');

@@ -142,7 +142,7 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [summaryView, setSummaryView] = useState<'auto' | 'slide1' | 'slide2' | 'both'>('auto');
 
   // Shared Period State for PowerPoint Slides (especially Slide 1 Báo Cáo Tổng Thể & Slide 2 Năng Suất)
-  const [selectedWeek, setSelectedWeek] = useState<string>('W41');
+  const [selectedWeek, setSelectedWeek] = useState<string>('W42');
   const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
   const [presentationTimeFrame, setPresentationTimeFrame] = useState<'week' | 'month'>('week');
   
@@ -177,8 +177,8 @@ export const TabPowerPointPresentation: React.FC = () => {
     );
     // CHỈ gán tuần đại diện nếu tuần hiện tại không thuộc tháng đang được chọn
     if (!isWeekInThisMonth) {
-      let w = 'W41';
-      if (mNum === 10) w = 'W41';
+      let w = 'W42';
+      if (mNum === 10) w = 'W42';
       else if (mNum === 11) w = 'W45';
       else if (mNum === 12) w = 'W49';
       else if (mNum === 9) w = 'W38';
@@ -336,7 +336,9 @@ export const TabPowerPointPresentation: React.FC = () => {
   // Lắng nghe sự kiện đồng bộ tự động từ Ma trận DCRO & DCBG tức thời
   useEffect(() => {
     const handleUpdate = () => {
-      setSyncVersion(v => v + 1);
+      queueMicrotask(() => {
+        setSyncVersion(v => v + 1);
+      });
     };
     window.addEventListener('production-data-updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
@@ -504,70 +506,68 @@ export const TabPowerPointPresentation: React.FC = () => {
   };
 
   const handleApplyExcelImport = (importedData: Partial<SlideDefectCostData>, productivityData?: MonthlyHistoryRecord[]) => {
-    setSlide3Data(prev => {
-      const historicalMonths: Record<string, number> = {
-        'Tháng 6': 10.8,
-        'Tháng 7': 7.1,
-        'Tháng 8': 5.9,
-      };
-      const historicalWeeks: Record<string, number> = {
-        'W32': 2.2,
-        'W33': 0.6,
-        'W34': 1.8,
-        'W35': 1.4,
-      };
+    const historicalMonths: Record<string, number> = {
+      'Tháng 6': 10.8,
+      'Tháng 7': 7.1,
+      'Tháng 8': 5.9,
+    };
+    const historicalWeeks: Record<string, number> = {
+      'W32': 2.2,
+      'W33': 0.6,
+      'W34': 1.8,
+      'W35': 1.4,
+    };
 
-      let newMonthly = importedData.monthlyData || prev.monthlyData;
-      newMonthly = newMonthly.map(m => {
-        const hist = historicalMonths[m.label];
-        if (hist !== undefined && (!m.value || m.value <= 0)) {
-          return { ...m, value: hist, displayLabel: `${hist}M` };
-        }
-        return m;
-      });
-
-      // Đảm bảo không bị thiếu Tháng 6, 7, 8
-      Object.entries(historicalMonths).forEach(([mLabel, mVal]) => {
-        if (!newMonthly.some(m => m.label === mLabel)) {
-          newMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
-        }
-      });
-
-      const getNum = (label: string) => {
-        const m = (label || '').match(/\d+/);
-        return m ? parseInt(m[0], 10) : 0;
-      };
-      newMonthly.sort((a, b) => getNum(a.label) - getNum(b.label));
-
-      let newWeekly = importedData.weeklyData || prev.weeklyData;
-      newWeekly = newWeekly.map(w => {
-        const hist = historicalWeeks[w.label];
-        if (hist !== undefined && (!w.value || w.value <= 0)) {
-          return { ...w, value: hist, displayLabel: `${hist}M` };
-        }
-        return w;
-      });
-
-      // Đảm bảo không bị thiếu tuần W32-W35
-      Object.entries(historicalWeeks).forEach(([wLabel, wVal]) => {
-        if (!newWeekly.some(w => w.label === wLabel)) {
-          newWeekly.push({ id: `w-${wLabel.toLowerCase()}`, label: wLabel, value: wVal, displayLabel: `${wVal}M` });
-        }
-      });
-      newWeekly.sort((a, b) => getNum(a.label) - getNum(b.label));
-
-      const updated: SlideDefectCostData = {
-        ...prev,
-        ...importedData,
-        monthlyData: newMonthly,
-        weeklyData: newWeekly,
-        itemsRO: (importedData.itemsRO && importedData.itemsRO.length > 0) ? importedData.itemsRO : prev.itemsRO,
-        itemsBG: (importedData.itemsBG && importedData.itemsBG.length > 0) ? importedData.itemsBG : prev.itemsBG,
-      };
-      const { syncedData } = synchronizeSlide3Data(updated);
-      StorageService.saveSlide3DefectCost(syncedData);
-      return syncedData;
+    let newMonthly = importedData.monthlyData || slide3Data.monthlyData;
+    newMonthly = newMonthly.map(m => {
+      const hist = historicalMonths[m.label];
+      if (hist !== undefined && (!m.value || m.value <= 0)) {
+        return { ...m, value: hist, displayLabel: `${hist}M` };
+      }
+      return m;
     });
+
+    // Đảm bảo không bị thiếu Tháng 6, 7, 8
+    Object.entries(historicalMonths).forEach(([mLabel, mVal]) => {
+      if (!newMonthly.some(m => m.label === mLabel)) {
+        newMonthly.push({ id: `m-${mLabel}`, label: mLabel, value: mVal, displayLabel: `${mVal}M` });
+      }
+    });
+
+    const getNum = (label: string) => {
+      const m = (label || '').match(/\d+/);
+      return m ? parseInt(m[0], 10) : 0;
+    };
+    newMonthly.sort((a, b) => getNum(a.label) - getNum(b.label));
+
+    let newWeekly = importedData.weeklyData || slide3Data.weeklyData;
+    newWeekly = newWeekly.map(w => {
+      const hist = historicalWeeks[w.label];
+      if (hist !== undefined && (!w.value || w.value <= 0)) {
+        return { ...w, value: hist, displayLabel: `${hist}M` };
+      }
+      return w;
+    });
+
+    // Đảm bảo không bị thiếu tuần W32-W35
+    Object.entries(historicalWeeks).forEach(([wLabel, wVal]) => {
+      if (!newWeekly.some(w => w.label === wLabel)) {
+        newWeekly.push({ id: `w-${wLabel.toLowerCase()}`, label: wLabel, value: wVal, displayLabel: `${wVal}M` });
+      }
+    });
+    newWeekly.sort((a, b) => getNum(a.label) - getNum(b.label));
+
+    const updated: SlideDefectCostData = {
+      ...slide3Data,
+      ...importedData,
+      monthlyData: newMonthly,
+      weeklyData: newWeekly,
+      itemsRO: (importedData.itemsRO && importedData.itemsRO.length > 0) ? importedData.itemsRO : slide3Data.itemsRO,
+      itemsBG: (importedData.itemsBG && importedData.itemsBG.length > 0) ? importedData.itemsBG : slide3Data.itemsBG,
+    };
+    const { syncedData } = synchronizeSlide3Data(updated);
+    StorageService.saveSlide3DefectCost(syncedData);
+    setSlide3Data(syncedData);
 
     if (productivityData && productivityData.length > 0) {
       updateAllMonthlyRecords(productivityData);

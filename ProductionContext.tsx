@@ -14,9 +14,11 @@ import {
   ExcelMatrixROColumn,
   ExcelMatrixBGColumn,
   Slide2QualityData,
+  SlideDefectCostData,
   GlobalNormsConfig,
 } from './types';
 import { StorageService } from './storage';
+import { synchronizeSlide3Data } from './defectCostSyncService';
 import { getSyncedQualityForPXLR, rollupDailyToQualityCharts } from './qualityFormulas';
 import { recalculateBGMatrix, recalculateROMatrix } from './matrixGenerator';
 import { 
@@ -97,6 +99,9 @@ interface ProductionContextType {
   setDashboardMonthIndex0: (month: number) => void;
   dataVersion: number;
   refreshData: () => void;
+  // Slide 3 Defect Cost Synchronization
+  slide3DefectCost: SlideDefectCostData;
+  updateSlide3DefectCost: (data: SlideDefectCostData) => void;
   // Global Norms & Targets
   globalNorms: GlobalNormsConfig;
   updateGlobalNorms: (norms: GlobalNormsConfig) => void;
@@ -179,6 +184,16 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const updateSlide2Quality = useCallback((newData: Slide2QualityData) => {
     StorageService.saveSlide2Quality(newData);
     setSlide2Quality(newData);
+  }, []);
+
+  // Dữ liệu Slide 3: Tỉ lệ & Chi phí Hư hỏng
+  const [slide3DefectCost, setSlide3DefectCost] = useState<SlideDefectCostData>(() => StorageService.getSlide3DefectCost());
+
+  const updateSlide3DefectCost = useCallback((newData: SlideDefectCostData) => {
+    const { syncedData } = synchronizeSlide3Data(newData);
+    StorageService.saveSlide3DefectCost(syncedData);
+    setSlide3DefectCost(syncedData);
+    setDataVersion(v => v + 1);
   }, []);
 
   const updateGlobalNorms = useCallback((newNorms: GlobalNormsConfig) => {
@@ -834,10 +849,12 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     refreshData();
 
-    // Notify components that data has updated
-    window.dispatchEvent(new CustomEvent('production-data-updated', { 
-      detail: { type: 'matrix-ro', year, monthIndex0 } 
-    }));
+    // Notify components that data has updated asynchronously
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { 
+        detail: { type: 'matrix-ro', year, monthIndex0 } 
+      }));
+    });
   }, [dashboardYear, dashboardMonthIndex0, refreshData]);
 
   const resetMatrixRO = useCallback(() => {
@@ -898,9 +915,11 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     
     refreshData();
 
-    window.dispatchEvent(new CustomEvent('production-data-updated', { 
-      detail: { type: 'matrix-bg', year, monthIndex0 } 
-    }));
+    queueMicrotask(() => {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { 
+        detail: { type: 'matrix-bg', year, monthIndex0 } 
+      }));
+    });
   }, [dashboardYear, dashboardMonthIndex0, refreshData]);
 
   const resetMatrixBG = useCallback(() => {
@@ -970,6 +989,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setDashboardMonthIndex0,
         dataVersion,
         refreshData,
+        slide3DefectCost,
+        updateSlide3DefectCost,
         globalNorms,
         updateGlobalNorms,
       }}
