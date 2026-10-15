@@ -32,7 +32,8 @@ import {
   Plus,
   X,
   FileSpreadsheet,
-  Lock
+  Lock,
+  Clipboard
 } from 'lucide-react';
 import { 
   recalculateBGMatrix, 
@@ -50,8 +51,10 @@ import {
 import { ExcelMatrixBGColumn, ExcelMatrixROColumn } from './types';
 import { WeekCutoffModal } from './WeekCutoffModal';
 import { exportProductionTemplate, importProductionExcel } from './excelProductionService';
+import { ExcelPasteModal } from './ExcelPasteModal';
 
 export const DCBGExcelDashboard: React.FC = () => {
+  const [isPasteModalOpen, setIsPasteModalOpen] = useState<boolean>(false);
   const {
     weeklyDCBG,
     updateWeeklyDCBG,
@@ -216,6 +219,80 @@ export const DCBGExcelDashboard: React.FC = () => {
       }
       return recalculated;
     });
+  };
+
+  const handleCellPaste = (startColId: string, startMetricKey: string, e: React.ClipboardEvent) => {
+    const text = e.clipboardData.getData('text');
+    if (!text || (!text.includes('\t') && !text.includes('\n'))) {
+      return;
+    }
+    e.preventDefault();
+
+    const rows = text
+      .split(/\r?\n/)
+      .map(r => r.split('\t'))
+      .filter(r => r.length > 0 && r.some(c => c.trim() !== ''));
+
+    if (rows.length === 0) return;
+
+    const editableCols = localMatrix.filter(c => !c.isWeeklyTotal && !c.isMonthlyTotal && canEditCell(c));
+    const startColIndex = editableCols.findIndex(c => c.id === startColId);
+    if (startColIndex === -1) return;
+
+    const metricKeysOrder: (keyof ExcelMatrixBGColumn)[] = [
+      'congBepGa',
+      'congThoiVu',
+      'congRma',
+      'sanLuongBepGa',
+      'sanLuongRma',
+      'khsxNgay',
+      'tongNhanSuLine',
+      'nhanSuNghi'
+    ];
+    let startRowIndex = metricKeysOrder.indexOf(startMetricKey as keyof ExcelMatrixBGColumn);
+    if (startRowIndex === -1) startRowIndex = 0;
+
+    let updated = [...localMatrix];
+    let cellsUpdatedCount = 0;
+
+    rows.forEach((rowVals, rOffset) => {
+      const curMetricIndex = startRowIndex + rOffset;
+      if (curMetricIndex >= metricKeysOrder.length) return;
+      const targetMetric = metricKeysOrder[curMetricIndex];
+
+      rowVals.forEach((valStr, cOffset) => {
+        const curColIndex = startColIndex + cOffset;
+        if (curColIndex >= editableCols.length) return;
+        const targetCol = editableCols[curColIndex];
+
+        const cleanVal = valStr.replace(/%/g, '').replace(/,/g, '').trim();
+        const num = parseFloat(cleanVal);
+        if (!isNaN(num)) {
+          const mIdx = updated.findIndex(c => c.id === targetCol.id);
+          if (mIdx !== -1) {
+            updated[mIdx] = {
+              ...updated[mIdx],
+              [targetMetric]: num
+            };
+            cellsUpdatedCount++;
+          }
+        }
+      });
+    });
+
+    if (cellsUpdatedCount > 0) {
+      const recalculated = recalculateBGMatrix(updated);
+      setLocalMatrix(recalculated);
+      StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+      updateMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('production-data-updated', {
+          detail: { type: 'matrix-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }
+        }));
+      }
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    }
   };
 
   const handleSaveMatrix = () => {
@@ -546,6 +623,16 @@ export const DCBGExcelDashboard: React.FC = () => {
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
               <span>Tải File Mẫu</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsPasteModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-blue-200 shadow-2xs"
+              title="Dán dữ liệu trực tiếp sao chép từ Excel (Ctrl+C & Ctrl+V)"
+            >
+              <Clipboard className="w-4 h-4 text-blue-600" />
+              <span>Dán Excel</span>
             </button>
 
             <label className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-emerald-200 shadow-2xs">
@@ -1534,6 +1621,28 @@ export const DCBGExcelDashboard: React.FC = () => {
         onApplyCutoffs={handleApplyCutoffs}
         lineName="ĐC Bếp Ga"
         themeColor="blue"
+      />
+
+      {/* Excel Smart Paste Modal */}
+      <ExcelPasteModal
+        isOpen={isPasteModalOpen}
+        onClose={() => setIsPasteModalOpen(false)}
+        type="BG"
+        matrix={localMatrix}
+        year={selectedYear}
+        monthIndex0={selectedMonthIndex0}
+        onApply={(recalculated) => {
+          setLocalMatrix(recalculated);
+          StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+          updateMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('production-data-updated', {
+              detail: { type: 'matrix-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }
+            }));
+          }
+          setSaveSuccess(true);
+          setTimeout(() => setSaveSuccess(false), 3000);
+        }}
       />
     </div>
   );

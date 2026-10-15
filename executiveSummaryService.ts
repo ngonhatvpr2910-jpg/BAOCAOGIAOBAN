@@ -1792,9 +1792,21 @@ export function getWeeklyExecutiveSummaryData(
   let avgPXLR_4M = 0;
 
   if (dailyInWeek.length > 0) {
-    avgRO_4M = Number((dailyInWeek.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
-    avgBG_4M = Number((dailyInWeek.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
-    avgPXLR_4M = Number((dailyInWeek.reduce((s, d) => s + (d.pxlr?.totalLoi4M || 0), 0) / dailyInWeek.length).toFixed(2));
+    const activeRO = dailyInWeek.filter(d => (d.ro?.totalLoi4M || 0) > 0 || (d.ro?.vatTu || 0) > 0 || (d.ro?.sanLuong || 0) > 0);
+    const countRO = activeRO.length > 0 ? activeRO.length : dailyInWeek.length;
+    const listRO = activeRO.length > 0 ? activeRO : dailyInWeek;
+
+    const activeBG = dailyInWeek.filter(d => (d.bg?.totalLoi4M || 0) > 0 || (d.bg?.vatTu || 0) > 0 || (d.bg?.sanLuong || 0) > 0);
+    const countBG = activeBG.length > 0 ? activeBG.length : dailyInWeek.length;
+    const listBG = activeBG.length > 0 ? activeBG : dailyInWeek;
+
+    const activePXLR = dailyInWeek.filter(d => (d.pxlr?.totalLoi4M || 0) > 0 || (d.pxlr?.vatTu || 0) > 0);
+    const countPXLR = activePXLR.length > 0 ? activePXLR.length : dailyInWeek.length;
+    const listPXLR = activePXLR.length > 0 ? activePXLR : dailyInWeek;
+
+    avgRO_4M = Number((listRO.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / countRO).toFixed(2));
+    avgBG_4M = Number((listBG.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / countBG).toFixed(2));
+    avgPXLR_4M = Number((listPXLR.reduce((s, d) => s + (d.pxlr?.totalLoi4M || 0), 0) / countPXLR).toFixed(2));
   }
 
   result.units = result.units.map(u => {
@@ -2003,7 +2015,7 @@ export function getWeeklyExecutiveSummaryData(
     const rmaAct = rmaUnit?.actualOutput ?? parseVNNumber(rmaUnit?.actualOutputLabel);
 
     const totalKh = roKh + bgKh + (rmaKh > 0 ? rmaKh : 0);
-    const totalAct = roAct + bgAct + (rmaKh > 0 ? rmaAct : 0);
+    const totalAct = roAct + bgAct + rmaAct;
     const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : (totalAct > 0 ? 100 : 0);
 
     const roNsld = roUnit?.nsldActual || 0;

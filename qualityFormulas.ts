@@ -208,14 +208,21 @@ export function rollupDailyToQualityCharts(
     });
 
     if (recordsInWeek.length > 0) {
-      // Tính trung bình các ngày trong tuần
-      const count = recordsInWeek.length;
-      const roVatTu = Number((recordsInWeek.reduce((s, r) => s + r.ro.vatTu, 0) / count).toFixed(1));
-      const roLoi4M = Number((recordsInWeek.reduce((s, r) => s + r.ro.totalLoi4M, 0) / count).toFixed(1));
+      // Chỉ tính trung bình các ngày có sản xuất / có phát sinh số liệu (active days)
+      const activeRO = recordsInWeek.filter(r => (r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.sanLuong && r.ro.sanLuong > 0)));
+      const countRO = activeRO.length > 0 ? activeRO.length : recordsInWeek.length;
+      const listRO = activeRO.length > 0 ? activeRO : recordsInWeek;
+
+      const activeBG = recordsInWeek.filter(r => (r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.sanLuong && r.bg.sanLuong > 0)));
+      const countBG = activeBG.length > 0 ? activeBG.length : recordsInWeek.length;
+      const listBG = activeBG.length > 0 ? activeBG : recordsInWeek;
+
+      const roVatTu = Number((listRO.reduce((s, r) => s + r.ro.vatTu, 0) / countRO).toFixed(1));
+      const roLoi4M = Number((listRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / countRO).toFixed(1));
       const roDmVatTu = recordsInWeek[0].ro.dmVatTu || 2.4;
 
-      const bgVatTu = Number((recordsInWeek.reduce((s, r) => s + r.bg.vatTu, 0) / count).toFixed(1));
-      const bgLoi4M = Number((recordsInWeek.reduce((s, r) => s + r.bg.totalLoi4M, 0) / count).toFixed(1));
+      const bgVatTu = Number((listBG.reduce((s, r) => s + r.bg.vatTu, 0) / countBG).toFixed(1));
+      const bgLoi4M = Number((listBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / countBG).toFixed(1));
       const bgDmVatTu = recordsInWeek[0].bg.dmVatTu || 4.03;
 
       const pxlrCalc = calculatePXLRQuality(
@@ -301,11 +308,18 @@ export function rollupDailyToQualityCharts(
   let t9BgLoi4M = 6.94;
 
   if (month9Records.length > 0) {
-    const c = month9Records.length;
-    t9RoVatTu = Number((month9Records.reduce((s, r) => s + r.ro.vatTu, 0) / c).toFixed(1));
-    t9RoLoi4M = Number((month9Records.reduce((s, r) => s + r.ro.totalLoi4M, 0) / c).toFixed(1));
-    t9BgVatTu = Number((month9Records.reduce((s, r) => s + r.bg.vatTu, 0) / c).toFixed(1));
-    t9BgLoi4M = Number((month9Records.reduce((s, r) => s + r.bg.totalLoi4M, 0) / c).toFixed(1));
+    const activeRO = month9Records.filter(r => (r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.sanLuong && r.ro.sanLuong > 0)));
+    const countRO = activeRO.length > 0 ? activeRO.length : month9Records.length;
+    const listRO = activeRO.length > 0 ? activeRO : month9Records;
+
+    const activeBG = month9Records.filter(r => (r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.sanLuong && r.bg.sanLuong > 0)));
+    const countBG = activeBG.length > 0 ? activeBG.length : month9Records.length;
+    const listBG = activeBG.length > 0 ? activeBG : month9Records;
+
+    t9RoVatTu = Number((listRO.reduce((s, r) => s + r.ro.vatTu, 0) / countRO).toFixed(1));
+    t9RoLoi4M = Number((listRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / countRO).toFixed(1));
+    t9BgVatTu = Number((listBG.reduce((s, r) => s + r.bg.vatTu, 0) / countBG).toFixed(1));
+    t9BgLoi4M = Number((listBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / countBG).toFixed(1));
   }
 
   const t9Pxlr = calculatePXLRQuality(

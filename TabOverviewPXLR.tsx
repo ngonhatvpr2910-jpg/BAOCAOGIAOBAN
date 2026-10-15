@@ -458,8 +458,8 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                 </td>
                 <td className="py-2.5 px-4">
                   <div className="font-bold text-emerald-600">{dcbg.tongSanLuongQuyDoi.toLocaleString('vi-VN')} sp</div>
-                  <div className="text-[10px] text-slate-500 font-mono">
-                    Bếp Ga: {dcbg.sanLuongBepGa.toLocaleString('vi-VN')} + RMA: {(dcbg.sanLuongRma || 0).toLocaleString('vi-VN')} sp
+                  <div className="text-[10px] text-emerald-800 font-semibold font-mono tracking-tight">
+                    Bếp Ga: {dcbg.sanLuongBepGa.toLocaleString('vi-VN')} sp{dcbg.sanLuongRma ? ` + RMA: ${dcbg.sanLuongRma.toLocaleString('vi-VN')} sp` : ''} (Thực hiện KH)
                   </div>
                 </td>
                 <td className="py-2.5 px-4">
@@ -478,7 +478,10 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
               {/* Row 6: ĐỊNH MỨC SL */}
               <tr className="hover:bg-slate-50/60 transition">
                 <td className="py-2.5 px-4 font-medium text-slate-800">ĐỊNH MỨC SL THEO NS</td>
-                <td className="py-2.5 px-4 text-slate-700">{dcbg.dinhMucSlTheoNs.toLocaleString('vi-VN')} sp</td>
+                <td className="py-2.5 px-4 text-slate-700">
+                  <div className="font-medium">{dcbg.dinhMucSlTheoNs.toLocaleString('vi-VN')} sp</div>
+                  <div className="text-[10px] text-emerald-700 font-semibold font-mono tracking-tight">=(Công BG+TV+RMA)×9.03</div>
+                </td>
                 <td className="py-2.5 px-4 text-slate-700">
                   <div className="font-medium">{dcro.dinhMucSlTheoNs.toLocaleString('vi-VN')} sp</div>
                   <div className="text-[10px] text-purple-700 font-semibold font-mono tracking-tight">=(Công CT+TV)×9.03</div>
@@ -526,8 +529,8 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                       ? (((dcbg.sanLuongBepGa + (dcbg.sanLuongRma || 0)) / dcbg.khsxNgay) * 100).toFixed(1) 
                       : (dcbg.tiLeHoanThanhKhsx || 0).toFixed(1)}%
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono">
-                    KHSX: {dcbg.khsxNgay ? dcbg.khsxNgay.toLocaleString('vi-VN') : 0} sp
+                  <div className="text-[10px] text-emerald-800 font-semibold font-mono tracking-tight">
+                    KHSX: {dcbg.khsxNgay ? dcbg.khsxNgay.toLocaleString('vi-VN') : 0} sp (Thực hiện: {dcbg.sanLuongBepGa.toLocaleString('vi-VN')} sp{dcbg.sanLuongRma ? ` + RMA: ${dcbg.sanLuongRma.toLocaleString('vi-VN')} sp` : ''})
                   </div>
                 </td>
                 <td className="py-2.5 px-4">
