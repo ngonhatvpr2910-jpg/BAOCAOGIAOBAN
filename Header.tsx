@@ -19,6 +19,7 @@ interface HeaderProps {
   onOpenAlertModal: () => void;
   onOpenSettingsModal: () => void;
   onOpenAuthModal: () => void;
+  onOpenDataBackupModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAlertModal,
   onOpenSettingsModal,
   onOpenAuthModal,
+  onOpenDataBackupModal,
 }) => {
   const { selectedDate, setSelectedDate, unreadAlertCount } = useProduction();
   const { currentUser } = useAuth();
@@ -56,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Controls: Date Picker & Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Date selector */}
             <div className="relative flex items-center bg-slate-100 hover:bg-slate-200/80 rounded-lg px-2.5 py-1.5 transition-colors text-xs sm:text-sm">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 mr-1.5 shrink-0" />
@@ -69,6 +71,20 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
 
+            {/* System Data Export / Import Button */}
+            {onOpenDataBackupModal && (
+              <button
+                onClick={onOpenDataBackupModal}
+                id="btn-open-system-data"
+                className="flex items-center gap-1.5 bg-teal-700 hover:bg-teal-800 active:bg-teal-900 text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
+                title="Xuất & Up/Nhập dữ liệu hệ thống toàn diện (Excel / JSON)"
+              >
+                <FileDown className="w-4 h-4 text-amber-300" />
+                <span className="hidden sm:inline">Dữ Liệu Hệ Thống</span>
+                <span className="sm:hidden">Dữ Liệu</span>
+              </button>
+            )}
+
             {/* Export PDF Button */}
             <button
               onClick={onOpenReportModal}
@@ -77,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Xuất file PDF báo cáo giao ban cuối ngày"
             >
               <FileDown className="w-4 h-4" />
-              <span className="hidden md:inline">Xuất Báo Cáo PDF</span>
+              <span className="hidden md:inline">Xuất PDF</span>
               <span className="md:hidden">PDF</span>
             </button>
 

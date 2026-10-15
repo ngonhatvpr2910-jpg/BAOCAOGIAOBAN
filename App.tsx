@@ -10,6 +10,7 @@ import { DailyBriefingReportModal } from './DailyBriefingReportModal';
 import { AlertCenterModal } from './AlertCenterModal';
 import { LoginModal } from './LoginModal';
 import { ThresholdSettingsModal } from './ThresholdSettingsModal';
+import { SystemDataBackupModal } from './SystemDataBackupModal';
 import { 
   Flame, 
   Droplets, 
@@ -24,6 +25,7 @@ function MainAppContent() {
   const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isDataBackupModalOpen, setIsDataBackupModalOpen] = useState(false);
 
   const { thresholds, sendManualPushNotification, selectedDate, isDateLocked } = useProduction();
   const isLocked = isDateLocked(selectedDate);
@@ -58,6 +60,7 @@ function MainAppContent() {
         onOpenAlertModal={() => setIsAlertModalOpen(true)}
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
+        onOpenDataBackupModal={() => setIsDataBackupModalOpen(true)}
       />
 
       {/* Global Data Lock Alert */}
@@ -165,6 +168,11 @@ function MainAppContent() {
       <ThresholdSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+      />
+
+      <SystemDataBackupModal
+        isOpen={isDataBackupModalOpen}
+        onClose={() => setIsDataBackupModalOpen(false)}
       />
     </div>
   );
