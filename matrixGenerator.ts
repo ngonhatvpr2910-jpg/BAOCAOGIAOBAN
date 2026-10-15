@@ -94,8 +94,10 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
         congBepGa: cGa,
         congThoiVu: cTv,
         congRma: cRma,
+        tongCong: Number((cGa + cTv + cRma).toFixed(1)),
         sanLuongBepGa: slGa,
         sanLuongRma: slRma,
+        tongSanLuongQuyDoi: totalSL,
         dinhMucSlTheoNs: dm,
         nsldTheoNgay: nsld,
         khsxNgay: khsx,
@@ -134,8 +136,10 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
       congBepGa: cGa,
       congThoiVu: cTv,
       congRma: cRma,
+      tongCong: totalCong,
       sanLuongBepGa: slGa,
       sanLuongRma: slRma,
+      tongSanLuongQuyDoi: totalSL,
       dinhMucSlTheoNs: dm,
       nsldTheoNgay: nsld,
       khsxNgay: khsx,
@@ -250,13 +254,14 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
         const curCong = baseGa + baseTv + baseRma;
         const curDm = Number((curCong * 9.03).toFixed(1));
         if (day <= 11) {
-          // W41 (01-11/Oct) ~ 116.0% - RMA không có sản xuất và không có báo cáo
-          slGa = Math.round(curDm * 1.16);
+          // W41 (01-11/Oct) ~ 115.8% - RMA không có sản xuất và không có báo cáo
+          slGa = Math.round(curDm * 1.158);
           slRma = 0;
         } else {
-          // Remaining days -> Monthly average exactly 102.7%
-          slGa = Math.round(curDm * 0.985);
-          slRma = baseRma > 0 ? 25 : 0;
+          // Tuần 42 trở đi: Chưa có sản lượng thực tế (chốt W42 đang bằng 0)
+          slGa = 0;
+          slRma = 0;
+          baseRma = 0;
         }
         baseKhsx = 720;
       } else if (isMonth9) {
@@ -462,7 +467,9 @@ export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROC
         weekRange: rangeStr,
         congChinhThuc: cCt,
         congThoiVu: cTv,
+        tongCong: Number((cCt + cTv).toFixed(1)),
         sanLuongLineChinh: sl,
+        tongSanLuongQuyDoi: sl,
         dinhMucSlTheoNs: dm,
         nsldTheoNgay: nsld,
         khsxNgay: khsx,
@@ -493,7 +500,9 @@ export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROC
       ...result[monthlyIdx],
       congChinhThuc: cCt,
       congThoiVu: cTv,
+      tongCong: Number((cCt + cTv).toFixed(1)),
       sanLuongLineChinh: sl,
+      tongSanLuongQuyDoi: sl,
       dinhMucSlTheoNs: dm,
       nsldTheoNgay: nsld,
       khsxNgay: khsx,

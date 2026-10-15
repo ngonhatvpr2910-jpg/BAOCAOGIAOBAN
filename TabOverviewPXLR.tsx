@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProduction } from './ProductionContext';
 import { 
   BarChart, 
@@ -32,6 +32,8 @@ import {
 import { ExecutiveSummaryCard } from './ExecutiveSummaryCard';
 import { ExcelComparisonCharts } from './ExcelComparisonCharts';
 
+import { findWeekColumnInMatrices } from './executiveSummaryService';
+
 interface TabOverviewProps {
   onOpenReportModal: () => void;
   onNavigateToForecast: () => void;
@@ -41,8 +43,127 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
   onOpenReportModal,
   onNavigateToForecast,
 }) => {
-  const { consolidatedPXLR, monthlyHistory, weeklyHistory, selectedDate } = useProduction();
+  const { consolidatedPXLR, monthlyHistory, weeklyHistory, selectedDate, dataVersion, qualityMetrics } = useProduction();
   const [chartViewMode, setChartViewMode] = useState<'output' | 'labor' | 'attendance' | 'defect'>('output');
+  const [selectedWeek, setSelectedWeek] = useState<string>('W41');
+  const [overviewScope, setOverviewScope] = useState<'day' | 'week'>('day');
+  const [syncVersion, setSyncVersion] = useState(0);
+
+  // Lắng nghe cập nhật tức thời khi người dùng chỉnh sửa trong tab DCBG hoặc DCRO
+  useEffect(() => {
+    const handleUpdate = () => {
+      setSyncVersion(v => v + 1);
+    };
+    window.addEventListener('production-data-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('production-data-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
+  const activeData = React.useMemo(() => {
+    if (overviewScope === 'day') {
+      return {
+        scopeLabel: `ngày ${selectedDate}`,
+        isWeekly: false,
+        ...consolidatedPXLR,
+      };
+    }
+
+    // Weekly mode from matrix columns
+    const { colRO, colBG } = findWeekColumnInMatrices(selectedWeek);
+    const bgCt = Number(colBG?.congBepGa) || 0;
+    const bgTv = Number(colBG?.congThoiVu) || 0;
+    const bgRma = Number(colBG?.congRma) || 0;
+    const bgTotalCong = Number(colBG?.tongCong) || Number((bgCt + bgTv + bgRma).toFixed(1));
+    const bgSlGa = Number(colBG?.sanLuongBepGa) || 0;
+    const bgSlRma = Number(colBG?.sanLuongRma) || 0;
+    const bgTotalSl = Number(colBG?.tongSanLuongQuyDoi) || (bgSlGa + bgSlRma);
+    const bgDm = Number(colBG?.dinhMucSlTheoNs) || 0;
+    const bgNsld = Number(colBG?.nsldTheoNgay) || 0;
+    const bgKhsx = Number(colBG?.khsxNgay) || 0;
+    const bgTiLeKh = Number(colBG?.tiLeHoanThanhKhsx) || (bgKhsx > 0 ? Number(((bgTotalSl / bgKhsx) * 100).toFixed(1)) : 0);
+    const bgNsLine = Number(colBG?.tongNhanSuLine) || 0;
+    const bgNsNghi = Number(colBG?.nhanSuNghi) || 0;
+    const bgTiLeDiLam = Number(colBG?.tiLeDiLam) || (bgNsLine > 0 ? Number((((bgNsLine - bgNsNghi) / bgNsLine) * 100).toFixed(1)) : 100);
+
+    const roCt = Number(colRO?.congChinhThuc) || 0;
+    const roTv = Number(colRO?.congThoiVu) || 0;
+    const roTotalCong = Number(colRO?.tongCong) || Number((roCt + roTv).toFixed(1));
+    const roSl = Number(colRO?.sanLuongLineChinh) || 0;
+    const roDm = Number(colRO?.dinhMucSlTheoNs) || 0;
+    const roNsld = Number(colRO?.nsldTheoNgay) || 0;
+    const roKhsx = Number(colRO?.khsxNgay) || 0;
+    const roTiLeKh = Number(colRO?.tiLeHoanThanhKhsx) || (roKhsx > 0 ? Number(((roSl / roKhsx) * 100).toFixed(1)) : 0);
+    const roNsLine = Number(colRO?.tongNhanSuLine) || 0;
+    const roNsNghi = Number(colRO?.nhanSuNghi) || 0;
+    const roTiLeDiLam = Number(colRO?.tiLeDiLam) || (roNsLine > 0 ? Number((((roNsLine - roNsNghi) / roNsLine) * 100).toFixed(1)) : 100);
+
+    const wTongCong = Number((bgTotalCong + roTotalCong).toFixed(1));
+    const wTongCongCt = Number((bgCt + roCt).toFixed(1));
+    const wTongCongTv = Number((bgTv + roTv).toFixed(1));
+    const wTongSl = bgTotalSl + roSl;
+    const wTongDm = Number((bgDm + roDm).toFixed(1));
+    const wNsld = wTongDm > 0 ? Number(((wTongSl / wTongDm) * 100).toFixed(1)) : 0;
+    const wKhsx = bgKhsx + roKhsx;
+    const wTiLeKh = wKhsx > 0 ? Number(((wTongSl / wKhsx) * 100).toFixed(1)) : 0;
+    const wNsLine = bgNsLine + roNsLine;
+    const wNsNghi = bgNsNghi + roNsNghi;
+    const wTiLeDiLam = wNsLine > 0 ? Number((((wNsLine - wNsNghi) / wNsLine) * 100).toFixed(1)) : 100;
+
+    return {
+      scopeLabel: `cột chốt ${selectedWeek}`,
+      isWeekly: true,
+      tongCong: wTongCong,
+      tongCongChinhThuc: wTongCongCt,
+      tongCongThoiVu: wTongCongTv,
+      tongSanLuongQuyDoi: wTongSl,
+      tongDinhMucSl: wTongDm,
+      nsldTrungBinh: wNsld,
+      tongNhanSu: wNsLine,
+      tongNghi: wNsNghi,
+      tiLeDiLam: wTiLeDiLam,
+      tongChiPhiHangHong: 0,
+      tiLeLoiThaoTacTB: qualityMetrics?.pxlr?.totalLoi4M || 3.4,
+      keHoachSanXuat: wKhsx,
+      tiLeHoanThanhKH: wTiLeKh,
+      dcbg: {
+        congBepGa: bgCt,
+        congThoiVu: bgTv,
+        congRma: bgRma,
+        tongCong: bgTotalCong,
+        sanLuongBepGa: bgSlGa,
+        sanLuongRma: bgSlRma,
+        tongSanLuongQuyDoi: bgTotalSl,
+        dinhMucSlTheoNs: bgDm,
+        nsldTheoNgay: bgNsld,
+        khsxNgay: bgKhsx,
+        tiLeHoanThanhKhsx: bgTiLeKh,
+        tongNhanSuLine: bgNsLine,
+        nhanSuNghi: bgNsNghi,
+        tiLeDiLam: bgTiLeDiLam,
+        chiPhiHangHong: 0,
+        tiLeLoiThaoTac: qualityMetrics?.bg?.totalLoi4M || 5.2,
+      },
+      dcro: {
+        congChinhThuc: roCt,
+        congThoiVu: roTv,
+        tongCong: roTotalCong,
+        sanLuongLineChinh: roSl,
+        tongSanLuongQuyDoi: roSl,
+        dinhMucSlTheoNs: roDm,
+        nsldTheoNgay: roNsld,
+        khsxNgay: roKhsx,
+        tiLeHoanThanhKhsx: roTiLeKh,
+        tongNhanSuLine: roNsLine,
+        nhanSuNghi: roNsNghi,
+        tiLeDiLam: roTiLeDiLam,
+        chiPhiHangHong: 0,
+        tiLeLoiThaoTac: qualityMetrics?.ro?.totalLoi4M || 2.9,
+      },
+    };
+  }, [overviewScope, selectedDate, selectedWeek, consolidatedPXLR, dataVersion, qualityMetrics, syncVersion]);
 
   const {
     tongCong,
@@ -60,7 +181,9 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
     tiLeHoanThanhKH,
     dcbg,
     dcro,
-  } = consolidatedPXLR;
+    isWeekly,
+    scopeLabel,
+  } = activeData;
 
   return (
     <div className="space-y-6">
@@ -77,7 +200,7 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
               </span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              Báo cáo tổng hợp ngày {selectedDate}
+              Báo cáo tổng hợp {scopeLabel}
             </h2>
             <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-3xl">
               Hệ thống trung tâm giám sát năng suất, điều phối nguồn lực nhân sự và phân tích chuỗi cung ứng sản xuất giữa line Bếp Gas (DCBG) và line Máy Lọc Nước (DCRO).
@@ -104,7 +227,13 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
       </div>
 
       {/* 1. EXECUTIVE SUMMARY CARD (Extracted benchmarks & targets from W37) */}
-      <ExecutiveSummaryCard />
+      <ExecutiveSummaryCard 
+        selectedWeek={selectedWeek} 
+        onWeekChange={(w) => {
+          setSelectedWeek(w);
+          setOverviewScope('week');
+        }} 
+      />
 
       {/* 4 Key KPI Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -202,19 +331,65 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
 
       {/* Synchronized Comparison Table: DCBG vs DCRO vs Consolidated PXLR */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Layers className="w-4 h-4 text-blue-600" />
-              Bảng Tổng Hợp So Sánh Đối Chiếu 2 DC & PXLR Toàn Xưởng
+              <span>Bảng Tổng Hợp So Sánh Đối Chiếu 2 DC & PXLR Toàn Xưởng</span>
+              {isWeekly && (
+                <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                  Cột Chốt {selectedWeek}
+                </span>
+              )}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Dữ liệu được liên kết và cập nhật tức thời từ tab DCBG và DCRO
+              {isWeekly
+                ? `Số liệu cột chốt tuần ${selectedWeek} tự động lấy từ ma trận tab DCBG & DCRO`
+                : 'Dữ liệu được liên kết và cập nhật tức thời từ tab DCBG và DCRO'}
             </p>
           </div>
-          <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 self-start sm:self-auto">
-            Đồng bộ 100%
-          </span>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setOverviewScope('day')}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  overviewScope === 'day' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Theo Ngày ({selectedDate})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setOverviewScope('week')}
+                className={`px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 ${
+                  overviewScope === 'week' ? 'bg-blue-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                <span>Theo Cột Chốt Tuần ({selectedWeek})</span>
+              </button>
+            </div>
+
+            {overviewScope === 'week' && (
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(e.target.value)}
+                aria-label="Chọn tuần đối chiếu"
+                className="bg-white text-slate-800 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-300 shadow-xs cursor-pointer outline-hidden"
+              >
+                {['W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'].map(w => (
+                  <option key={w} value={w}>{w} {w === 'W42' ? '(Hiện tại)' : ''}</option>
+                ))}
+              </select>
+            )}
+
+            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              Đồng bộ 100%
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -273,26 +448,46 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
               </tr>
               {/* Row 5: SẢN LƯỢNG QUY ĐỔI */}
               <tr className="hover:bg-slate-50/60 transition">
-                <td className="py-2.5 px-4 font-medium text-slate-800">SẢN LƯỢNG QUY ĐỔI NGÀY</td>
-                <td className="py-2.5 px-4 font-bold text-emerald-600">{dcbg.tongSanLuongQuyDoi} sp</td>
-                <td className="py-2.5 px-4 font-bold text-purple-600">{dcro.tongSanLuongQuyDoi} sp</td>
+                <td className="py-2.5 px-4 font-medium text-slate-800">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-slate-900">SẢN LƯỢNG QUY ĐỔI {isWeekly ? `TUẦN ${selectedWeek}` : 'NGÀY'}</span>
+                    <span className="text-[10px] text-blue-700 font-semibold font-mono">
+                      {isWeekly ? '= Thực hiện kế hoạch tuần' : '= Thực hiện trong ngày'}
+                    </span>
+                  </div>
+                </td>
+                <td className="py-2.5 px-4">
+                  <div className="font-bold text-emerald-600">{dcbg.tongSanLuongQuyDoi.toLocaleString('vi-VN')} sp</div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    Bếp Ga: {dcbg.sanLuongBepGa.toLocaleString('vi-VN')} + RMA: {(dcbg.sanLuongRma || 0).toLocaleString('vi-VN')} sp
+                  </div>
+                </td>
+                <td className="py-2.5 px-4">
+                  <div className="font-bold text-purple-600">{dcro.sanLuongLineChinh.toLocaleString('vi-VN')} sp</div>
+                  <div className="text-[10px] text-purple-800 font-semibold font-mono">
+                    Line chính (Thực hiện KH)
+                  </div>
+                </td>
                 <td className="py-2.5 px-4 font-black text-blue-900 bg-blue-50/30 text-sm">
-                  {tongSanLuongQuyDoi.toLocaleString('vi-VN')} sp
+                  <div>{tongSanLuongQuyDoi.toLocaleString('vi-VN')} sp</div>
+                  <div className="text-[10px] text-blue-800 font-normal font-mono">
+                    (Toàn Xưởng = RO + BG + RMA)
+                  </div>
                 </td>
               </tr>
               {/* Row 6: ĐỊNH MỨC SL */}
               <tr className="hover:bg-slate-50/60 transition">
                 <td className="py-2.5 px-4 font-medium text-slate-800">ĐỊNH MỨC SL THEO NS</td>
-                <td className="py-2.5 px-4 text-slate-700">{dcbg.dinhMucSlTheoNs} sp</td>
+                <td className="py-2.5 px-4 text-slate-700">{dcbg.dinhMucSlTheoNs.toLocaleString('vi-VN')} sp</td>
                 <td className="py-2.5 px-4 text-slate-700">
-                  <div className="font-medium">{dcro.dinhMucSlTheoNs} sp</div>
+                  <div className="font-medium">{dcro.dinhMucSlTheoNs.toLocaleString('vi-VN')} sp</div>
                   <div className="text-[10px] text-purple-700 font-semibold font-mono tracking-tight">=(Công CT+TV)×9.03</div>
                 </td>
-                <td className="py-2.5 px-4 font-bold text-slate-900 bg-blue-50/30">{tongDinhMucSl} sp</td>
+                <td className="py-2.5 px-4 font-bold text-slate-900 bg-blue-50/30">{tongDinhMucSl.toLocaleString('vi-VN')} sp</td>
               </tr>
               {/* Row 7: NSLĐ THEO NGÀY */}
               <tr className="bg-slate-50/50 hover:bg-slate-100/50 transition">
-                <td className="py-2.5 px-4 font-bold text-slate-900">NSLĐ THEO NGÀY (%)</td>
+                <td className="py-2.5 px-4 font-bold text-slate-900">NSLĐ THEO {isWeekly ? `TUẦN ${selectedWeek}` : 'NGÀY'} (%)</td>
                 <td className="py-2.5 px-4">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                     dcbg.nsldTheoNgay >= 100 ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -319,8 +514,10 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
               <tr className="bg-blue-50/40 hover:bg-blue-50/70 transition border-y border-blue-200/50">
                 <td className="py-2.5 px-4 font-bold text-blue-950">
                   <div className="flex flex-col">
-                    <span className="font-extrabold text-blue-950">TỈ LỆ HOÀN THÀNH KHSX</span>
-                    <span className="text-[10px] text-blue-700 font-mono font-semibold">= (SL Bếp Ga + RMA) / KHSX</span>
+                    <span className="font-extrabold text-blue-950">TỈ LỆ HOÀN THÀNH KHSX {isWeekly ? `(${selectedWeek})` : ''}</span>
+                    <span className="text-[10px] text-blue-700 font-mono font-semibold">
+                      = Thực hiện KH / KHSX tuần
+                    </span>
                   </div>
                 </td>
                 <td className="py-2.5 px-4">
@@ -340,7 +537,7 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                       : (dcro.tiLeHoanThanhKhsx || 0).toFixed(1)}%
                   </div>
                   <div className="text-[10px] text-purple-800 font-semibold font-mono tracking-tight">
-                    = SL Line Chính/KHSX ({dcro.khsxNgay ? dcro.khsxNgay.toLocaleString('vi-VN') : 0} sp)
+                    KHSX: {dcro.khsxNgay ? dcro.khsxNgay.toLocaleString('vi-VN') : 0} sp (Thực hiện: {dcro.sanLuongLineChinh.toLocaleString('vi-VN')} sp)
                   </div>
                 </td>
                 <td className="py-2.5 px-4 bg-blue-100/70">
@@ -349,6 +546,9 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                   }`}>
                     {tiLeHoanThanhKH.toFixed(1)}%
                   </span>
+                  <div className="text-[10px] text-blue-900 font-semibold font-mono tracking-tight mt-0.5">
+                    KHSX: {keHoachSanXuat.toLocaleString('vi-VN')} sp (Thực hiện: {tongSanLuongQuyDoi.toLocaleString('vi-VN')} sp)
+                  </div>
                 </td>
               </tr>
               {/* Row 8: TỈ LỆ ĐI LÀM */}

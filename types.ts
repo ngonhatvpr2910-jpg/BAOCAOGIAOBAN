@@ -197,7 +197,9 @@ export interface ExcelMatrixROColumn {
   weekRange?: string; // e.g. "01 - 05/09"
   congChinhThuc: number;
   congThoiVu: number;
+  tongCong?: number;
   sanLuongLineChinh: number;
+  tongSanLuongQuyDoi?: number;
   dinhMucSlTheoNs: number;
   nsldTheoNgay: number; // %
   khsxNgay: number;
@@ -220,8 +222,10 @@ export interface ExcelMatrixBGColumn {
   congBepGa: number;
   congThoiVu: number;
   congRma: number;
+  tongCong?: number;
   sanLuongBepGa: number;
   sanLuongRma: number;
+  tongSanLuongQuyDoi?: number;
   dinhMucSlTheoNs: number;
   nsldTheoNgay: number; // %
   khsxNgay: number;

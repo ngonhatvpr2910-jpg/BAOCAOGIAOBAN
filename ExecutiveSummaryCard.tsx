@@ -92,7 +92,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
   const slide1Data = useMemo(() => {
     return slide1NSLDData || StorageService.getSlide1NSLD();
-  }, [dataVersion, slide1NSLDData]);
+  }, [dataVersion, slide1NSLDData, localVersion]);
 
   const dynamicAvailableWeeks = useMemo(() => {
     const fromData = new Set<string>();

@@ -208,6 +208,7 @@ export const DCBGExcelDashboard: React.FC = () => {
       const recalculated = recalculateBGMatrix(next);
       // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
       StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+      updateMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('production-data-updated', {
           detail: { type: 'matrix-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }

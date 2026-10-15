@@ -173,6 +173,7 @@ export const DCROExcelDashboard: React.FC = () => {
       const recalculated = recalculateROMatrix(next);
       // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
       StorageService.saveMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
+      updateMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('production-data-updated', {
           detail: { type: 'matrix-ro', year: selectedYear, monthIndex0: selectedMonthIndex0 }

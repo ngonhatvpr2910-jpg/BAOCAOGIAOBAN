@@ -144,41 +144,56 @@ export function autoComputeSlideDataFromInputs(
       const matRO = StorageService.getMatrixROForMonth(2026, mIdx);
       const matBG = StorageService.getMatrixBGForMonth(2026, mIdx);
       
-      const weeklyColsRO = matRO.filter(c => c.isWeeklyTotal);
-      weeklyColsRO.forEach(wColRO => {
-        const match = wColRO.label.match(/W(\d+)/i);
-        if (match) {
-          const wNum = parseInt(match[1], 10);
-          const wCode = `W${wNum}`;
-          const finalLabel = `Tuần ${wNum}`;
-          const wColBG = matBG.find(c => c.isWeeklyTotal && c.label.includes(wCode));
-          
-          const nsRO = Number(wColRO.nsldTheoNgay) || 0;
-          const nsBG = wColBG ? (Number(wColBG.nsldTheoNgay) || 0) : 0;
-          
-          if (nsRO > 0 || nsBG > 0) {
-            const slRO = Number(wColRO.sanLuongLineChinh) || 0;
-            const dmRO = Number(wColRO.dinhMucSlTheoNs) || 0;
-            const slBG = wColBG ? ((Number(wColBG.sanLuongBepGa) || 0) + (Number(wColBG.sanLuongRma) || 0)) : 0;
-            const dmBG = wColBG ? (Number(wColBG.dinhMucSlTheoNs) || 0) : 0;
-            const totalSL = slRO + slBG;
-            const totalDM = dmRO + dmBG;
-            const nsPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : (nsRO > 0 && nsBG > 0 ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) : (nsRO || nsBG));
-            
-            const updateItem = (items: SlideBarItem[], val: number, type: string) => {
-              const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
-              if (idx !== -1) {
-                if (!isHistoricalItem(items[idx].id) && (val > 0 || items[idx].value === 0)) {
-                  items[idx].value = val;
-                }
-              } else {
-                items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
-              }
-            };
-            if (nsRO > 0) updateItem(result.ro.weekly, nsRO, 'ro');
-            if (nsBG > 0) updateItem(result.bg.weekly, nsBG, 'bg');
-            if (nsPXLR > 0) updateItem(result.pxlr.weekly, nsPXLR, 'pxlr');
+      const allWeeklyWeeks = new Set<number>();
+      matRO.filter(c => c.isWeeklyTotal).forEach(c => {
+        const m = c.label.match(/W(\d+)/i);
+        if (m) allWeeklyWeeks.add(parseInt(m[1], 10));
+      });
+      matBG.filter(c => c.isWeeklyTotal).forEach(c => {
+        const m = c.label.match(/W(\d+)/i);
+        if (m) allWeeklyWeeks.add(parseInt(m[1], 10));
+      });
+
+      allWeeklyWeeks.forEach(wNum => {
+        const wCode = `W${wNum}`;
+        const finalLabel = `Tuần ${wNum}`;
+        const wColRO = matRO.find(c => c.isWeeklyTotal && (c.label.includes(wCode) || (c.id && c.id.includes(`w${wNum}`))));
+        const wColBG = matBG.find(c => c.isWeeklyTotal && (c.label.includes(wCode) || (c.id && c.id.includes(`w${wNum}`))));
+
+        const nsRO = wColRO ? (Number(wColRO.nsldTheoNgay) || 0) : 0;
+        const nsBG = wColBG ? (Number(wColBG.nsldTheoNgay) || 0) : 0;
+
+        const updateItem = (items: SlideBarItem[], val: number, type: string) => {
+          const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
+          if (idx !== -1) {
+            if (!isHistoricalItem(items[idx].id)) {
+              items[idx].value = val;
+            }
+          } else {
+            items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
           }
+        };
+
+        if (wColRO) {
+          updateItem(result.ro.weekly, nsRO, 'ro');
+        }
+        if (wColBG) {
+          updateItem(result.bg.weekly, nsBG, 'bg');
+        }
+
+        if (wColRO || wColBG) {
+          const slRO = Number(wColRO?.sanLuongLineChinh) || 0;
+          const dmRO = Number(wColRO?.dinhMucSlTheoNs) || 0;
+          const slBG = wColBG ? ((Number(wColBG.sanLuongBepGa) || 0) + (Number(wColBG.sanLuongRma) || 0)) : 0;
+          const dmBG = wColBG ? (Number(wColBG.dinhMucSlTheoNs) || 0) : 0;
+          const totalSL = slRO + slBG;
+          const totalDM = dmRO + dmBG;
+          const nsPXLR = totalDM > 0 
+            ? Number(((totalSL / totalDM) * 100).toFixed(1)) 
+            : (nsRO > 0 && nsBG > 0 
+                ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) 
+                : (nsRO || nsBG || 0));
+          updateItem(result.pxlr.weekly, nsPXLR, 'pxlr');
         }
       });
     });

@@ -1,4 +1,13 @@
-import { UnitExecutiveSummary, MonthlyHistoryRecord, SlideDefectCostData, Slide1NSLDData, Slide2QualityData, GlobalNormsConfig } from './types';
+import { 
+  UnitExecutiveSummary, 
+  MonthlyHistoryRecord, 
+  SlideDefectCostData, 
+  Slide1NSLDData, 
+  Slide2QualityData, 
+  GlobalNormsConfig,
+  ExcelMatrixROColumn,
+  ExcelMatrixBGColumn,
+} from './types';
 import { StorageService } from './storage';
 import { synchronizeSlide3Data, isSameWeek, isItemInMonth, extractWeekNumber, MONTH_WEEKS_MAP, HISTORICAL_WEEK_BREAKDOWN } from './defectCostSyncService';
 import { calculateAbsolutePXLR } from './productivityFormulas';
@@ -1575,19 +1584,37 @@ export const findWeekColumnInMatrices = (weekStr: string) => {
   if (wNum >= 41 && wNum <= 44) primaryMonthIdx = 9; // Tháng 10 (index 9)
   else if (wNum >= 45 && wNum <= 48) primaryMonthIdx = 10; // Tháng 11 (index 10)
   else if (wNum >= 49) primaryMonthIdx = 11; // Tháng 12 (index 11)
+  else if (wNum >= 36 && wNum <= 40) primaryMonthIdx = 8; // Tháng 9 (index 8)
   else if (wNum <= 35) primaryMonthIdx = 7; // Tháng 8 (index 7)
 
-  const monthsToCheck = [primaryMonthIdx, 8, 9, 7, 5, 6, 10, 11];
+  const monthsToCheck = Array.from(new Set([primaryMonthIdx, 9, 8, 10, 11, 7, 5, 6]));
+  let foundRO: ExcelMatrixROColumn | undefined;
+  let foundBG: ExcelMatrixBGColumn | undefined;
+
+  const matchCol = (c: any) => {
+    if (!c || !c.isWeeklyTotal) return false;
+    const labelUpper = (c.label || '').toUpperCase();
+    const idUpper = (c.id || '').toUpperCase();
+    const targetUpper = weekStr.toUpperCase();
+    if (labelUpper === targetUpper || labelUpper.startsWith(targetUpper + ' ') || labelUpper.startsWith(targetUpper + ':')) return true;
+    if (idUpper.includes(targetUpper.toLowerCase()) || (wNum > 0 && idUpper.includes(`w${wNum}`))) return true;
+    const num = extractWeekNumber(c.label);
+    if (wNum > 0 && num === wNum) return true;
+    return isMatchingWeekKey(c.label, weekStr);
+  };
+
   for (const mIdx of monthsToCheck) {
-    const matRO = StorageService.getMatrixROForMonth(2026, mIdx) || [];
-    const matBG = StorageService.getMatrixBGForMonth(2026, mIdx) || [];
-    const colRO = matRO.find(c => c.isWeeklyTotal && (c.label === weekStr || c.label.startsWith(weekStr + ' ') || isMatchingWeekKey(c.label, weekStr)));
-    const colBG = matBG.find(c => c.isWeeklyTotal && (c.label === weekStr || c.label.startsWith(weekStr + ' ') || isMatchingWeekKey(c.label, weekStr)));
-    if (colRO || colBG) {
-      return { colRO, colBG };
+    if (!foundRO) {
+      const matRO = StorageService.getMatrixROForMonth(2026, mIdx) || [];
+      foundRO = matRO.find(matchCol);
     }
+    if (!foundBG) {
+      const matBG = StorageService.getMatrixBGForMonth(2026, mIdx) || [];
+      foundBG = matBG.find(matchCol);
+    }
+    if (foundRO && foundBG) break;
   }
-  return { colRO: undefined, colBG: undefined };
+  return { colRO: foundRO, colBG: foundBG };
 };
 
 /**
@@ -1821,19 +1848,9 @@ export function getWeeklyExecutiveSummaryData(
     result.units = result.units.map(u => ({ ...u, defectCostActual: 0 }));
   }
 
-  // 4. Đồng bộ Ma trận DCRO và DCBG
+  // 4. Đồng bộ Ma trận DCRO và DCBG - Cột chốt tuần tự động
   try {
     const { colRO: weekColRO, colBG: weekColBG } = findWeekColumnInMatrices(weekKey);
-
-    const dynNsldRO = weekColRO && weekColRO.nsldTheoNgay > 0 ? Number(weekColRO.nsldTheoNgay.toFixed(1)) : 0;
-    const dynDiLamRO = weekColRO && weekColRO.tiLeDiLam > 0 ? Number(weekColRO.tiLeDiLam.toFixed(1)) : 0;
-    const dynKhRO = weekColRO && weekColRO.khsxNgay > 0 ? weekColRO.khsxNgay : 0;
-    const dynSlRO = weekColRO && weekColRO.sanLuongLineChinh > 0 ? weekColRO.sanLuongLineChinh : 0;
-
-    const dynNsldBG = weekColBG && weekColBG.nsldTheoNgay > 0 ? Number(weekColBG.nsldTheoNgay.toFixed(1)) : 0;
-    const dynDiLamBG = weekColBG && weekColBG.tiLeDiLam > 0 ? Number(weekColBG.tiLeDiLam.toFixed(1)) : 0;
-    const dynKhBG = weekColBG && weekColBG.khsxNgay > 0 ? weekColBG.khsxNgay : 0;
-    const dynSlBG = weekColBG && weekColBG.sanLuongBepGa > 0 ? weekColBG.sanLuongBepGa : 0;
 
     const s2ItemRO = (activeSlide1?.ro?.weekly || []).find(i => isMatchingWeekKey(i.label || i.id, weekKey));
     const s2ItemBG = (activeSlide1?.bg?.weekly || []).find(i => isMatchingWeekKey(i.label || i.id, weekKey));
@@ -1845,63 +1862,110 @@ export function getWeeklyExecutiveSummaryData(
 
       if (u.unitKey === 'RO') {
         let kh = parseVNNumber(u.khsxLabel);
-        let sl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+        let sl = (u.actualOutput !== undefined && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
 
-        if (!hasBase) {
+        if (weekColRO) {
+          // CÔNG THỨC CHUẨN: KHSX ngày là kế hoạch; sản phẩm quy đổi Line chính là thực hiện kế hoạch
+          kh = Number(weekColRO.khsxNgay) || 0;
+          sl = Number(weekColRO.sanLuongLineChinh) || 0;
+        } else if (!hasBase) {
           if (wNum >= 45 && wNum <= 48) { kh = 3850; sl = Math.round(kh * (u.nsldActual / 100)); }
           else if (wNum >= 49 && wNum <= 52) { kh = 4125; sl = Math.round(kh * (u.nsldActual / 100)); }
           else if (wNum >= 31 && wNum <= 35) { kh = 1700; sl = 1380; }
           else if (wNum >= 27 && wNum <= 30) { kh = 3250; sl = 3025; }
           else if (wNum >= 22 && wNum <= 26) { kh = 2500; sl = 2400; }
-          else { kh = dynKhRO > 0 ? dynKhRO : 4320; sl = dynSlRO > 0 ? dynSlRO : Math.round(kh * (u.nsldActual / 100)); }
+          else { kh = 4320; sl = Math.round(kh * (u.nsldActual / 100)); }
         }
 
-        const rate = kh > 0 ? (sl / kh) * 100 : 100;
-        const nsld = (s2ItemRO && s2ItemRO.value > 0) ? Number(s2ItemRO.value.toFixed(1)) : (dynNsldRO > 0 ? dynNsldRO : u.nsldActual);
-        const diLam = (dynDiLamRO >= 80) ? dynDiLamRO : u.attendanceActual;
+        const rate = kh > 0 ? Number(((sl / kh) * 100).toFixed(1)) : (sl > 0 ? 100 : 0);
+        const nsld = (weekColRO && weekColRO.nsldTheoNgay !== undefined)
+          ? Number(weekColRO.nsldTheoNgay.toFixed(1))
+          : ((s2ItemRO && s2ItemRO.value > 0) ? Number(s2ItemRO.value.toFixed(1)) : u.nsldActual);
+        const diLam = (weekColRO && weekColRO.tiLeDiLam > 0) ? Number(weekColRO.tiLeDiLam.toFixed(1)) : u.attendanceActual;
         const isPass = nsld >= u.nsldTarget;
+
         return {
           ...u,
           khsxLabel: `${formatVNNumber(kh)} SP`,
           actualOutputLabel: `${formatVNNumber(sl)} SP`,
           actualOutput: sl,
-          completionRate: Number(rate.toFixed(1)),
-          completionNote: `Đạt ${rate.toFixed(1)}% KHSX RO`,
+          completionRate: rate,
+          completionNote: kh > 0 ? `Đạt ${rate.toFixed(1)}% KHSX RO` : (sl > 0 ? `Thực hiện ${formatVNNumber(sl)} SP` : 'Không có KHSX'),
           nsldActual: nsld,
           nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : `Chưa đạt mục tiêu ${u.nsldTarget}%`,
           attendanceActual: diLam,
         };
       }
+
       if (u.unitKey === 'BG') {
         let kh = parseVNNumber(u.khsxLabel);
-        let sl = (u.actualOutput && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
+        let sl = (u.actualOutput !== undefined && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
 
-        if (!hasBase) {
+        if (weekColBG) {
+          // CÔNG THỨC CHUẨN: KHSX ngày là kế hoạch; sản phẩm quy đổi Line (Bếp Ga) là thực hiện kế hoạch
+          kh = Number(weekColBG.khsxNgay) || 0;
+          sl = Number(weekColBG.sanLuongBepGa) || 0;
+        } else if (!hasBase) {
           if (wNum >= 45 && wNum <= 48) { kh = 650; sl = Math.round(kh * (u.nsldActual / 100)); }
           else if (wNum >= 49 && wNum <= 52) { kh = 750; sl = Math.round(kh * (u.nsldActual / 100)); }
           else if (wNum >= 31 && wNum <= 35) { kh = 1300; sl = 964; }
           else if (wNum >= 27 && wNum <= 30) { kh = 2350; sl = 2149; }
           else if (wNum >= 22 && wNum <= 26) { kh = 1878; sl = 1770; }
-          else { kh = dynKhBG > 0 ? dynKhBG : 4320; sl = dynSlBG > 0 ? dynSlBG : Math.round(kh * (u.nsldActual / 100)); }
+          else { kh = 4320; sl = Math.round(kh * (u.nsldActual / 100)); }
         }
 
-        const rate = kh > 0 ? (sl / kh) * 100 : 100;
-        const nsld = (s2ItemBG && s2ItemBG.value > 0) ? Number(s2ItemBG.value.toFixed(1)) : (dynNsldBG > 0 ? dynNsldBG : u.nsldActual);
-        const diLam = (dynDiLamBG >= 80) ? dynDiLamBG : u.attendanceActual;
+        const rate = kh > 0 ? Number(((sl / kh) * 100).toFixed(1)) : (sl > 0 ? 100 : 0);
+        const nsld = (weekColBG && weekColBG.nsldTheoNgay !== undefined)
+          ? Number(weekColBG.nsldTheoNgay.toFixed(1))
+          : ((s2ItemBG && s2ItemBG.value > 0) ? Number(s2ItemBG.value.toFixed(1)) : u.nsldActual);
+        const diLam = (weekColBG && weekColBG.tiLeDiLam > 0) ? Number(weekColBG.tiLeDiLam.toFixed(1)) : u.attendanceActual;
         const delta = nsld - u.nsldTarget;
+
         return {
           ...u,
           khsxLabel: `${formatVNNumber(kh)} SP`,
           actualOutputLabel: `${formatVNNumber(sl)} SP`,
           actualOutput: sl,
-          completionRate: Number(rate.toFixed(1)),
-          completionNote: `Đạt ${rate.toFixed(1)}% KHSX BG`,
+          completionRate: rate,
+          completionNote: kh > 0 ? `Đạt ${rate.toFixed(1)}% KHSX BG` : (sl > 0 ? `Thực hiện ${formatVNNumber(sl)} SP` : 'Không có KHSX'),
           nsldActual: nsld,
           nsldDeltaNote: delta >= 0 ? `↑ ${delta.toFixed(1)}% so với mục tiêu ${u.nsldTarget}%` : `↓ ${Math.abs(delta).toFixed(1)}% so với mục tiêu ${u.nsldTarget}%`,
           attendanceActual: diLam,
         };
       }
+
       if (u.unitKey === 'RMA') {
+        const rmaSl = weekColBG ? (Number(weekColBG.sanLuongRma) || 0) : 0;
+        if (weekColBG) {
+          if (rmaSl > 0) {
+            return {
+              ...u,
+              khsxLabel: '0 SP',
+              actualOutputLabel: `${formatVNNumber(rmaSl)} SP`,
+              actualOutput: rmaSl,
+              completionRate: 100,
+              completionNote: `Sản lượng RMA: ${formatVNNumber(rmaSl)} SP`,
+              nsldActual: 100,
+              attendanceActual: (weekColBG.tiLeDiLam > 0 ? Number(weekColBG.tiLeDiLam.toFixed(1)) : 95.0),
+              bomNote: 'Không phát sinh linh kiện ngoài BOM',
+              actionItem: `Hoàn thành sản lượng RMA ${formatVNNumber(rmaSl)} SP theo tiến độ.`,
+            };
+          } else {
+            return {
+              ...u,
+              khsxLabel: '0 SP',
+              actualOutputLabel: '0 SP',
+              actualOutput: 0,
+              completionRate: 0,
+              completionNote: 'Không có KHSX RMA',
+              nsldActual: 0,
+              attendanceActual: 0,
+              bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+              actionItem: 'Không phát sinh bảo hành ngoài kế hoạch.',
+            };
+          }
+        }
+
         const isRmaNoPlan = (u.khsxLabel === '0 SP' || u.khsxLabel === '0' || !u.actualOutput || u.actualOutput === 0 || u.actualOutputLabel === '0 SP');
         if (isRmaNoPlan) {
           return {
@@ -1940,13 +2004,20 @@ export function getWeeklyExecutiveSummaryData(
 
     const totalKh = roKh + bgKh + (rmaKh > 0 ? rmaKh : 0);
     const totalAct = roAct + bgAct + (rmaKh > 0 ? rmaAct : 0);
-    const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : 100;
+    const totalRate = totalKh > 0 ? Number(((totalAct / totalKh) * 100).toFixed(1)) : (totalAct > 0 ? 100 : 0);
 
     const roNsld = roUnit?.nsldActual || 0;
     const bgNsld = bgUnit?.nsldActual || 0;
-    const pxlrNsld = (s2ItemPXLR && s2ItemPXLR.value > 0)
-      ? Number(s2ItemPXLR.value.toFixed(1))
-      : calculateAbsolutePXLR(roNsld, bgNsld, 'weekly');
+    
+    let pxlrNsld = 0;
+    if (weekColRO || weekColBG) {
+      const totalDm = (Number(weekColRO?.dinhMucSlTheoNs) || 0) + (Number(weekColBG?.dinhMucSlTheoNs) || 0);
+      pxlrNsld = totalDm > 0 ? Number(((totalAct / totalDm) * 100).toFixed(1)) : calculateAbsolutePXLR(roNsld, bgNsld, 'weekly');
+    } else if (s2ItemPXLR && s2ItemPXLR.value > 0) {
+      pxlrNsld = Number(s2ItemPXLR.value.toFixed(1));
+    } else {
+      pxlrNsld = calculateAbsolutePXLR(roNsld, bgNsld, 'weekly');
+    }
 
     const nsRO = weekColRO ? (Number(weekColRO.tongNhanSuLine) || 0) : 0;
     const nghiRO = weekColRO ? (Number(weekColRO.nhanSuNghi) || 0) : 0;

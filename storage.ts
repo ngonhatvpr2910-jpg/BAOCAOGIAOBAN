@@ -366,6 +366,12 @@ export const StorageService = {
                 updatedCol.sanLuongRma = 0;
                 updatedCol.congRma = 0;
               }
+            } else if (!isNaN(dayNum) && dayNum >= 12 && Number(updatedCol.sanLuongRma) === 25) {
+              // Xóa dữ liệu mẫu giả định cũ của W42 trở đi để chốt W42 bằng đúng 0 theo yêu cầu người dùng
+              changed = true;
+              updatedCol.sanLuongBepGa = 0;
+              updatedCol.sanLuongRma = 0;
+              updatedCol.congRma = 0;
             }
           }
           if (updatedCol.isOff && monthIndex0 === 5 && year === 2026) {
@@ -567,35 +573,41 @@ export const StorageService = {
           matrixMonths.forEach(mIdx => {
             const mRO = this.getMatrixROForMonth(2026, mIdx) || [];
             const mBG = this.getMatrixBGForMonth(2026, mIdx) || [];
-            const weeklyRO = mRO.filter(c => c.isWeeklyTotal);
-            weeklyRO.forEach(cRO => {
-              const m = cRO.label.match(/W(\d+)/i);
-              if (m) {
-                const wNum = parseInt(m[1], 10);
-                const weekId = `w${wNum}`;
-                const cBG = mBG.find(b => b.isWeeklyTotal && b.label.includes(`W${wNum}`));
-                const valRO = Number(cRO.nsldTheoNgay) || 0;
-                const valBG = cBG ? (Number(cBG.nsldTheoNgay) || 0) : 0;
-                const slRO = Number(cRO.sanLuongLineChinh) || 0;
-                const dmRO = Number(cRO.dinhMucSlTheoNs) || 0;
-                const slBG = cBG ? ((Number(cBG.sanLuongBepGa) || 0) + (Number(cBG.sanLuongRma) || 0)) : 0;
-                const dmBG = cBG ? (Number(cBG.dinhMucSlTheoNs) || 0) : 0;
-                const totalSL = slRO + slBG;
-                const totalDM = dmRO + dmBG;
-                const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 0;
+            const allWeekNums = new Set<number>();
+            mRO.filter(c => c.isWeeklyTotal).forEach(c => {
+              const m = c.label.match(/W(\d+)/i);
+              if (m) allWeekNums.add(parseInt(m[1], 10));
+            });
+            mBG.filter(c => c.isWeeklyTotal).forEach(c => {
+              const m = c.label.match(/W(\d+)/i);
+              if (m) allWeekNums.add(parseInt(m[1], 10));
+            });
 
-                if (cRO) {
-                  const it = parsed.ro.weekly.find((i: any) => i.id === `ro-${weekId}` || i.label === `Tuần ${wNum}`);
-                  if (it && !isHistoricalItem(it.id)) it.value = valRO;
-                }
-                if (cBG) {
-                  const it = parsed.bg.weekly.find((i: any) => i.id === `bg-${weekId}` || i.label === `Tuần ${wNum}`);
-                  if (it && !isHistoricalItem(it.id)) it.value = valBG;
-                }
-                if (cRO || cBG) {
-                  const it = parsed.pxlr.weekly.find((i: any) => i.id === `pxlr-${weekId}` || i.id === `pxlr-w${wNum}` || i.label === `Tuần ${wNum}`);
-                  if (it && !isHistoricalItem(it.id)) it.value = valPXLR;
-                }
+            allWeekNums.forEach(wNum => {
+              const weekId = `w${wNum}`;
+              const cRO = mRO.find(r => r.isWeeklyTotal && (r.label.includes(`W${wNum}`) || (r.id && r.id.includes(`w${wNum}`))));
+              const cBG = mBG.find(b => b.isWeeklyTotal && (b.label.includes(`W${wNum}`) || (b.id && b.id.includes(`w${wNum}`))));
+              const valRO = cRO ? (Number(cRO.nsldTheoNgay) || 0) : 0;
+              const valBG = cBG ? (Number(cBG.nsldTheoNgay) || 0) : 0;
+              const slRO = Number(cRO?.sanLuongLineChinh) || 0;
+              const dmRO = Number(cRO?.dinhMucSlTheoNs) || 0;
+              const slBG = cBG ? ((Number(cBG.sanLuongBepGa) || 0) + (Number(cBG.sanLuongRma) || 0)) : 0;
+              const dmBG = cBG ? (Number(cBG.dinhMucSlTheoNs) || 0) : 0;
+              const totalSL = slRO + slBG;
+              const totalDM = dmRO + dmBG;
+              const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 0;
+
+              if (cRO) {
+                const it = parsed.ro.weekly.find((i: any) => i.id === `ro-${weekId}` || i.label === `Tuần ${wNum}`);
+                if (it && !isHistoricalItem(it.id)) it.value = valRO;
+              }
+              if (cBG) {
+                const it = parsed.bg.weekly.find((i: any) => i.id === `bg-${weekId}` || i.label === `Tuần ${wNum}`);
+                if (it && !isHistoricalItem(it.id)) it.value = valBG;
+              }
+              if (cRO || cBG) {
+                const it = parsed.pxlr.weekly.find((i: any) => i.id === `pxlr-${weekId}` || i.id === `pxlr-w${wNum}` || i.label === `Tuần ${wNum}`);
+                if (it && !isHistoricalItem(it.id)) it.value = valPXLR;
               }
             });
           });
