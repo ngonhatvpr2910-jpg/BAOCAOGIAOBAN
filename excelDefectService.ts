@@ -2,6 +2,8 @@ import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { SlideDefectCostData, DamagedItemRecord, SlideBarItem, MonthlyHistoryRecord } from './types';
 import { computeWeeklyAggregations, computeMonthlyAggregations } from './defectCostSyncService';
+import { StorageService } from './storage';
+import { getMonthBaseWeek } from './matrixGenerator';
 
 export interface ExcelImportResult {
   success: boolean;
@@ -543,17 +545,41 @@ function parseSingleRow(row: any, idx: number, defaultCat: 'RO' | 'BG'): Damaged
       if (dayMatch) {
         const day = parseInt(dayMatch[1], 10);
         const month = parseInt(dayMatch[2], 10);
-        if (month === 9) {
+        const monthIndex0 = month - 1;
+        const customCutoffs = StorageService.getCustomWeekCutoffs(2026, monthIndex0);
+        const baseWeek = getMonthBaseWeek(2026, monthIndex0);
+
+        if (customCutoffs && customCutoffs.length > 0) {
+          const sorted = [...customCutoffs].sort((a, b) => a - b);
+          let assignedIdx = sorted.length;
+          for (let i = 0; i < sorted.length; i++) {
+            if (day <= sorted[i]) {
+              assignedIdx = i;
+              break;
+            }
+          }
+          week = `W${baseWeek + assignedIdx}`;
+        } else if (month === 9) {
           if (day <= 3) week = 'W36';
           else if (day <= 10) week = 'W37';
           else if (day <= 17) week = 'W38';
           else if (day <= 24) week = 'W39';
           else week = 'W40';
         } else if (month === 10) {
-          if (day <= 11) week = 'W41';
-          else if (day <= 18) week = 'W42';
-          else if (day <= 25) week = 'W43';
+          if (day <= 8) week = 'W41';
+          else if (day <= 15) week = 'W42';
+          else if (day <= 22) week = 'W43';
           else week = 'W44';
+        } else if (month === 11) {
+          if (day <= 8) week = 'W45';
+          else if (day <= 15) week = 'W46';
+          else if (day <= 22) week = 'W47';
+          else week = 'W48';
+        } else if (month === 12) {
+          if (day <= 6) week = 'W49';
+          else if (day <= 13) week = 'W50';
+          else if (day <= 20) week = 'W51';
+          else week = 'W52';
         }
       }
     }

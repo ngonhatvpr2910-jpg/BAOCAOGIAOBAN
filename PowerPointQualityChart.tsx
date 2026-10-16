@@ -10,6 +10,7 @@ interface PowerPointQualityChartProps {
   lineColor?: 'blue' | 'red';
   height?: number;
   highlightKey?: string;
+  errorTypeFilter?: 'all' | 'loiThaoTac' | 'vatTu';
   onSelectPeriod?: (label: string) => void;
   onPrev?: () => void;
   onNext?: () => void;
@@ -25,6 +26,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
   lineColor = 'blue',
   height = 200,
   highlightKey,
+  errorTypeFilter = 'all',
   onSelectPeriod,
   onPrev,
   onNext,
@@ -45,7 +47,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
   const safeItems = items || [];
   const allValues = [
     benchmarkDmLoi,
-    ...safeItems.map(i => Math.max(i.dmVatTu || 0, i.vatTu || 0, i.totalLoi4M || 0)),
+    ...safeItems.map(i => Math.max(i.dmVatTu || 0, i.vatTu || 0, i.totalLoi4M || 0, i.loiThaoTac || 0)),
   ];
   const maxVal = Math.max(...allValues, 6);
   const maxScale = Math.ceil(maxVal * 1.25);
@@ -55,6 +57,8 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
   const orangeBar = '#EA580C';     // Orange for Vật tư thực tế
   const benchmarkStroke = benchmarkColor === 'purple' ? '#7C3AED' : '#16A34A'; // Green/Purple
   const lineStroke = lineColor === 'red' ? '#DC2626' : '#2563EB';              // Red/Blue
+  const activeLineStroke = errorTypeFilter === 'loiThaoTac' ? '#D97706' : errorTypeFilter === 'vatTu' ? '#EA580C' : lineStroke;
+  const filterTitleSuffix = errorTypeFilter === 'loiThaoTac' ? ' - LỖI THAO TÁC' : errorTypeFilter === 'vatTu' ? ' - LỖI VẬT TƯ' : '';
 
   // Compute Y coordinate for a percentage value
   const getY = (val: number) => {
@@ -68,8 +72,9 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
   const linePoints = safeItems.map((item, idx) => {
     const slotWidth = chartWidth / (safeItems.length || 1);
     const centerX = padLeft + idx * slotWidth + slotWidth / 2;
-    const y = getY(item.totalLoi4M);
-    return { x: centerX, y, value: item.totalLoi4M, label: item.month };
+    const val = errorTypeFilter === 'loiThaoTac' ? (item.loiThaoTac ?? 0) : errorTypeFilter === 'vatTu' ? (item.vatTu ?? 0) : item.totalLoi4M;
+    const y = getY(val);
+    return { x: centerX, y, value: val, label: item.month };
   });
 
   return (
@@ -81,7 +86,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
       <div className="bg-slate-900 px-3.5 py-2.5 border-b border-slate-700 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h3 className="font-black text-white tracking-tight text-xs sm:text-sm md:text-[14px] uppercase leading-tight">
-            {title}
+            {title}{filterTitleSuffix}
           </h3>
           {(onPrev || onNext) && (
             <div className="flex items-center gap-0.5 bg-slate-800 rounded-md p-0.5 border border-slate-700">
@@ -203,12 +208,12 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
             );
           })}
 
-          {/* Line Path: Total % lỗi 4M */}
+          {/* Line Path: Error Rate Series */}
           {linePoints.length > 1 && (
             <path
               d={linePoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')}
               fill="none"
-              stroke={lineStroke}
+              stroke={activeLineStroke}
               strokeWidth="4"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -223,7 +228,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
                 cx={pt.x}
                 cy={pt.y}
                 r="7"
-                fill={lineStroke}
+                fill={activeLineStroke}
                 stroke="#ffffff"
                 strokeWidth="2.5"
               />
@@ -232,7 +237,7 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
                 x={pt.x}
                 y={pt.y - 12}
                 textAnchor="middle"
-                fill={lineStroke}
+                fill={activeLineStroke}
                 fontSize="14"
                 fontWeight="900"
                 fontFamily='"Times New Roman", Times, serif'
@@ -314,7 +319,23 @@ export const PowerPointQualityChart: React.FC<PowerPointQualityChartProps> = ({
                 })}
               </tr>
 
-              {/* Row 2: Vật tư thực tế (%) */}
+              {/* Row 2: Lỗi thao tác con người (3M) */}
+              <tr className="border-b border-slate-200 bg-amber-50/20">
+                <td className="py-2.5 px-2 text-left font-bold text-[12px] text-slate-800 flex items-center gap-1.5 sticky left-0 bg-[#fffdfa] border-r border-slate-200 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs bg-amber-500" />
+                  <span>Lỗi thao tác (con người)</span>
+                </td>
+                {safeItems.map((item, idx) => {
+                  const loi3M = item.loiThaoTac !== undefined ? Number(item.loiThaoTac.toFixed(1)) : Math.max(0, Number((item.totalLoi4M - item.vatTu).toFixed(1)));
+                  return (
+                    <td key={idx} className="py-2 px-1.5 border-r border-slate-200 font-bold text-amber-900 text-sm whitespace-nowrap">
+                      {loi3M}%
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* Row 3: Vật tư thực tế (%) */}
               <tr className="border-b border-slate-200">
                 <td className="py-2.5 px-2 text-left font-bold text-[12px] text-slate-800 flex items-center gap-1.5 sticky left-0 bg-white border-r border-slate-200 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.05)]">
                   <span className="w-2.5 h-2.5 rounded-xs shrink-0 shadow-2xs" style={{ backgroundColor: orangeBar }} />

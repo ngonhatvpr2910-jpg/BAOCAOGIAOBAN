@@ -886,6 +886,29 @@ export function getDefaultSundayCutoffs(year: number, monthIndex0: number): numb
  * Restructure the BG matrix by positioning week cutoffs at specified days
  * (e.g. choosing day 5/09 calculates week 1 from day 1 through day 5/09)
  */
+/**
+ * Lấy tuần bắt đầu quy chuẩn của từng tháng
+ */
+export function getMonthBaseWeek(year: number, monthIndex0: number): number {
+  const baseMap: Record<number, number> = {
+    0: 1,   // Tháng 1: W1
+    1: 5,   // Tháng 2: W5
+    2: 9,   // Tháng 3: W9
+    3: 14,  // Tháng 4: W14
+    4: 18,  // Tháng 5: W18
+    5: 22,  // Tháng 6: W22
+    6: 27,  // Tháng 7: W27
+    7: 31,  // Tháng 8: W31
+    8: 36,  // Tháng 9: W36
+    9: 41,  // Tháng 10: W41
+    10: 45, // Tháng 11: W45
+    11: 49, // Tháng 12: W49
+  };
+  if (baseMap[monthIndex0] !== undefined) return baseMap[monthIndex0];
+  const d = new Date(year, monthIndex0, 1);
+  return getWeekOfYear(d);
+}
+
 export function applyWeekCutoffsToBGMatrix(
   cols: ExcelMatrixBGColumn[],
   cutoffDays: number[],
@@ -901,6 +924,7 @@ export function applyWeekCutoffsToBGMatrix(
     .filter(d => typeof d === 'number' && d >= 1 && d <= totalDaysInMonth)
     .sort((a, b) => a - b);
 
+  const baseWeek = getMonthBaseWeek(year, monthIndex0);
   const newCols: ExcelMatrixBGColumn[] = [];
   let weekNum = 1;
   let lastCutoffProcessed = 0;
@@ -911,11 +935,7 @@ export function applyWeekCutoffsToBGMatrix(
     const dayNum = getDayNumberFromCol(dayCol);
 
     if (validCutoffs.includes(dayNum)) {
-      const cutoffDate = new Date(year, monthIndex0, dayNum);
-      let yearWeek = getWeekOfYear(cutoffDate);
-      if (year === 2026 && monthIndex0 === 9 && yearWeek < 41) {
-        yearWeek = 41; // Tháng 10 bắt đầu từ tuần 41 theo quy chuẩn xưởng
-      }
+      const yearWeek = baseWeek + weekNum - 1;
       let label = `W${yearWeek}`;
       if (weekLabelMode === 'month') {
         label = `W${weekNum}`;
@@ -949,11 +969,7 @@ export function applyWeekCutoffsToBGMatrix(
   const lastDayCol = dayCols[dayCols.length - 1];
   const lastDayNum = getDayNumberFromCol(lastDayCol);
   if (lastCutoffProcessed < lastDayNum && validCutoffs.length > 0) {
-    const lastDate = new Date(year, monthIndex0, lastDayNum);
-    let lastYearWeek = getWeekOfYear(lastDate);
-    if (year === 2026 && monthIndex0 === 9 && lastYearWeek < 41) {
-      lastYearWeek = 41;
-    }
+    const lastYearWeek = baseWeek + weekNum - 1;
     let label = `W${lastYearWeek}`;
     if (weekLabelMode === 'month') {
       label = `W${weekNum}`;
@@ -1026,6 +1042,7 @@ export function applyWeekCutoffsToROMatrix(
     .filter(d => typeof d === 'number' && d >= 1 && d <= totalDaysInMonth)
     .sort((a, b) => a - b);
 
+  const baseWeek = getMonthBaseWeek(year, monthIndex0);
   const newCols: ExcelMatrixROColumn[] = [];
   let weekNum = 1;
   let lastCutoffProcessed = 0;
@@ -1036,11 +1053,7 @@ export function applyWeekCutoffsToROMatrix(
     const dayNum = getDayNumberFromCol(dayCol);
 
     if (validCutoffs.includes(dayNum)) {
-      const cutoffDate = new Date(year, monthIndex0, dayNum);
-      let yearWeek = getWeekOfYear(cutoffDate);
-      if (year === 2026 && monthIndex0 === 9 && yearWeek < 41) {
-        yearWeek = 41; // Tháng 10 bắt đầu từ tuần 41 theo quy chuẩn xưởng
-      }
+      const yearWeek = baseWeek + weekNum - 1;
       let label = `W${yearWeek}`;
       if (weekLabelMode === 'month') {
         label = `W${weekNum}/T${monthIndex0 + 1}`;
@@ -1072,11 +1085,7 @@ export function applyWeekCutoffsToROMatrix(
   const lastDayCol = dayCols[dayCols.length - 1];
   const lastDayNum = getDayNumberFromCol(lastDayCol);
   if (lastCutoffProcessed < lastDayNum && validCutoffs.length > 0) {
-    const lastDate = new Date(year, monthIndex0, lastDayNum);
-    let lastYearWeek = getWeekOfYear(lastDate);
-    if (year === 2026 && monthIndex0 === 9 && lastYearWeek < 41) {
-      lastYearWeek = 41;
-    }
+    const lastYearWeek = baseWeek + weekNum - 1;
     let label = `W${lastYearWeek}`;
     if (weekLabelMode === 'month') {
       label = `W${weekNum}/T${monthIndex0 + 1}`;

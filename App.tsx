@@ -11,6 +11,8 @@ import { AlertCenterModal } from './AlertCenterModal';
 import { LoginModal } from './LoginModal';
 import { ThresholdSettingsModal } from './ThresholdSettingsModal';
 import { SystemDataBackupModal } from './SystemDataBackupModal';
+import { WeekCutoffModal } from './WeekCutoffModal';
+import { StorageService } from './storage';
 import { 
   Flame, 
   Droplets, 
@@ -26,8 +28,17 @@ function MainAppContent() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDataBackupModalOpen, setIsDataBackupModalOpen] = useState(false);
+  const [isWeekCutoffModalOpen, setIsWeekCutoffModalOpen] = useState(false);
 
-  const { thresholds, sendManualPushNotification, selectedDate, isDateLocked } = useProduction();
+  const { 
+    thresholds, 
+    sendManualPushNotification, 
+    selectedDate, 
+    isDateLocked,
+    dashboardYear,
+    dashboardMonthIndex0,
+    applyGlobalWeekCutoffs,
+  } = useProduction();
   const isLocked = isDateLocked(selectedDate);
 
   // Automatic end-of-day trigger check (Runs every minute)
@@ -61,6 +72,7 @@ function MainAppContent() {
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenDataBackupModal={() => setIsDataBackupModalOpen(true)}
+        onOpenWeekCutoffModal={() => setIsWeekCutoffModalOpen(true)}
       />
 
       {/* Global Data Lock Alert */}
@@ -147,6 +159,7 @@ function MainAppContent() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
+        onOpenWeekCutoffModal={() => setIsWeekCutoffModalOpen(true)}
       />
 
       {/* Modals */}
@@ -173,6 +186,19 @@ function MainAppContent() {
       <SystemDataBackupModal
         isOpen={isDataBackupModalOpen}
         onClose={() => setIsDataBackupModalOpen(false)}
+      />
+
+      <WeekCutoffModal
+        isOpen={isWeekCutoffModalOpen}
+        onClose={() => setIsWeekCutoffModalOpen(false)}
+        year={dashboardYear}
+        monthIndex0={dashboardMonthIndex0}
+        currentCutoffs={StorageService.getCustomWeekCutoffs(dashboardYear, dashboardMonthIndex0) || []}
+        onApplyCutoffs={(cutoffs, mode, y, m) => {
+          applyGlobalWeekCutoffs(y ?? dashboardYear, m ?? dashboardMonthIndex0, cutoffs, mode);
+        }}
+        lineName="Tất cả ứng dụng (All App)"
+        themeColor="amber"
       />
     </div>
   );

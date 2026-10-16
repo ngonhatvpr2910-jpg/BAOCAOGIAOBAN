@@ -31,6 +31,7 @@ import { synchronizeSlide3Data } from './defectCostSyncService';
 import { exportToPowerPoint } from './powerpointService';
 import { GlobalNormsEditorModal } from './GlobalNormsEditorModal';
 import { PowerPointCoverSlide } from './PowerPointCoverSlide';
+import { getWeeksForMonth } from './executiveSummaryService';
 import { 
   Tv, 
   Maximize2, 
@@ -144,7 +145,7 @@ export const TabPowerPointPresentation: React.FC = () => {
   // Shared Period State for PowerPoint Slides (especially Slide 1 Báo Cáo Tổng Thể & Slide 2 Năng Suất)
   const [selectedWeek, setSelectedWeek] = useState<string>('W42');
   const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
-  const [presentationTimeFrame, setPresentationTimeFrame] = useState<'week' | 'month'>('week');
+  const [presentationTimeFrame, setPresentationTimeFrame] = useState<'day' | 'week' | 'month'>('week');
   
   // Tự động suy luận tháng tương ứng từ tuần đã chọn và cập nhật toàn bộ các slide
   const handleWeekChangeSlide = (w: string) => {
@@ -177,14 +178,11 @@ export const TabPowerPointPresentation: React.FC = () => {
     );
     // CHỈ gán tuần đại diện nếu tuần hiện tại không thuộc tháng đang được chọn
     if (!isWeekInThisMonth) {
-      let w = 'W42';
-      if (mNum === 10) w = 'W42';
-      else if (mNum === 11) w = 'W45';
-      else if (mNum === 12) w = 'W49';
-      else if (mNum === 9) w = 'W38';
-      else if (mNum === 8) w = 'W35';
-      else if (mNum === 7) w = 'W30';
-      else if (mNum === 6) w = 'W26';
+      const monthWeeks = getWeeksForMonth(m);
+      let w = monthWeeks[monthWeeks.length > 2 ? 2 : monthWeeks.length - 1] || 'W43';
+      if (mNum === 11) w = monthWeeks[0] || 'W45';
+      else if (mNum === 12) w = monthWeeks[0] || 'W49';
+      else if (mNum === 9) w = monthWeeks[2] || 'W38';
       setSelectedWeek(w);
     }
   };
@@ -425,9 +423,7 @@ export const TabPowerPointPresentation: React.FC = () => {
     const updated = applyTimeFrameToSlide2Data(slide2Data, timeFrame);
     setSlide2Data(updated);
     updateSlide2Quality(updated);
-    if (timeFrame === 'week' || timeFrame === 'month') {
-      setPresentationTimeFrame(timeFrame);
-    }
+    setPresentationTimeFrame(timeFrame);
     window.dispatchEvent(new CustomEvent('production-data-updated'));
   };
 
@@ -1275,12 +1271,10 @@ export const TabPowerPointPresentation: React.FC = () => {
             isFullscreen={false} 
             selectedWeek={selectedWeek}
             selectedMonth={selectedMonth}
-            timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+            timeFrame={presentationTimeFrame}
             onTimeFrameChange={(tf) => {
               handleTimeFrameChangeSlide2(tf);
-              if (tf === 'week' || tf === 'month') {
-                setPresentationTimeFrame(tf);
-              }
+              setPresentationTimeFrame(tf);
             }}
             onWeekChange={handleWeekChangeSlide}
             onMonthChange={handleMonthChangeSlide}
@@ -1732,12 +1726,10 @@ export const TabPowerPointPresentation: React.FC = () => {
               isFullscreen={true} 
               selectedWeek={selectedWeek}
               selectedMonth={selectedMonth}
-              timeFrame={presentationTimeFrame === 'week' ? 'week' : 'month'}
+              timeFrame={presentationTimeFrame}
               onTimeFrameChange={(tf) => {
                 handleTimeFrameChangeSlide2(tf);
-                if (tf === 'week' || tf === 'month') {
-                  setPresentationTimeFrame(tf);
-                }
+                setPresentationTimeFrame(tf);
               }}
               onWeekChange={handleWeekChangeSlide}
               onMonthChange={handleMonthChangeSlide}

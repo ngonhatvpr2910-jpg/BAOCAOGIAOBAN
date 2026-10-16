@@ -18,7 +18,9 @@ import {
   Slide6TaskPlanData,
   GlobalNormsConfig,
   LockedMonthInfo,
+  QualityGroupCharts,
 } from './types';
+import { rollupDailyToQualityCharts } from './qualityFormulas';
 import { 
   INITIAL_DCBG_RECORDS, 
   INITIAL_DCRO_RECORDS, 
@@ -67,6 +69,7 @@ const STORAGE_KEYS = {
   SLIDE6_TASK_PLAN: 'pxlr_slide6_task_plan_v1',
   GLOBAL_NORMS: 'pxlr_global_norms_v1',
   LOCKED_MONTHS: 'pxlr_locked_months_v1',
+  CUSTOM_WEEK_CUTOFFS: 'pxlr_custom_week_cutoffs_v1',
 };
 
 
@@ -102,6 +105,13 @@ export const StorageService = {
       const parsed: DailyDCRORecord[] = JSON.parse(data);
       // Filter out legacy mock records if present
       const cleaned = parsed.filter(r => !['dcro-01', 'dcro-02', 'dcro-03'].includes(r.id));
+      // Ensure October daily records from INITIAL_DCRO_RECORDS are present
+      INITIAL_DCRO_RECORDS.forEach(initRec => {
+        if (!cleaned.some(r => r.date === initRec.date)) {
+          cleaned.push(initRec);
+        }
+      });
+      cleaned.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       if (cleaned.length !== parsed.length) {
         localStorage.setItem(STORAGE_KEYS.DCRO, JSON.stringify(cleaned));
       }
@@ -448,6 +458,32 @@ export const StorageService = {
     } catch {}
   },
 
+  getCustomWeekCutoffs(year: number, monthIndex0: number): number[] | null {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_WEEK_CUTOFFS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const key = `${year}-${monthIndex0 + 1}`;
+        if (parsed && Array.isArray(parsed[key])) {
+          return parsed[key];
+        }
+      }
+    } catch {}
+    return null;
+  },
+
+  saveCustomWeekCutoffs(year: number, monthIndex0: number, cutoffs: number[]) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.CUSTOM_WEEK_CUTOFFS);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const key = `${year}-${monthIndex0 + 1}`;
+      parsed[key] = cutoffs;
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_WEEK_CUTOFFS, JSON.stringify(parsed));
+    } catch (e) {
+      console.error('Failed to save custom week cutoffs', e);
+    }
+  },
+
   exportFullBackup() {
     return {
       dcbg: this.getDCBGRecords(),
@@ -752,22 +788,51 @@ export const StorageService = {
         if (!parsed.dailyRecords || parsed.dailyRecords.length === 0) {
           parsed.dailyRecords = INITIAL_SLIDE2_QUALITY.dailyRecords;
         } else {
-          // Migration: Ensure Sundays (06/09, 13/09, 20/09) are present for the user
-          const sunDates = ['2026-09-06', '2026-09-13', '2026-09-20'];
+          // Migration: Ensure October daily records (01/10 to 15/10) and Sundays are present
           let added = false;
-          sunDates.forEach(date => {
-            if (!parsed.dailyRecords.some(r => r.date === date)) {
-              const initSun = INITIAL_SLIDE2_QUALITY.dailyRecords.find(r => r.date === date);
-              if (initSun) {
-                parsed.dailyRecords.push(initSun);
+          (INITIAL_SLIDE2_QUALITY.dailyRecords || []).forEach(initRec => {
+            if (!parsed.dailyRecords.some(r => r.date === initRec.date)) {
+              parsed.dailyRecords.push(initRec);
+              added = true;
+            } else if (initRec.date && initRec.date.startsWith('2026-10-')) {
+              // Update October record with exact figures from Excel report
+              const idx = parsed.dailyRecords.findIndex(r => r.date === initRec.date);
+              if (idx >= 0) {
+                parsed.dailyRecords[idx] = { ...parsed.dailyRecords[idx], ...initRec };
                 added = true;
               }
             }
           });
           if (added) {
             parsed.dailyRecords.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            const rolled = rollupDailyToQualityCharts(parsed.dailyRecords, parsed.monthly, parsed.weekly);
+            parsed.daily = rolled.daily;
+            parsed.weekly = rolled.weekly;
+            parsed.monthly = rolled.monthly;
           }
         }
+        if (parsed.dailyRecords && parsed.dailyRecords.length > 0) {
+          const rolled = rollupDailyToQualityCharts(parsed.dailyRecords, parsed.monthly, parsed.weekly);
+          parsed.daily = rolled.daily;
+          parsed.weekly = rolled.weekly;
+          parsed.monthly = rolled.monthly;
+        }
+
+        // Force pxlr dmVatTu to 3.69 always
+        const forcePxlrDm = (group?: QualityGroupCharts) => {
+          if (!group) return;
+          if (group.pxlr?.items) group.pxlr.items.forEach(i => i.dmVatTu = 3.69);
+        };
+        forcePxlrDm(parsed.monthly);
+        forcePxlrDm(parsed.weekly);
+        forcePxlrDm(parsed.daily);
+        if (parsed.pxlr?.items) parsed.pxlr.items.forEach(i => i.dmVatTu = 3.69);
+        if (parsed.dailyRecords) {
+          parsed.dailyRecords.forEach(r => {
+            if (r.pxlr) r.pxlr.dmVatTu = 3.69;
+          });
+        }
+
         // If current active is month, make sure parsed.bg, parsed.ro, parsed.pxlr match monthly
         if (parsed.activeTimeFrame === 'month' || !parsed.activeTimeFrame) {
           parsed.bg = parsed.monthly?.bg || INITIAL_SLIDE2_QUALITY.monthly.bg;
@@ -782,6 +847,7 @@ export const StorageService = {
           parsed.ro = parsed.daily?.ro || INITIAL_SLIDE2_QUALITY.daily.ro;
           parsed.pxlr = parsed.daily?.pxlr || INITIAL_SLIDE2_QUALITY.daily.pxlr;
         }
+        if (parsed.pxlr?.items) parsed.pxlr.items.forEach(i => i.dmVatTu = 3.69);
         return parsed;
       }
       return INITIAL_SLIDE2_QUALITY;

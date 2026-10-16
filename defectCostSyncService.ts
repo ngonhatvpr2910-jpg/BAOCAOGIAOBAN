@@ -1,4 +1,6 @@
 import { SlideDefectCostData, DamagedItemRecord, SlideBarItem } from './types';
+import { StorageService } from './storage';
+import { getMonthBaseWeek } from './matrixGenerator';
 
 /**
  * Bảng ánh xạ chuẩn giữa Tuần sản xuất (ISO / Lịch điều hành sản xuất) và Tháng
@@ -8,7 +10,7 @@ export const MONTH_WEEKS_MAP: Record<string, string[]> = {
   'Tháng 7': ['W27', 'W28', 'W29', 'W30'],
   'Tháng 8': ['W31', 'W32', 'W33', 'W34', 'W35'],
   'Tháng 9': ['W36', 'W37', 'W38', 'W39', 'W40'],
-  'Tháng 10': ['W41', 'W42', 'W43', 'W44'],
+  'Tháng 10': ['W41', 'W42', 'W43', 'W44', 'W45'],
   'Tháng 11': ['W45', 'W46', 'W47', 'W48'],
   'Tháng 12': ['W49', 'W50', 'W51', 'W52'],
 };
@@ -30,6 +32,7 @@ export const HISTORICAL_WEEKS_BASELINE: Record<string, number> = {
   'W42': 0,
   'W43': 0,
   'W44': 0,
+  'W45': 0,
 };
 
 /**
@@ -140,11 +143,20 @@ export function getMonthForWeek(weekLabel: string): string {
  */
 export function getWeeksInMonth(monthLabel: string): string[] {
   const clean = monthLabel.trim();
+  const mNum = extractWeekNumber(monthLabel);
+  if (mNum > 0 && mNum <= 12) {
+    try {
+      const customCutoffs = StorageService.getCustomWeekCutoffs(2026, mNum - 1);
+      if (customCutoffs && customCutoffs.length > 0) {
+        const baseWeek = getMonthBaseWeek(2026, mNum - 1);
+        const weeks = customCutoffs.map((_, idx) => `W${baseWeek + idx}`);
+        if (weeks.length > 0) return weeks;
+      }
+    } catch {}
+  }
   if (MONTH_WEEKS_MAP[clean]) {
     return MONTH_WEEKS_MAP[clean];
   }
-  
-  const mNum = extractWeekNumber(monthLabel);
   if (mNum > 0) {
     const key = `Tháng ${mNum}`;
     if (MONTH_WEEKS_MAP[key]) return MONTH_WEEKS_MAP[key];

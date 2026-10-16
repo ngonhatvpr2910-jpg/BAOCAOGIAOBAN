@@ -57,6 +57,7 @@ export const DCROExcelDashboard: React.FC = () => {
   const { 
     updateMatrixBGForMonth, 
     updateMatrixROForMonth, 
+    applyGlobalWeekCutoffs,
     isDateLocked,
     dashboardYear: selectedYear,
     setDashboardYear: setSelectedYear,
@@ -124,7 +125,12 @@ export const DCROExcelDashboard: React.FC = () => {
     refreshData();
 
     const handleUpdate = (e: any) => {
-      if (e.detail?.type === 'matrix-ro' && e.detail?.year === selectedYear && e.detail?.monthIndex0 === selectedMonthIndex0) {
+      if (
+        !e.detail?.type || 
+        e.detail?.type === 'matrix-ro' || 
+        e.detail?.type === 'week-cutoffs' ||
+        (e.detail?.year === selectedYear && e.detail?.monthIndex0 === selectedMonthIndex0)
+      ) {
         refreshData();
       }
     };
@@ -136,54 +142,52 @@ export const DCROExcelDashboard: React.FC = () => {
   // Recalculate dynamic totals when any day cell is edited
   const handleMatrixCellChange = (colId: string, field: keyof ExcelMatrixROColumn, val: string) => {
     const numVal = parseFloat(val) || 0;
-    setLocalMatrix(prev => {
-      const next = prev.map(col => {
-        if (col.id === colId) {
-          const updated = { ...col, [field]: numVal };
-          // Tự động tính ĐỊNH MỨC SL THEO NS chuẩn nhóm RO: = (Công Chính Thức + Công Thời Vụ) * 9.03
-          if (field === 'congChinhThuc' || field === 'congThoiVu') {
-            const sumCong = (Number(updated.congChinhThuc) || 0) + (Number(updated.congThoiVu) || 0);
-            updated.dinhMucSlTheoNs = Number((sumCong * 9.03).toFixed(1));
-          }
-          // If editing SL or định mức or công, auto update NSLĐ
-          if (
-            field === 'sanLuongLineChinh' || 
-            field === 'dinhMucSlTheoNs' || 
-            field === 'congChinhThuc' || 
-            field === 'congThoiVu'
-          ) {
-            const sl = Number(updated.sanLuongLineChinh) || 0;
-            const dm = Number(updated.dinhMucSlTheoNs) || 0;
-            updated.nsldTheoNgay = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
-          }
-          // If editing KHSX, update tỉ lệ hoàn thành KHSX
-          if (field === 'sanLuongLineChinh' || field === 'khsxNgay') {
-            const sl = Number(updated.sanLuongLineChinh) || 0;
-            const kh = Number(updated.khsxNgay) || 0;
-            updated.tiLeHoanThanhKhsx = kh > 0 ? Number(((sl / kh) * 100).toFixed(1)) : 0;
-          }
-          // If editing Tổng nhân sự or Nghỉ, auto update Tỉ Lệ Đi Làm: =+(B10-B11)/100%/B10
-          if (field === 'tongNhanSuLine' || field === 'nhanSuNghi') {
-            const tongNS = Number(updated.tongNhanSuLine) || 0;
-            const nghi = Number(updated.nhanSuNghi) || 0;
-            updated.tiLeDiLam = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : 100;
-          }
-          return updated;
+    const next = localMatrix.map(col => {
+      if (col.id === colId) {
+        const updated = { ...col, [field]: numVal };
+        // Tự động tính ĐỊNH MỨC SL THEO NS chuẩn nhóm RO: = (Công Chính Thức + Công Thời Vụ) * 9.03
+        if (field === 'congChinhThuc' || field === 'congThoiVu') {
+          const sumCong = (Number(updated.congChinhThuc) || 0) + (Number(updated.congThoiVu) || 0);
+          updated.dinhMucSlTheoNs = Number((sumCong * 9.03).toFixed(1));
         }
-        return col;
-      });
-
-      const recalculated = recalculateROMatrix(next);
-      // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
-      StorageService.saveMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
-      updateMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('production-data-updated', {
-          detail: { type: 'matrix-ro', year: selectedYear, monthIndex0: selectedMonthIndex0 }
-        }));
+        // If editing SL or định mức or công, auto update NSLĐ
+        if (
+          field === 'sanLuongLineChinh' || 
+          field === 'dinhMucSlTheoNs' || 
+          field === 'congChinhThuc' || 
+          field === 'congThoiVu'
+        ) {
+          const sl = Number(updated.sanLuongLineChinh) || 0;
+          const dm = Number(updated.dinhMucSlTheoNs) || 0;
+          updated.nsldTheoNgay = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
+        }
+        // If editing KHSX, update tỉ lệ hoàn thành KHSX
+        if (field === 'sanLuongLineChinh' || field === 'khsxNgay') {
+          const sl = Number(updated.sanLuongLineChinh) || 0;
+          const kh = Number(updated.khsxNgay) || 0;
+          updated.tiLeHoanThanhKhsx = kh > 0 ? Number(((sl / kh) * 100).toFixed(1)) : 0;
+        }
+        // If editing Tổng nhân sự or Nghỉ, auto update Tỉ Lệ Đi Làm: =+(B10-B11)/100%/B10
+        if (field === 'tongNhanSuLine' || field === 'nhanSuNghi') {
+          const tongNS = Number(updated.tongNhanSuLine) || 0;
+          const nghi = Number(updated.nhanSuNghi) || 0;
+          updated.tiLeDiLam = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : 100;
+        }
+        return updated;
       }
-      return recalculated;
+      return col;
     });
+
+    const recalculated = recalculateROMatrix(next);
+    setLocalMatrix(recalculated);
+    // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
+    StorageService.saveMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
+    updateMatrixROForMonth(selectedYear, selectedMonthIndex0, recalculated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', {
+        detail: { type: 'matrix-ro', year: selectedYear, monthIndex0: selectedMonthIndex0 }
+      }));
+    }
   };
 
   const handleCellPaste = (startColId: string, startMetricKey: string, e: React.ClipboardEvent) => {
@@ -287,9 +291,7 @@ export const DCROExcelDashboard: React.FC = () => {
 
   const handleApplyCutoffs = (newCutoffs: number[], weekLabelMode?: WeekLabelMode) => {
     const mode = weekLabelMode || StorageService.getWeekLabelMode();
-    const updated = applyWeekCutoffsToROMatrix(localMatrix, newCutoffs, selectedYear, selectedMonthIndex0, mode);
-    setLocalMatrix(updated);
-    StorageService.saveMatrixROForMonth(selectedYear, selectedMonthIndex0, updated);
+    applyGlobalWeekCutoffs(selectedYear, selectedMonthIndex0, newCutoffs, mode);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };

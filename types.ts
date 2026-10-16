@@ -17,16 +17,16 @@ export interface DailyDCBGRecord {
   congRma: number;         // CÔNG RMA
   sanLuongBepGa: number;   // SẢN LƯỢNG QUY ĐỔI Bếp Ga
   sanLuongRma: number;     // SẢN LƯỢNG QUY ĐỔI RMA
-  dinhMucSlTheoNs: number; // ĐỊNH MỨC SL THEO NS
+  dinhMucSlTheoNs?: number; // ĐỊNH MỨC SL THEO NS
   tongNhanSuLine: number;  // Tổng nhân sự Line
   nhanSuNghi: number;      // Nhân sự nghỉ
   chiPhiHangHong: number;  // Chi phí hàng hỏng (VNĐ)
   tiLeLoiThaoTac: number;  // Tỉ lệ lỗi thao tác (%)
   ghiChu?: string;         // Ghi chú tồn đọng / sự cố line
   // Auto-calculated fields
-  tongCong: number;        // Tổng công
-  tongSanLuongQuyDoi: number; // Tổng sản lượng quy đổi
-  nsldTheoNgay: number;    // NSLĐ THEO NGÀY (%)
+  tongCong?: number;        // Tổng công
+  tongSanLuongQuyDoi?: number; // Tổng sản lượng quy đổi
+  nsldTheoNgay?: number;    // NSLĐ THEO NGÀY (%)
   tiLeDiLam: number;       // TỈ LỆ ĐI LÀM (%)
   khsxNgay?: number;       // KHSX NGÀY
   tiLeHoanThanhKhsx?: number; // TỈ LỆ HOÀN THÀNH KHSX (%) = (SL BẾP GA + SL RMA) / KHSX NGÀY
@@ -38,16 +38,16 @@ export interface DailyDCRORecord {
   congChinhThuc: number;   // CÔNG CHÍNH THỨC
   congThoiVu: number;      // CÔNG THỜI VỤ
   sanLuongLineChinh: number; // SẢN LƯỢNG QUY ĐỔI LINE CHÍNH
-  dinhMucSlTheoNs: number; // ĐỊNH MỨC SL THEO NS
+  dinhMucSlTheoNs?: number; // ĐỊNH MỨC SL THEO NS
   tongNhanSuLine: number;  // Tổng nhân sự Line
   nhanSuNghi: number;      // Nhân sự nghỉ
   chiPhiHangHong: number;  // Chi phí hàng hỏng (VNĐ)
   tiLeLoiThaoTac: number;  // Tỉ lệ lỗi thao tác (%)
   ghiChu?: string;
   // Auto-calculated fields
-  tongCong: number;
-  tongSanLuongQuyDoi: number;
-  nsldTheoNgay: number;    // NSLĐ THEO NGÀY (%)
+  tongCong?: number;
+  tongSanLuongQuyDoi?: number;
+  nsldTheoNgay?: number;    // NSLĐ THEO NGÀY (%)
   tiLeDiLam: number;       // TỈ LỆ ĐI LÀM (%)
   khsxNgay?: number;       // KHSX NGÀY
   tiLeHoanThanhKhsx?: number; // TỈ LỆ HOÀN THÀNH KHSX (%) = SL LINE CHÍNH / KHSX NGÀY
@@ -350,6 +350,7 @@ export interface Slide2QualityItem {
   month: string; // "T5", "W35", "01/09" or label
   dmVatTu: number; // % ĐM vật tư (cột xanh đen #244061)
   vatTu: number; // % Vật tư (cột cam viền đỏ)
+  loiThaoTac?: number; // % Lỗi thao tác con người (3M)
   totalLoi4M: number; // % Total lỗi 4M (đường line)
 }
 
@@ -362,18 +363,21 @@ export interface QualityDailyRecord {
   ro: {
     dmVatTu: number;
     vatTu: number;
+    loiThaoTac?: number; // % Lỗi thao tác con người (3M)
     totalLoi4M: number;
     sanLuong?: number;
   };
   bg: {
     dmVatTu: number;
     vatTu: number;
+    loiThaoTac?: number; // % Lỗi thao tác con người (3M)
     totalLoi4M: number;
     sanLuong?: number;
   };
   pxlr: {
     dmVatTu: number;
     vatTu: number;
+    loiThaoTac?: number; // % Lỗi thao tác con người (3M)
     totalLoi4M: number;
   };
 }

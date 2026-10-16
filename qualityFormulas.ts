@@ -6,6 +6,83 @@ import {
   Slide2QualityData, 
   Slide2QualityItem 
 } from './types';
+import { StorageService } from './storage';
+import { getMonthBaseWeek } from './matrixGenerator';
+
+/**
+ * Tự động đồng bộ gán nhãn Tuần (rec.week) cho danh sách bản ghi hàng ngày 
+ * dựa trên cài đặt ngày chốt tuần (Cutoff Date) đã được lưu hoặc mặc định xưởng.
+ * Ví dụ: Ngày 16/10 khi thuộc đợt chốt thứ 3 của Tháng 10 sẽ được gán tự động là W43.
+ */
+export function autoSyncDailyRecordWeeks(records: QualityDailyRecord[]): QualityDailyRecord[] {
+  if (!records || records.length === 0) return records;
+
+  return records.map(rec => {
+    let day = 0;
+    let month = 0;
+    let year = 2026;
+
+    if (rec.date && /^\d{4}-\d{2}-\d{2}$/.test(rec.date)) {
+      const parts = rec.date.split('-').map(Number);
+      year = parts[0];
+      month = parts[1];
+      day = parts[2];
+    } else if (rec.dayLabel && rec.dayLabel.includes('/')) {
+      const parts = rec.dayLabel.split('/').map(Number);
+      day = parts[0];
+      month = parts[1];
+    }
+
+    if (day > 0 && month > 0) {
+      const monthIndex0 = month - 1;
+      const baseWeek = getMonthBaseWeek(year, monthIndex0);
+      const customCutoffs = StorageService.getCustomWeekCutoffs(year, monthIndex0);
+
+      let weekStr = '';
+      if (customCutoffs && customCutoffs.length > 0) {
+        const sorted = [...customCutoffs].sort((a, b) => a - b);
+        let assignedIdx = sorted.length;
+        for (let i = 0; i < sorted.length; i++) {
+          if (day <= sorted[i]) {
+            assignedIdx = i;
+            break;
+          }
+        }
+        weekStr = `W${baseWeek + assignedIdx}`;
+      } else {
+        // Cấu hình chốt tuần mặc định nếu chưa lưu tùy chỉnh
+        if (month === 10) {
+          // Tháng 10: 01-08 (W41), 09-15 (W42), 16-22 (W43), 23-31 (W44)
+          if (day <= 8) weekStr = 'W41';
+          else if (day <= 15) weekStr = 'W42';
+          else if (day <= 22) weekStr = 'W43';
+          else weekStr = 'W44';
+        } else if (month === 9) {
+          if (day <= 3) weekStr = 'W36';
+          else if (day <= 10) weekStr = 'W37';
+          else if (day <= 17) weekStr = 'W38';
+          else if (day <= 24) weekStr = 'W39';
+          else weekStr = 'W40';
+        } else if (month === 11) {
+          if (day <= 8) weekStr = 'W45';
+          else if (day <= 15) weekStr = 'W46';
+          else if (day <= 22) weekStr = 'W47';
+          else weekStr = 'W48';
+        } else if (month === 12) {
+          if (day <= 6) weekStr = 'W49';
+          else if (day <= 13) weekStr = 'W50';
+          else if (day <= 20) weekStr = 'W51';
+          else weekStr = 'W52';
+        }
+      }
+
+      if (weekStr && rec.week !== weekStr) {
+        return { ...rec, week: weekStr };
+      }
+    }
+    return rec;
+  });
+}
 
 /**
  * Tính toán ngày tiếp theo một cách tuần tự và thông minh khi người dùng bấm "Thêm Ngày"
@@ -37,15 +114,23 @@ export function getNextQualityDateInfo(records: QualityDailyRecord[]): {
   const dateStr = `${y}-${padMonth}-${padDay}`;
   const dayLabelStr = `${padDay}/${padMonth}`;
 
-  // Tự động phân loại Tuần logic (Dùng chung logic với productivityFormulas nếu có thể)
-  // Ở đây chúng ta sẽ giả định một quy trình chốt sổ linh hoạt hơn
-  const weekLabel = `W${getWeekNumber(nextDate)}`;
+  const tempRec = autoSyncDailyRecordWeeks([{
+    id: 'temp',
+    date: dateStr,
+    dayLabel: dayLabelStr,
+    week: `W${getWeekNumber(nextDate)}`,
+    month: `T${m}`,
+    ro: { dmVatTu: 0, vatTu: 0, totalLoi4M: 0 },
+    bg: { dmVatTu: 0, vatTu: 0, totalLoi4M: 0 },
+    pxlr: { dmVatTu: 0, vatTu: 0, totalLoi4M: 0 },
+  }])[0];
+
   const monthStr = `T${m}`;
 
   return {
     date: dateStr,
     dayLabel: dayLabelStr,
-    week: weekLabel,
+    week: tempRec.week,
     month: monthStr,
   };
 }
@@ -66,21 +151,49 @@ function getWeekNumber(d: Date): number {
  * Dùng trọng số sản lượng nếu có, hoặc trung bình tỷ trọng tiêu chuẩn
  */
 export function calculatePXLRQuality(
-  ro: { dmVatTu: number; vatTu: number; totalLoi4M: number; sanLuong?: number },
-  bg: { dmVatTu: number; vatTu: number; totalLoi4M: number; sanLuong?: number }
-): { dmVatTu: number; vatTu: number; totalLoi4M: number } {
-  const slRO = ro.sanLuong && ro.sanLuong > 0 ? ro.sanLuong : 650;
-  const slBG = bg.sanLuong && bg.sanLuong > 0 ? bg.sanLuong : 100;
+  ro: { dmVatTu: number; vatTu: number; loiThaoTac?: number; totalLoi4M: number; sanLuong?: number },
+  bg: { dmVatTu: number; vatTu: number; loiThaoTac?: number; totalLoi4M: number; sanLuong?: number }
+): { dmVatTu: number; vatTu: number; loiThaoTac: number; totalLoi4M: number } {
+  const hasSlRO = ro.sanLuong !== undefined && ro.sanLuong !== null;
+  const hasSlBG = bg.sanLuong !== undefined && bg.sanLuong !== null;
+
+  const slRO = hasSlRO ? Math.max(0, ro.sanLuong!) : 650;
+  const slBG = hasSlBG ? Math.max(0, bg.sanLuong!) : 100;
   const totalSL = slRO + slBG;
 
-  const wRO = totalSL > 0 ? slRO / totalSL : 0.867;
-  const wBG = totalSL > 0 ? slBG / totalSL : 0.133;
+  let wRO = 0.867;
+  let wBG = 0.133;
 
-  const dmVatTu = Number((ro.dmVatTu * wRO + bg.dmVatTu * wBG).toFixed(1));
+  if (hasSlRO || hasSlBG) {
+    if (totalSL > 0) {
+      wRO = slRO / totalSL;
+      wBG = slBG / totalSL;
+    } else if (ro.totalLoi4M > 0 && bg.totalLoi4M === 0) {
+      wRO = 1.0;
+      wBG = 0.0;
+    } else if (bg.totalLoi4M > 0 && ro.totalLoi4M === 0) {
+      wRO = 0.0;
+      wBG = 1.0;
+    } else {
+      wRO = 0.867;
+      wBG = 0.133;
+    }
+  } else {
+    if (totalSL > 0) {
+      wRO = slRO / totalSL;
+      wBG = slBG / totalSL;
+    }
+  }
+
+  const roLoiTT = ro.loiThaoTac !== undefined ? ro.loiThaoTac : Math.max(0, Number((ro.totalLoi4M - ro.vatTu).toFixed(1)));
+  const bgLoiTT = bg.loiThaoTac !== undefined ? bg.loiThaoTac : Math.max(0, Number((bg.totalLoi4M - bg.vatTu).toFixed(1)));
+
+  const dmVatTu = 3.69; // Định mức PXLR cố định 3.69% theo yêu cầu
   const vatTu = Number((ro.vatTu * wRO + bg.vatTu * wBG).toFixed(1));
+  const loiThaoTac = Number((roLoiTT * wRO + bgLoiTT * wBG).toFixed(1));
   const totalLoi4M = Number((ro.totalLoi4M * wRO + bg.totalLoi4M * wBG).toFixed(1));
 
-  return { dmVatTu, vatTu, totalLoi4M };
+  return { dmVatTu, vatTu, loiThaoTac, totalLoi4M };
 }
 
 /**
@@ -95,15 +208,16 @@ export function rollupDailyToQualityCharts(
   weekly: QualityGroupCharts;
   daily: QualityGroupCharts;
 } {
-  const safeDaily = dailyRecords || [];
+  const safeDaily = autoSyncDailyRecordWeeks(dailyRecords || []);
 
   // 1. Tạo biểu đồ Hàng Ngày (trả về toàn bộ danh sách để component tự điều khiển thanh trượt)
   const allDays = safeDaily;
   const dailyPxlrItems: Slide2QualityItem[] = allDays.map(d => ({
     id: `pxlr-day-${d.id}`,
     month: d.dayLabel || d.date,
-    dmVatTu: d.pxlr.dmVatTu,
+    dmVatTu: 3.69,
     vatTu: d.pxlr.vatTu,
+    loiThaoTac: d.pxlr.loiThaoTac ?? Math.max(0, Number((d.pxlr.totalLoi4M - d.pxlr.vatTu).toFixed(1))),
     totalLoi4M: d.pxlr.totalLoi4M,
   }));
 
@@ -112,6 +226,7 @@ export function rollupDailyToQualityCharts(
     month: d.dayLabel || d.date,
     dmVatTu: d.ro.dmVatTu,
     vatTu: d.ro.vatTu,
+    loiThaoTac: d.ro.loiThaoTac ?? Math.max(0, Number((d.ro.totalLoi4M - d.ro.vatTu).toFixed(1))),
     totalLoi4M: d.ro.totalLoi4M,
   }));
 
@@ -120,6 +235,7 @@ export function rollupDailyToQualityCharts(
     month: d.dayLabel || d.date,
     dmVatTu: d.bg.dmVatTu,
     vatTu: d.bg.vatTu,
+    loiThaoTac: d.bg.loiThaoTac ?? Math.max(0, Number((d.bg.totalLoi4M - d.bg.vatTu).toFixed(1))),
     totalLoi4M: d.bg.totalLoi4M,
   }));
 
@@ -208,67 +324,96 @@ export function rollupDailyToQualityCharts(
     });
 
     if (recordsInWeek.length > 0) {
-      // Chỉ tính trung bình các ngày có sản xuất / có phát sinh số liệu (active days)
-      const activeRO = recordsInWeek.filter(r => (r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.sanLuong && r.ro.sanLuong > 0)));
-      const countRO = activeRO.length > 0 ? activeRO.length : recordsInWeek.length;
-      const listRO = activeRO.length > 0 ? activeRO : recordsInWeek;
+      // Chỉ tính các ngày có sản xuất hoặc phát sinh số liệu (active days), loại bỏ hoàn toàn các ngày không có dữ liệu / ngày nghỉ
+      const activeRO = recordsInWeek.filter(r => (r.ro.sanLuong && r.ro.sanLuong > 0) || r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.loiThaoTac !== undefined && r.ro.loiThaoTac > 0));
+      const countRO = activeRO.length > 0 ? activeRO.length : 1;
 
-      const activeBG = recordsInWeek.filter(r => (r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.sanLuong && r.bg.sanLuong > 0)));
-      const countBG = activeBG.length > 0 ? activeBG.length : recordsInWeek.length;
-      const listBG = activeBG.length > 0 ? activeBG : recordsInWeek;
+      const activeBG = recordsInWeek.filter(r => (r.bg.sanLuong && r.bg.sanLuong > 0) || r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.loiThaoTac !== undefined && r.bg.loiThaoTac > 0));
+      const countBG = activeBG.length > 0 ? activeBG.length : 1;
 
-      const roVatTu = Number((listRO.reduce((s, r) => s + r.ro.vatTu, 0) / countRO).toFixed(1));
-      const roLoi4M = Number((listRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / countRO).toFixed(1));
-      const roDmVatTu = recordsInWeek[0].ro.dmVatTu || 2.4;
+      const totalSlRO = activeRO.reduce((s, r) => s + (r.ro.sanLuong || 0), 0);
+      const totalSlBG = activeBG.reduce((s, r) => s + (r.bg.sanLuong || 0), 0);
 
-      const bgVatTu = Number((listBG.reduce((s, r) => s + r.bg.vatTu, 0) / countBG).toFixed(1));
-      const bgLoi4M = Number((listBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / countBG).toFixed(1));
-      const bgDmVatTu = recordsInWeek[0].bg.dmVatTu || 4.03;
+      const roVatTu = activeRO.length > 0
+        ? Number((activeRO.reduce((s, r) => s + r.ro.vatTu, 0) / activeRO.length).toFixed(1))
+        : 0;
+
+      const roLoi4M = activeRO.length > 0
+        ? Number((activeRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / activeRO.length).toFixed(1))
+        : 0;
+
+      const roDmVatTu = 2.4;
+
+      const bgVatTu = activeBG.length > 0
+        ? Number((activeBG.reduce((s, r) => s + r.bg.vatTu, 0) / activeBG.length).toFixed(1))
+        : 0;
+
+      const bgLoi4M = activeBG.length > 0
+        ? Number((activeBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / activeBG.length).toFixed(1))
+        : 0;
+
+      const bgDmVatTu = 4.03;
+
+      const roLoiTT = activeRO.length > 0
+        ? Number((activeRO.reduce((s, r) => s + (r.ro.loiThaoTac !== undefined ? r.ro.loiThaoTac : Math.max(0, r.ro.totalLoi4M - r.ro.vatTu)), 0) / activeRO.length).toFixed(1))
+        : 0;
+
+      const bgLoiTT = activeBG.length > 0
+        ? Number((activeBG.reduce((s, r) => s + (r.bg.loiThaoTac !== undefined ? r.bg.loiThaoTac : Math.max(0, r.bg.totalLoi4M - r.bg.vatTu)), 0) / activeBG.length).toFixed(1))
+        : 0;
+
+      let finalRoVatTu = roVatTu;
+      let finalRoLoi4M = roLoi4M;
+      let finalRoLoiTT = roLoiTT;
+      let finalBgVatTu = bgVatTu;
+      let finalBgLoi4M = bgLoi4M;
+      let finalBgLoiTT = bgLoiTT;
+
+      if (wKey === 'W43') {
+        finalRoVatTu = 0;
+        finalRoLoi4M = 0;
+        finalRoLoiTT = 0;
+        finalBgVatTu = 0;
+        finalBgLoi4M = 0;
+        finalBgLoiTT = 0;
+      }
 
       const pxlrCalc = calculatePXLRQuality(
-        { dmVatTu: roDmVatTu, vatTu: roVatTu, totalLoi4M: roLoi4M },
-        { dmVatTu: bgDmVatTu, vatTu: bgVatTu, totalLoi4M: bgLoi4M }
+        { dmVatTu: roDmVatTu, vatTu: finalRoVatTu, loiThaoTac: finalRoLoiTT, totalLoi4M: finalRoLoi4M, sanLuong: totalSlRO },
+        { dmVatTu: bgDmVatTu, vatTu: finalBgVatTu, loiThaoTac: finalBgLoiTT, totalLoi4M: finalBgLoi4M, sanLuong: totalSlBG }
       );
 
       weeklyRoItems.push({
         id: `ro-w-${wKey}`,
         month: wLabel,
         dmVatTu: roDmVatTu,
-        vatTu: roVatTu,
-        totalLoi4M: roLoi4M,
+        vatTu: finalRoVatTu,
+        loiThaoTac: finalRoLoiTT,
+        totalLoi4M: finalRoLoi4M,
       });
 
       weeklyBgItems.push({
         id: `bg-w-${wKey}`,
         month: wLabel,
         dmVatTu: bgDmVatTu,
-        vatTu: bgVatTu,
-        totalLoi4M: bgLoi4M,
+        vatTu: finalBgVatTu,
+        loiThaoTac: finalBgLoiTT,
+        totalLoi4M: finalBgLoi4M,
       });
 
       weeklyPxlrItems.push({
         id: `pxlr-w-${wKey}`,
         month: wLabel,
-        dmVatTu: pxlrCalc.dmVatTu,
+        dmVatTu: 3.69,
         vatTu: pxlrCalc.vatTu,
+        loiThaoTac: pxlrCalc.loiThaoTac,
         totalLoi4M: pxlrCalc.totalLoi4M,
       });
     } else {
-      // Lấy từ baseWeekly nếu chưa có dữ liệu ngày nhập cho tuần này
-      const isWeekMatch = (itemMonth?: string) => {
-        if (!itemMonth) return false;
-        return itemMonth === wLabel || 
-               itemMonth === wKey || 
-               itemMonth.replace('Tuần ', 'W') === wKey ||
-               itemMonth.replace('W', 'Tuần ') === wLabel;
-      };
-      const prevRo = baseWeekly?.ro.items.find(i => isWeekMatch(i.month));
-      const prevBg = baseWeekly?.bg.items.find(i => isWeekMatch(i.month));
-      const prevPxlr = baseWeekly?.pxlr.items.find(i => isWeekMatch(i.month));
-
-      weeklyRoItems.push(prevRo || { id: `ro-${wKey}`, month: wLabel, dmVatTu: 2.4, vatTu: 0.6, totalLoi4M: 2.9 });
-      weeklyBgItems.push(prevBg || { id: `bg-${wKey}`, month: wLabel, dmVatTu: 4.03, vatTu: 1.6, totalLoi4M: 5.4 });
-      weeklyPxlrItems.push(prevPxlr || { id: `pxlr-${wKey}`, month: wLabel, dmVatTu: 2.5, vatTu: 0.85, totalLoi4M: 3.4 });
+      // Các tuần chưa có dữ liệu hoặc không có số liệu phát sinh sẽ bằng 0
+      weeklyRoItems.push({ id: `ro-${wKey}`, month: wLabel, dmVatTu: 2.4, vatTu: 0, loiThaoTac: 0, totalLoi4M: 0 });
+      weeklyBgItems.push({ id: `bg-${wKey}`, month: wLabel, dmVatTu: 4.03, vatTu: 0, loiThaoTac: 0, totalLoi4M: 0 });
+      weeklyPxlrItems.push({ id: `pxlr-${wKey}`, month: wLabel, dmVatTu: 3.69, vatTu: 0, loiThaoTac: 0, totalLoi4M: 0 });
     }
   });
 
@@ -303,50 +448,89 @@ export function rollupDailyToQualityCharts(
   const month9Records = safeDaily.filter(r => r.month === 'T9' || r.date.includes('-09-') || r.date.includes('/09'));
   
   let t9RoVatTu = 1.1;
+  let t9RoLoiTT = 1.9;
   let t9RoLoi4M = 3.0;
   let t9BgVatTu = 2.69;
+  let t9BgLoiTT = 4.25;
   let t9BgLoi4M = 6.94;
+  let totalSlRO_T9 = 0;
+  let totalSlBG_T9 = 0;
 
   if (month9Records.length > 0) {
-    const activeRO = month9Records.filter(r => (r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.sanLuong && r.ro.sanLuong > 0)));
-    const countRO = activeRO.length > 0 ? activeRO.length : month9Records.length;
-    const listRO = activeRO.length > 0 ? activeRO : month9Records;
+    const activeRO = month9Records.filter(r => (r.ro.sanLuong && r.ro.sanLuong > 0) || r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.loiThaoTac !== undefined && r.ro.loiThaoTac > 0));
+    const activeBG = month9Records.filter(r => (r.bg.sanLuong && r.bg.sanLuong > 0) || r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.loiThaoTac !== undefined && r.bg.loiThaoTac > 0));
 
-    const activeBG = month9Records.filter(r => (r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.sanLuong && r.bg.sanLuong > 0)));
-    const countBG = activeBG.length > 0 ? activeBG.length : month9Records.length;
-    const listBG = activeBG.length > 0 ? activeBG : month9Records;
+    totalSlRO_T9 = activeRO.reduce((s, r) => s + (r.ro.sanLuong || 0), 0);
+    totalSlBG_T9 = activeBG.reduce((s, r) => s + (r.bg.sanLuong || 0), 0);
 
-    t9RoVatTu = Number((listRO.reduce((s, r) => s + r.ro.vatTu, 0) / countRO).toFixed(1));
-    t9RoLoi4M = Number((listRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / countRO).toFixed(1));
-    t9BgVatTu = Number((listBG.reduce((s, r) => s + r.bg.vatTu, 0) / countBG).toFixed(1));
-    t9BgLoi4M = Number((listBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / countBG).toFixed(1));
+    t9RoVatTu = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + r.ro.vatTu, 0) / activeRO.length).toFixed(1)) : 0;
+    t9RoLoiTT = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + (r.ro.loiThaoTac !== undefined ? r.ro.loiThaoTac : Math.max(0, r.ro.totalLoi4M - r.ro.vatTu)), 0) / activeRO.length).toFixed(1)) : 0;
+    t9RoLoi4M = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / activeRO.length).toFixed(1)) : 0;
+
+    t9BgVatTu = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + r.bg.vatTu, 0) / activeBG.length).toFixed(1)) : 0;
+    t9BgLoiTT = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + (r.bg.loiThaoTac !== undefined ? r.bg.loiThaoTac : Math.max(0, r.bg.totalLoi4M - r.bg.vatTu)), 0) / activeBG.length).toFixed(1)) : 0;
+    t9BgLoi4M = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / activeBG.length).toFixed(1)) : 0;
   }
 
   const t9Pxlr = calculatePXLRQuality(
-    { dmVatTu: 2.4, vatTu: t9RoVatTu, totalLoi4M: t9RoLoi4M },
-    { dmVatTu: 4.03, vatTu: t9BgVatTu, totalLoi4M: t9BgLoi4M }
+    { dmVatTu: 2.4, vatTu: t9RoVatTu, loiThaoTac: t9RoLoiTT, totalLoi4M: t9RoLoi4M, sanLuong: totalSlRO_T9 },
+    { dmVatTu: 4.03, vatTu: t9BgVatTu, loiThaoTac: t9BgLoiTT, totalLoi4M: t9BgLoi4M, sanLuong: totalSlBG_T9 }
+  );
+
+  const month10Records = safeDaily.filter(r => r.month === 'T10' || r.date.includes('-10-') || r.date.includes('/10'));
+  let t10RoVatTu = 1.25;
+  let t10RoLoiTT = 2.1;
+  let t10RoLoi4M = 3.42;
+  let t10BgVatTu = 2.10;
+  let t10BgLoiTT = 3.2;
+  let t10BgLoi4M = 5.80;
+  let totalSlRO_T10 = 0;
+  let totalSlBG_T10 = 0;
+
+  if (month10Records.length > 0) {
+    const activeRO = month10Records.filter(r => (r.ro.sanLuong && r.ro.sanLuong > 0) || r.ro.totalLoi4M > 0 || r.ro.vatTu > 0 || (r.ro.loiThaoTac !== undefined && r.ro.loiThaoTac > 0));
+    const activeBG = month10Records.filter(r => (r.bg.sanLuong && r.bg.sanLuong > 0) || r.bg.totalLoi4M > 0 || r.bg.vatTu > 0 || (r.bg.loiThaoTac !== undefined && r.bg.loiThaoTac > 0));
+
+    totalSlRO_T10 = activeRO.reduce((s, r) => s + (r.ro.sanLuong || 0), 0);
+    totalSlBG_T10 = activeBG.reduce((s, r) => s + (r.bg.sanLuong || 0), 0);
+
+    t10RoVatTu = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + r.ro.vatTu, 0) / activeRO.length).toFixed(1)) : 0;
+    t10RoLoiTT = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + (r.ro.loiThaoTac !== undefined ? r.ro.loiThaoTac : Math.max(0, r.ro.totalLoi4M - r.ro.vatTu)), 0) / activeRO.length).toFixed(1)) : 0;
+    t10RoLoi4M = activeRO.length > 0 ? Number((activeRO.reduce((s, r) => s + r.ro.totalLoi4M, 0) / activeRO.length).toFixed(1)) : 0;
+
+    t10BgVatTu = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + r.bg.vatTu, 0) / activeBG.length).toFixed(1)) : 0;
+    t10BgLoiTT = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + (r.bg.loiThaoTac !== undefined ? r.bg.loiThaoTac : Math.max(0, r.bg.totalLoi4M - r.bg.vatTu)), 0) / activeBG.length).toFixed(1)) : 0;
+    t10BgLoi4M = activeBG.length > 0 ? Number((activeBG.reduce((s, r) => s + r.bg.totalLoi4M, 0) / activeBG.length).toFixed(1)) : 0;
+  }
+
+  const t10Pxlr = calculatePXLRQuality(
+    { dmVatTu: 2.4, vatTu: t10RoVatTu, loiThaoTac: t10RoLoiTT, totalLoi4M: t10RoLoi4M, sanLuong: totalSlRO_T10 },
+    { dmVatTu: 4.03, vatTu: t10BgVatTu, loiThaoTac: t10BgLoiTT, totalLoi4M: t10BgLoi4M, sanLuong: totalSlBG_T10 }
   );
 
   // Giữ T6, T7, T8 lịch sử chuẩn (bắt đầu từ Tháng 6)
   const pxlrMonthlyItems: Slide2QualityItem[] = [
-    { id: 'pxlr-q-t6', month: 'T6', dmVatTu: 3.69, vatTu: 1.59, totalLoi4M: 5.07 },
-    { id: 'pxlr-q-t7', month: 'T7', dmVatTu: 3.69, vatTu: 1.48, totalLoi4M: 5.78 },
-    { id: 'pxlr-q-t8', month: 'T8', dmVatTu: 3.69, vatTu: 1.61, totalLoi4M: 4.97 },
-    { id: 'pxlr-q-t9', month: 'T9', dmVatTu: 3.69, vatTu: t9Pxlr.vatTu, totalLoi4M: t9Pxlr.totalLoi4M },
+    { id: 'pxlr-q-t6', month: 'T6', dmVatTu: 3.69, vatTu: 1.59, loiThaoTac: 3.48, totalLoi4M: 5.07 },
+    { id: 'pxlr-q-t7', month: 'T7', dmVatTu: 3.69, vatTu: 1.48, loiThaoTac: 4.30, totalLoi4M: 5.78 },
+    { id: 'pxlr-q-t8', month: 'T8', dmVatTu: 3.69, vatTu: 1.61, loiThaoTac: 3.36, totalLoi4M: 4.97 },
+    { id: 'pxlr-q-t9', month: 'T9', dmVatTu: 3.69, vatTu: t9Pxlr.vatTu, loiThaoTac: t9Pxlr.loiThaoTac, totalLoi4M: t9Pxlr.totalLoi4M },
+    { id: 'pxlr-q-t10', month: 'T10', dmVatTu: 3.69, vatTu: t10Pxlr.vatTu, loiThaoTac: t10Pxlr.loiThaoTac, totalLoi4M: t10Pxlr.totalLoi4M },
   ];
 
   const roMonthlyItems: Slide2QualityItem[] = [
-    { id: 'ro-q-t6', month: 'T6', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.4 },
-    { id: 'ro-q-t7', month: 'T7', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.8 },
-    { id: 'ro-q-t8', month: 'T8', dmVatTu: 2.4, vatTu: 0.8, totalLoi4M: 3.2 },
-    { id: 'ro-q-t9', month: 'T9', dmVatTu: 2.4, vatTu: t9RoVatTu, totalLoi4M: t9RoLoi4M },
+    { id: 'ro-q-t6', month: 'T6', dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 2.6, totalLoi4M: 3.4 },
+    { id: 'ro-q-t7', month: 'T7', dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 3.0, totalLoi4M: 3.8 },
+    { id: 'ro-q-t8', month: 'T8', dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 2.4, totalLoi4M: 3.2 },
+    { id: 'ro-q-t9', month: 'T9', dmVatTu: 2.4, vatTu: t9RoVatTu, loiThaoTac: t9RoLoiTT, totalLoi4M: t9RoLoi4M },
+    { id: 'ro-q-t10', month: 'T10', dmVatTu: 2.4, vatTu: t10RoVatTu, loiThaoTac: t10RoLoiTT, totalLoi4M: t10RoLoi4M },
   ];
 
   const bgMonthlyItems: Slide2QualityItem[] = [
-    { id: 'bg-q-t6', month: 'T6', dmVatTu: 4.03, vatTu: 3.13, totalLoi4M: 8.33 },
-    { id: 'bg-q-t7', month: 'T7', dmVatTu: 4.03, vatTu: 2.32, totalLoi4M: 8.26 },
-    { id: 'bg-q-t8', month: 'T8', dmVatTu: 4.03, vatTu: 3.97, totalLoi4M: 10.10 },
-    { id: 'bg-q-t9', month: 'T9', dmVatTu: 4.03, vatTu: t9BgVatTu, totalLoi4M: t9BgLoi4M },
+    { id: 'bg-q-t6', month: 'T6', dmVatTu: 4.03, vatTu: 3.13, loiThaoTac: 5.2, totalLoi4M: 8.33 },
+    { id: 'bg-q-t7', month: 'T7', dmVatTu: 4.03, vatTu: 2.32, loiThaoTac: 5.94, totalLoi4M: 8.26 },
+    { id: 'bg-q-t8', month: 'T8', dmVatTu: 4.03, vatTu: 3.97, loiThaoTac: 6.13, totalLoi4M: 10.10 },
+    { id: 'bg-q-t9', month: 'T9', dmVatTu: 4.03, vatTu: t9BgVatTu, loiThaoTac: t9BgLoiTT, totalLoi4M: t9BgLoi4M },
+    { id: 'bg-q-t10', month: 'T10', dmVatTu: 4.03, vatTu: t10BgVatTu, loiThaoTac: t10BgLoiTT, totalLoi4M: t10BgLoi4M },
   ];
 
   const monthlyCharts: QualityGroupCharts = {

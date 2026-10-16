@@ -1,16 +1,18 @@
 import React from 'react';
-import { Flame, Droplets, Sliders, Tv } from 'lucide-react';
+import { Flame, Droplets, Sliders, Tv, Calendar } from 'lucide-react';
 
 interface MobileNavProps {
   activeTab: 'presentation' | 'dcbg' | 'dcro';
   setActiveTab: (tab: 'presentation' | 'dcbg' | 'dcro') => void;
   onOpenSettingsModal: () => void;
+  onOpenWeekCutoffModal?: () => void;
 }
 
 export const MobileNav: React.FC<MobileNavProps> = ({
   activeTab,
   setActiveTab,
   onOpenSettingsModal,
+  onOpenWeekCutoffModal,
 }) => {
   return (
     <nav className="sm:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 shadow-lg px-2 py-1 flex items-center justify-around">
@@ -31,7 +33,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         }`}
       >
         <Flame className="w-4 h-4 mb-0.5 text-emerald-600" />
-        <span className="text-[10px]">Nhóm BG (Bếp)</span>
+        <span className="text-[10px]">Nhóm BG</span>
       </button>
 
       <button
@@ -41,12 +43,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({
         }`}
       >
         <Droplets className="w-4 h-4 mb-0.5 text-purple-600" />
-        <span className="text-[10px]">Nhóm RO (Lọc)</span>
+        <span className="text-[10px]">Nhóm RO</span>
       </button>
+
+      {onOpenWeekCutoffModal && (
+        <button
+          onClick={onOpenWeekCutoffModal}
+          className="flex flex-col items-center justify-center py-1.5 px-2 rounded-lg text-amber-700 font-medium hover:bg-amber-50 transition-colors cursor-pointer"
+        >
+          <Calendar className="w-4 h-4 mb-0.5 text-amber-600" />
+          <span className="text-[10px] font-bold">Chốt Tuần</span>
+        </button>
+      )}
 
       <button
         onClick={onOpenSettingsModal}
-        className="flex flex-col items-center justify-center py-1.5 px-3 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+        className="flex flex-col items-center justify-center py-1.5 px-2 rounded-lg text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
       >
         <Sliders className="w-4 h-4 mb-0.5" />
         <span className="text-[10px]">Cài đặt</span>

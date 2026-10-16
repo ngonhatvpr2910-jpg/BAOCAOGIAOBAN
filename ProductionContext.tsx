@@ -19,8 +19,8 @@ import {
 } from './types';
 import { StorageService } from './storage';
 import { synchronizeSlide3Data } from './defectCostSyncService';
-import { getSyncedQualityForPXLR, rollupDailyToQualityCharts } from './qualityFormulas';
-import { recalculateBGMatrix, recalculateROMatrix } from './matrixGenerator';
+import { getSyncedQualityForPXLR, rollupDailyToQualityCharts, autoSyncDailyRecordWeeks } from './qualityFormulas';
+import { recalculateBGMatrix, recalculateROMatrix, applyWeekCutoffsToBGMatrix, applyWeekCutoffsToROMatrix, WeekLabelMode } from './matrixGenerator';
 import { 
   MONTHLY_HISTORY, 
   WEEKLY_HISTORY,
@@ -105,6 +105,8 @@ interface ProductionContextType {
   // Global Norms & Targets
   globalNorms: GlobalNormsConfig;
   updateGlobalNorms: (norms: GlobalNormsConfig) => void;
+  // Global Week Cutoffs
+  applyGlobalWeekCutoffs: (year: number, monthIndex0: number, cutoffs: number[], weekLabelMode: WeekLabelMode) => void;
 }
 
 export const GLOBAL_LOCK_DATE = '2026-09-24';
@@ -198,6 +200,51 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateGlobalNorms = useCallback((newNorms: GlobalNormsConfig) => {
     setGlobalNorms(newNorms);
+  }, []);
+
+  const applyGlobalWeekCutoffs = useCallback((
+    year: number,
+    monthIndex0: number,
+    cutoffs: number[],
+    weekLabelMode: WeekLabelMode
+  ) => {
+    StorageService.saveCustomWeekCutoffs(year, monthIndex0, cutoffs);
+    StorageService.saveWeekLabelMode(weekLabelMode);
+
+    setMatrixRO(prevRO => {
+      const updatedRO = applyWeekCutoffsToROMatrix(prevRO, cutoffs, year, monthIndex0, weekLabelMode);
+      StorageService.saveMatrixRO(updatedRO);
+      return updatedRO;
+    });
+
+    setMatrixBG(prevBG => {
+      const updatedBG = applyWeekCutoffsToBGMatrix(prevBG, cutoffs, year, monthIndex0, weekLabelMode);
+      StorageService.saveMatrixBG(updatedBG);
+      return updatedBG;
+    });
+
+    setSlide2Quality(prevS2 => {
+      if (prevS2.dailyRecords) {
+        const syncedRecords = autoSyncDailyRecordWeeks(prevS2.dailyRecords);
+        const rolled = rollupDailyToQualityCharts(syncedRecords, prevS2.monthly, prevS2.weekly);
+        const updatedS2 = {
+          ...prevS2,
+          dailyRecords: syncedRecords,
+          daily: rolled.daily,
+          weekly: rolled.weekly,
+          monthly: rolled.monthly,
+        };
+        StorageService.saveSlide2Quality(updatedS2);
+        return updatedS2;
+      }
+      return prevS2;
+    });
+
+    setDataVersion(v => v + 1);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'week-cutoffs', year, monthIndex0, cutoffs } }));
+    }
   }, []);
 
   const qualityMetrics = useMemo(() => {
@@ -1020,6 +1067,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         updateSlide3DefectCost,
         globalNorms,
         updateGlobalNorms,
+        applyGlobalWeekCutoffs,
       }}
     >
       {children}

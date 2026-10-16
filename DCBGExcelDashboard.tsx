@@ -65,8 +65,9 @@ export const DCBGExcelDashboard: React.FC = () => {
     dailyNSLDRMA,
     updateDailyNSLDRMA,
     resetDailyNSLDRMA,
-    updateMatrixBGForMonth,
-    updateMatrixROForMonth,
+    updateMatrixBGForMonth, 
+    updateMatrixROForMonth, 
+    applyGlobalWeekCutoffs,
     isDateLocked,
     dashboardYear: selectedYear,
     setDashboardYear: setSelectedYear,
@@ -144,7 +145,12 @@ export const DCBGExcelDashboard: React.FC = () => {
     refreshData();
 
     const handleUpdate = (e: any) => {
-      if (e.detail?.type === 'matrix-bg' && e.detail?.year === selectedYear && e.detail?.monthIndex0 === selectedMonthIndex0) {
+      if (
+        !e.detail?.type || 
+        e.detail?.type === 'matrix-bg' || 
+        e.detail?.type === 'week-cutoffs' ||
+        (e.detail?.year === selectedYear && e.detail?.monthIndex0 === selectedMonthIndex0)
+      ) {
         refreshData();
       }
     };
@@ -169,56 +175,54 @@ export const DCBGExcelDashboard: React.FC = () => {
   // Recalculate Matrix dynamically when days are edited
   const handleMatrixCellChange = (colId: string, field: keyof ExcelMatrixBGColumn, val: string) => {
     const numVal = parseFloat(val) || 0;
-    setLocalMatrix(prev => {
-      const next = prev.map(col => {
-        if (col.id === colId) {
-          const updated = { ...col, [field]: numVal };
-          // If editing công (Bếp Ga, Thời Vụ, RMA), auto update ĐỊNH MỨC SL THEO NS: = SUM(Công) * 9.03
-          if (field === 'congBepGa' || field === 'congThoiVu' || field === 'congRma') {
-            const sumCong = (Number(updated.congBepGa) || 0) + (Number(updated.congThoiVu) || 0) + (Number(updated.congRma) || 0);
-            updated.dinhMucSlTheoNs = Number((sumCong * 9.03).toFixed(1));
-          }
-          // If editing SL, công, or định mức, auto update NSLĐ
-          if (
-            field === 'sanLuongBepGa' || 
-            field === 'sanLuongRma' || 
-            field === 'dinhMucSlTheoNs' ||
-            field === 'congBepGa' || 
-            field === 'congThoiVu' || 
-            field === 'congRma'
-          ) {
-            const totalSL = (Number(updated.sanLuongBepGa) || 0) + (Number(updated.sanLuongRma) || 0);
-            const dm = Number(updated.dinhMucSlTheoNs) || 1;
-            updated.nsldTheoNgay = dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0;
-          }
-          // If editing Tổng nhân sự or Nghỉ, auto update Tỉ Lệ Đi Làm: =+(B10-B11)/100%/B10
-          if (field === 'tongNhanSuLine' || field === 'nhanSuNghi') {
-            const tongNS = Number(updated.tongNhanSuLine) || 0;
-            const nghi = Number(updated.nhanSuNghi) || 0;
-            updated.tiLeDiLam = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : 100;
-          }
-          // If editing sanLuongBepGa, sanLuongRma, or khsxNgay, auto update Tỉ Lệ Hoàn Thành KHSX: = (SL Bếp Ga + SL RMA) / KHSX Ngày
-          if (field === 'sanLuongBepGa' || field === 'sanLuongRma' || field === 'khsxNgay') {
-            const khsx = Number(updated.khsxNgay) || 0;
-            const totalSL = (Number(updated.sanLuongBepGa) || 0) + (Number(updated.sanLuongRma) || 0);
-            updated.tiLeHoanThanhKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
-          }
-          return updated;
+    const next = localMatrix.map(col => {
+      if (col.id === colId) {
+        const updated = { ...col, [field]: numVal };
+        // If editing công (Bếp Ga, Thời Vụ, RMA), auto update ĐỊNH MỨC SL THEO NS: = SUM(Công) * 9.03
+        if (field === 'congBepGa' || field === 'congThoiVu' || field === 'congRma') {
+          const sumCong = (Number(updated.congBepGa) || 0) + (Number(updated.congThoiVu) || 0) + (Number(updated.congRma) || 0);
+          updated.dinhMucSlTheoNs = Number((sumCong * 9.03).toFixed(1));
         }
-        return col;
-      });
-
-      const recalculated = recalculateBGMatrix(next);
-      // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
-      StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
-      updateMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('production-data-updated', {
-          detail: { type: 'matrix-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }
-        }));
+        // If editing SL, công, or định mức, auto update NSLĐ
+        if (
+          field === 'sanLuongBepGa' || 
+          field === 'sanLuongRma' || 
+          field === 'dinhMucSlTheoNs' ||
+          field === 'congBepGa' || 
+          field === 'congThoiVu' || 
+          field === 'congRma'
+        ) {
+          const totalSL = (Number(updated.sanLuongBepGa) || 0) + (Number(updated.sanLuongRma) || 0);
+          const dm = Number(updated.dinhMucSlTheoNs) || 1;
+          updated.nsldTheoNgay = dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0;
+        }
+        // If editing Tổng nhân sự or Nghỉ, auto update Tỉ Lệ Đi Làm: =+(B10-B11)/100%/B10
+        if (field === 'tongNhanSuLine' || field === 'nhanSuNghi') {
+          const tongNS = Number(updated.tongNhanSuLine) || 0;
+          const nghi = Number(updated.nhanSuNghi) || 0;
+          updated.tiLeDiLam = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : 100;
+        }
+        // If editing sanLuongBepGa, sanLuongRma, or khsxNgay, auto update Tỉ Lệ Hoàn Thành KHSX: = (SL Bếp Ga + SL RMA) / KHSX Ngày
+        if (field === 'sanLuongBepGa' || field === 'sanLuongRma' || field === 'khsxNgay') {
+          const khsx = Number(updated.khsxNgay) || 0;
+          const totalSL = (Number(updated.sanLuongBepGa) || 0) + (Number(updated.sanLuongRma) || 0);
+          updated.tiLeHoanThanhKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
+        }
+        return updated;
       }
-      return recalculated;
+      return col;
     });
+
+    const recalculated = recalculateBGMatrix(next);
+    setLocalMatrix(recalculated);
+    // Tự động lưu tức thời vào StorageService để đồng bộ số liệu sang Slide 1 & PXLR
+    StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+    updateMatrixBGForMonth(selectedYear, selectedMonthIndex0, recalculated);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', {
+        detail: { type: 'matrix-bg', year: selectedYear, monthIndex0: selectedMonthIndex0 }
+      }));
+    }
   };
 
   const handleCellPaste = (startColId: string, startMetricKey: string, e: React.ClipboardEvent) => {
@@ -337,9 +341,7 @@ export const DCBGExcelDashboard: React.FC = () => {
 
   const handleApplyCutoffs = (newCutoffs: number[], weekLabelMode?: WeekLabelMode) => {
     const mode = weekLabelMode || StorageService.getWeekLabelMode();
-    const updated = applyWeekCutoffsToBGMatrix(localMatrix, newCutoffs, selectedYear, selectedMonthIndex0, mode);
-    setLocalMatrix(updated);
-    StorageService.saveMatrixBGForMonth(selectedYear, selectedMonthIndex0, updated);
+    applyGlobalWeekCutoffs(selectedYear, selectedMonthIndex0, newCutoffs, mode);
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
   };

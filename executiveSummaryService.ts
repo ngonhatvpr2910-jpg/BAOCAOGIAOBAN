@@ -11,10 +11,11 @@ import {
 import { StorageService } from './storage';
 import { synchronizeSlide3Data, isSameWeek, isItemInMonth, extractWeekNumber, MONTH_WEEKS_MAP, HISTORICAL_WEEK_BREAKDOWN } from './defectCostSyncService';
 import { calculateAbsolutePXLR } from './productivityFormulas';
+import { calculatePXLRQuality } from './qualityFormulas';
 
 export interface ExecutiveSummaryPeriodResult {
   periodLabel: string;
-  timeFrame: 'week' | 'month';
+  timeFrame: 'day' | 'week' | 'month';
   units: UnitExecutiveSummary[];
   actionItemTitle: string;
   actionItemContent: string;
@@ -34,8 +35,21 @@ export const AVAILABLE_MONTHS = ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9',
 
 export function getWeeksForMonth(monthStr: string): string[] {
   const normalized = monthStr.trim();
-  if (MONTH_WEEKS_MAP[normalized]) return MONTH_WEEKS_MAP[normalized];
   const mNum = parseInt(normalized.replace(/\D/g, ''), 10);
+  if (!isNaN(mNum) && mNum >= 1 && mNum <= 12) {
+    try {
+      const matrixRO = StorageService.getMatrixROForMonth(2026, mNum - 1);
+      const weeklyCols = matrixRO.filter(c => c.isWeeklyTotal && c.label);
+      if (weeklyCols.length > 0) {
+        const weeks = weeklyCols.map(c => {
+          const m = c.label.match(/W\d+/i);
+          return m ? m[0].toUpperCase() : c.label.split(' ')[0];
+        });
+        if (weeks.length > 0) return Array.from(new Set(weeks));
+      }
+    } catch {}
+  }
+  if (MONTH_WEEKS_MAP[normalized]) return MONTH_WEEKS_MAP[normalized];
   if (mNum === 6) return ['W22', 'W23', 'W24', 'W25', 'W26'];
   if (mNum === 7) return ['W27', 'W28', 'W29', 'W30'];
   if (mNum === 8) return ['W31', 'W32', 'W33', 'W34', 'W35'];
@@ -1804,9 +1818,22 @@ export function getWeeklyExecutiveSummaryData(
     const countPXLR = activePXLR.length > 0 ? activePXLR.length : dailyInWeek.length;
     const listPXLR = activePXLR.length > 0 ? activePXLR : dailyInWeek;
 
-    avgRO_4M = Number((listRO.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / countRO).toFixed(2));
-    avgBG_4M = Number((listBG.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / countBG).toFixed(2));
-    avgPXLR_4M = Number((listPXLR.reduce((s, d) => s + (d.pxlr?.totalLoi4M || 0), 0) / countPXLR).toFixed(2));
+    const slRO = activeRO.reduce((s, d) => s + (d.ro?.sanLuong || 0), 0);
+    const slBG = activeBG.reduce((s, d) => s + (d.bg?.sanLuong || 0), 0);
+
+    avgRO_4M = slRO > 0
+      ? Number((activeRO.reduce((s, d) => s + (d.ro?.totalLoi4M || 0) * (d.ro?.sanLuong || 0), 0) / slRO).toFixed(2))
+      : Number((listRO.reduce((s, d) => s + (d.ro?.totalLoi4M || 0), 0) / countRO).toFixed(2));
+
+    avgBG_4M = slBG > 0
+      ? Number((activeBG.reduce((s, d) => s + (d.bg?.totalLoi4M || 0) * (d.bg?.sanLuong || 0), 0) / slBG).toFixed(2))
+      : Number((listBG.reduce((s, d) => s + (d.bg?.totalLoi4M || 0), 0) / countBG).toFixed(2));
+
+    const pxlrCalcExec = calculatePXLRQuality(
+      { dmVatTu: 2.4, vatTu: 0, totalLoi4M: avgRO_4M, sanLuong: slRO },
+      { dmVatTu: 4.03, vatTu: 0, totalLoi4M: avgBG_4M, sanLuong: slBG }
+    );
+    avgPXLR_4M = pxlrCalcExec.totalLoi4M;
   }
 
   result.units = result.units.map(u => {
@@ -2308,8 +2335,170 @@ export function getMonthlyExecutiveSummaryData(
  * - Nếu timeFrame === 'week': Tính theo dữ liệu thực của tuần đó (W22 -> W52)
  * - Nếu timeFrame === 'month': TỔNG HỢP tháng từ các tuần của tháng đó!
  */
+/**
+ * Tính toán số liệu báo cáo điều hành THEO NGÀY (Daily Executive Summary)
+ */
+export function getDailyExecutiveSummaryData(
+  dateStr: string,
+  defectCostData?: SlideDefectCostData,
+  monthlyHistory?: MonthlyHistoryRecord[],
+  slide1Data?: Slide1NSLDData,
+  slide2QualityData?: Slide2QualityData,
+  globalNorms?: GlobalNormsConfig
+): ExecutiveSummaryPeriodResult {
+  const activeSlide2 = slide2QualityData || StorageService.getSlide2Quality();
+  const activeNorms = globalNorms || StorageService.getGlobalNorms();
+
+  let year = 2026;
+  let monthIdx = 9; // Tháng 10 default
+  let dayStr = '15';
+
+  if (dateStr && dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3) {
+      year = parseInt(parts[0], 10) || 2026;
+      monthIdx = (parseInt(parts[1], 10) || 10) - 1;
+      dayStr = String(parseInt(parts[2], 10) || 1).padStart(2, '0');
+    }
+  }
+
+  const formattedDayLabel = `${dayStr}/${String(monthIdx + 1).padStart(2, '0')}`;
+
+  const matRO = StorageService.getMatrixROForMonth(year, monthIdx) || [];
+  const matBG = StorageService.getMatrixBGForMonth(year, monthIdx) || [];
+  const targetIdRO = `ro-${year}-${monthIdx + 1}-${dayStr}`;
+  const targetIdBG = `bg-${year}-${monthIdx + 1}-${dayStr}`;
+
+  const colRO = matRO.find(c => c.id === targetIdRO || c.dateStr === dateStr) || matRO.find(c => !c.isWeeklyTotal && !c.isMonthlyTotal && c.dateStr === dateStr);
+  const colBG = matBG.find(c => c.id === targetIdBG || c.dateStr === dateStr) || matBG.find(c => !c.isWeeklyTotal && !c.isMonthlyTotal && c.dateStr === dateStr);
+
+  const dcbgRecords = StorageService.getDCBGRecords();
+  const dcroRecords = StorageService.getDCRORecords();
+  const dcbg = dcbgRecords.find(r => r.date === dateStr);
+  const dcro = dcroRecords.find(r => r.date === dateStr);
+
+  const safeDaily = activeSlide2.dailyRecords || [];
+  const matchedDaily = safeDaily.find(r => r.date === dateStr || r.dayLabel === dateStr || (formattedDayLabel && r.dayLabel === formattedDayLabel));
+
+  const khsxRO = Number(colRO?.khsxNgay) || Number(dcro?.khsxNgay) || 720;
+  const khsxBG = Number(colBG?.khsxNgay) || Number(dcbg?.khsxNgay) || 720;
+  const khsxPXLR = khsxRO + khsxBG;
+
+  const slRO = Number(colRO?.sanLuongLineChinh) || Number(dcro?.sanLuongLineChinh) || Number(dcro?.tongSanLuongQuyDoi) || 0;
+  const slBG = Number(colBG?.tongSanLuongQuyDoi) || (Number(colBG?.sanLuongBepGa || 0) + Number(colBG?.sanLuongRma || 0)) || Number(dcbg?.tongSanLuongQuyDoi) || 0;
+  const slPXLR = slRO + slBG;
+
+  const completionRO = khsxRO > 0 ? Number(((slRO / khsxRO) * 100).toFixed(1)) : 0;
+  const completionBG = khsxBG > 0 ? Number(((slBG / khsxBG) * 100).toFixed(1)) : 0;
+  const completionPXLR = khsxPXLR > 0 ? Number(((slPXLR / khsxPXLR) * 100).toFixed(1)) : 0;
+
+  const nsldRO = Number(colRO?.nsldTheoNgay) || (colRO?.dinhMucSlTheoNs && colRO.dinhMucSlTheoNs > 0 ? Number(((slRO / colRO.dinhMucSlTheoNs) * 100).toFixed(1)) : 0) || Number(dcro?.nsldTheoNgay) || 100;
+  const nsldBG = Number(colBG?.nsldTheoNgay) || (colBG?.dinhMucSlTheoNs && colBG.dinhMucSlTheoNs > 0 ? Number(((slBG / colBG.dinhMucSlTheoNs) * 100).toFixed(1)) : 0) || Number(dcbg?.nsldTheoNgay) || 100;
+  const totalDinhMuc = (Number(colRO?.dinhMucSlTheoNs) || 540) + (Number(colBG?.dinhMucSlTheoNs) || 480);
+  const nsldPXLR = totalDinhMuc > 0 ? Number(((slPXLR / totalDinhMuc) * 100).toFixed(1)) : 100;
+
+  const attRO = Number(colRO?.tiLeDiLam) || Number(dcro?.tiLeDiLam) || 98.2;
+  const attBG = Number(colBG?.tiLeDiLam) || Number(dcbg?.tiLeDiLam) || 98.0;
+  const attPXLR = Number(((attRO + attBG) / 2).toFixed(1));
+
+  const errRO = matchedDaily?.ro?.totalLoi4M ?? (colRO?.tiLeLoiThaoTac ? Number(colRO.tiLeLoiThaoTac) : (dcro?.tiLeLoiThaoTac ? Number(dcro.tiLeLoiThaoTac) : (activeSlide2.ro?.benchmarkDmLoi || 2.90)));
+  const errBG = matchedDaily?.bg?.totalLoi4M ?? (colBG?.tiLeLoiThaoTac ? Number(colBG.tiLeLoiThaoTac) : (dcbg?.tiLeLoiThaoTac ? Number(dcbg.tiLeLoiThaoTac) : (activeSlide2.bg?.benchmarkDmLoi || 5.20)));
+  const errPXLR = matchedDaily?.pxlr?.totalLoi4M ?? Number(((errRO + errBG) / 2).toFixed(2));
+
+  const costRO = Number((colRO as any)?.chiPhiHangHong) || Number(dcro?.chiPhiHangHong) || 0;
+  const costBG = Number((colBG as any)?.chiPhiHangHong) || Number(dcbg?.chiPhiHangHong) || 0;
+  const costPXLR = costRO + costBG;
+
+  return {
+    periodLabel: `Ngày ${dateStr}`,
+    timeFrame: 'day',
+    actionItemTitle: `Việc cần làm - Báo cáo ngày ${dateStr}`,
+    actionItemContent: `Ngày ${dateStr}: Kiểm soát tiến độ, duy trì năng suất và đảm bảo tỷ lệ lỗi trong định mức cho phép.`,
+    isUrgentAction: false,
+    units: [
+      {
+        id: `exec-pxlr-day-${dateStr}`,
+        unitKey: 'PXLR',
+        unitName: `PXLR Toàn Xưởng (Ngày ${dateStr})`,
+        khsxLabel: `${khsxPXLR.toLocaleString()} SP`,
+        actualOutputLabel: `${slPXLR.toLocaleString()} SP`,
+        actualOutput: slPXLR,
+        completionRate: completionPXLR,
+        completionNote: completionPXLR >= 100 ? `Đạt ${completionPXLR}% KHSX` : `Đạt ${completionPXLR}% KHSX`,
+        nsldActual: nsldPXLR,
+        nsldTarget: activeNorms.nsldTarget.pxlr,
+        nsldDeltaNote: nsldPXLR >= activeNorms.nsldTarget.pxlr ? 'Đạt mục tiêu' : 'Dưới mục tiêu',
+        attendanceActual: attPXLR,
+        attendanceTarget: activeNorms.attendanceTarget.pxlr,
+        errorRateActual: errPXLR,
+        errorRateQuota: activeSlide2.pxlr?.benchmarkDmLoi || activeNorms.errorRateQuota.pxlr,
+        defectCostActual: costPXLR,
+        defectCostTarget: activeNorms.defectCostTarget.pxlr,
+        actionItem: `Báo cáo ngày ${dateStr}: Toàn xưởng duy trì tỷ lệ hoàn thành KHSX ${completionPXLR}%.`,
+      },
+      {
+        id: `exec-ro-day-${dateStr}`,
+        unitKey: 'RO',
+        unitName: `Line Máy Lọc Nước RO (Ngày ${dateStr})`,
+        khsxLabel: `${khsxRO.toLocaleString()} SP`,
+        actualOutputLabel: `${slRO.toLocaleString()} SP`,
+        actualOutput: slRO,
+        completionRate: completionRO,
+        completionNote: completionRO >= 100 ? `Đạt ${completionRO}% KHSX` : `Đạt ${completionRO}% KHSX`,
+        nsldActual: nsldRO,
+        nsldTarget: activeNorms.nsldTarget.ro,
+        nsldDeltaNote: nsldRO >= activeNorms.nsldTarget.ro ? 'Đạt mục tiêu' : 'Dưới mục tiêu',
+        attendanceActual: attRO,
+        attendanceTarget: activeNorms.attendanceTarget.ro,
+        errorRateActual: errRO,
+        errorRateQuota: activeSlide2.ro?.benchmarkDmLoi || activeNorms.errorRateQuota.ro,
+        defectCostActual: costRO,
+        defectCostTarget: activeNorms.defectCostTarget.ro,
+        actionItem: `Line RO ngày ${dateStr}: Tỷ lệ lỗi 4M đạt ${errRO}%.`,
+      },
+      {
+        id: `exec-bg-day-${dateStr}`,
+        unitKey: 'BG',
+        unitName: `Line DC Bếp Gas (Ngày ${dateStr})`,
+        khsxLabel: `${khsxBG.toLocaleString()} SP`,
+        actualOutputLabel: `${slBG.toLocaleString()} SP`,
+        actualOutput: slBG,
+        completionRate: completionBG,
+        completionNote: completionBG >= 100 ? `Đạt ${completionBG}% KHSX` : `Đạt ${completionBG}% KHSX`,
+        nsldActual: nsldBG,
+        nsldTarget: activeNorms.nsldTarget.bg,
+        nsldDeltaNote: nsldBG >= activeNorms.nsldTarget.bg ? 'Đạt mục tiêu' : 'Dưới mục tiêu',
+        attendanceActual: attBG,
+        attendanceTarget: activeNorms.attendanceTarget.bg,
+        errorRateActual: errBG,
+        errorRateQuota: activeSlide2.bg?.benchmarkDmLoi || activeNorms.errorRateQuota.bg,
+        defectCostActual: costBG,
+        defectCostTarget: activeNorms.defectCostTarget.bg,
+        actionItem: `Line BG ngày ${dateStr}: Tỷ lệ lỗi 4M đạt ${errBG}%.`,
+      },
+      {
+        id: `exec-rma-day-${dateStr}`,
+        unitKey: 'RMA',
+        unitName: `Tổ Sửa Chữa / Bảo Hành RMA (Ngày ${dateStr})`,
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Không phát sinh',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh',
+        attendanceActual: 98.0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh sản xuất',
+        actionItem: 'Duy trì công tác bảo hành.',
+      },
+    ],
+  };
+}
+
 export function getExecutiveSummaryData(
-  timeFrame: 'week' | 'month',
+  timeFrame: 'day' | 'week' | 'month',
   periodKey: string,
   defectCostData?: SlideDefectCostData,
   monthlyHistory?: MonthlyHistoryRecord[],
@@ -2317,7 +2506,16 @@ export function getExecutiveSummaryData(
   slide2QualityData?: Slide2QualityData,
   globalNorms?: GlobalNormsConfig
 ): ExecutiveSummaryPeriodResult {
-  if (timeFrame === 'week') {
+  if (timeFrame === 'day') {
+    return getDailyExecutiveSummaryData(
+      periodKey,
+      defectCostData,
+      monthlyHistory,
+      slide1Data,
+      slide2QualityData,
+      globalNorms
+    );
+  } else if (timeFrame === 'week') {
     return getWeeklyExecutiveSummaryData(
       periodKey,
       defectCostData,
@@ -2337,4 +2535,5 @@ export function getExecutiveSummaryData(
     );
   }
 }
+
 

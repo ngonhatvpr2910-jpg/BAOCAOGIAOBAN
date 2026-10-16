@@ -27,7 +27,8 @@ import {
   Edit3,
   ChevronLeft,
   ChevronRight,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react';
 
 import { Slide1NSLDData, Slide2QualityData, SlideDefectCostData } from './types';
@@ -37,10 +38,10 @@ interface ExecutiveSummaryCardProps {
   isFullscreen?: boolean;
   selectedWeek?: string;
   selectedMonth?: string;
-  timeFrame?: 'week' | 'month';
+  timeFrame?: 'day' | 'week' | 'month';
   onWeekChange?: (week: string) => void;
   onMonthChange?: (month: string) => void;
-  onTimeFrameChange?: (timeFrame: 'week' | 'month') => void;
+  onTimeFrameChange?: (timeFrame: 'day' | 'week' | 'month') => void;
   slide1NSLDData?: Slide1NSLDData;
   slide2QualityData?: Slide2QualityData;
   slide3DefectCostData?: SlideDefectCostData;
@@ -60,7 +61,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   slide3DefectCostData,
 }) => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-  const [internalTimeFrame, setInternalTimeFrame] = useState<'week' | 'month'>('week');
+  const [internalTimeFrame, setInternalTimeFrame] = useState<'day' | 'week' | 'month'>('week');
   const [isNormsEditorOpen, setIsNormsEditorOpen] = useState(false);
   const [localVersion, setLocalVersion] = useState(0);
 
@@ -79,7 +80,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     };
   }, []);
 
-  const { monthlyHistory, slide2Quality, slide3DefectCost, dataVersion, globalNorms } = useProduction();
+  const { selectedDate, setSelectedDate, monthlyHistory, slide2Quality, slide3DefectCost, dataVersion, globalNorms } = useProduction();
 
   const activeSlide2 = useMemo(() => {
     return slide2QualityData || slide2Quality || StorageService.getSlide2Quality();
@@ -171,13 +172,13 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     onMonthChange?.(m);
   };
 
-  const handleSelectTimeFrame = (tf: 'week' | 'month') => {
+  const handleSelectTimeFrame = (tf: 'day' | 'week' | 'month') => {
     setInternalTimeFrame(tf);
     if (tf === 'month') {
       const m = getMonthForWeek(selectedWeek);
       setInternalSelectedMonth(m);
       onMonthChange?.(m);
-    } else {
+    } else if (tf === 'week') {
       const weeksInMonth = getWeeksForMonth(selectedMonth);
       if (!weeksInMonth.includes(selectedWeek)) {
         const repWeek = weeksInMonth[0] || 'W42';
@@ -189,8 +190,6 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
   };
 
   // Danh sách các tuần hiển thị:
-  // - Nếu showAllWeeks = true: hiển thị toàn bộ các tuần (W22 -> W52)
-  // - Mặc định: hiển thị toàn bộ các tuần thuộc tháng đang chọn (không bị giới hạn riêng W39/W40)
   const visibleWeeks = useMemo(() => {
     if (showAllWeeks) {
       return dynamicAvailableWeeks;
@@ -206,9 +205,9 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     return weeksInSelectedMonth;
   }, [selectedMonth, selectedWeek, dynamicAvailableWeeks, showAllWeeks]);
 
-  // Tổng hợp dữ liệu điều hành theo tuần hoặc theo tháng dựa trên data
+  // Tổng hợp dữ liệu điều hành theo ngày, tuần hoặc tháng dựa trên data
   const summaryData = useMemo(() => {
-    const periodKey = timeFrame === 'week' ? selectedWeek : selectedMonth;
+    const periodKey = timeFrame === 'day' ? selectedDate : (timeFrame === 'week' ? selectedWeek : selectedMonth);
     return getExecutiveSummaryData(
       timeFrame, 
       periodKey, 
@@ -218,9 +217,9 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
       activeSlide2,
       globalNorms
     );
-  }, [timeFrame, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, activeSlide2, localVersion, dataVersion, globalNorms]);
+  }, [timeFrame, selectedDate, selectedWeek, selectedMonth, defectCostData, monthlyHistory, slide1Data, activeSlide2, localVersion, dataVersion, globalNorms]);
 
-  const activePeriodLabel = timeFrame === 'week' ? selectedWeek : selectedMonth;
+  const activePeriodLabel = timeFrame === 'day' ? `Ngày ${selectedDate}` : (timeFrame === 'week' ? selectedWeek : selectedMonth);
 
   return (
     <div 
@@ -272,7 +271,9 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
               )}
             </div>
             <p className="text-xs text-slate-300">
-              {timeFrame === 'week' 
+              {timeFrame === 'day'
+                ? `Báo cáo số liệu chi tiết ngày ${selectedDate}: Kế hoạch, Thực hiện, NSLĐ, Đi làm, Tỉ lệ lỗi và Chi phí hư hỏng.`
+                : timeFrame === 'week' 
                 ? `Báo cáo số liệu chi tiết tuần ${selectedWeek} (thuộc ${getMonthForWeek(selectedWeek)}): Kế hoạch, Thực hiện, NSLĐ, Đi làm, Tỉ lệ lỗi và Chi phí hư hỏng.`
                 : `Bảng số liệu điều hành tổng hợp ${selectedMonth} từ các tuần (${getWeeksForMonth(selectedMonth).join(', ')}): Kế hoạch, Thực hiện, NSLĐ, Đi làm, Tỉ lệ lỗi và Chi phí hư hỏng.`
               }
@@ -280,10 +281,19 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
           </div>
         </div>
 
-        {/* Dynamic Controls: Week/Month Switcher, Periods, View Mode */}
+        {/* Dynamic Controls: Day/Week/Month Switcher, Periods, View Mode */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* TimeFrame Toggle (Tuần / Tháng) */}
+          {/* TimeFrame Toggle (Ngày / Tuần / Tháng) */}
           <div className="flex items-center bg-slate-800/90 p-0.5 rounded-xl border border-slate-700 text-xs">
+            <button
+              onClick={() => handleSelectTimeFrame('day')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                timeFrame === 'day' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Clock className="w-3 h-3 text-emerald-300" />
+              <span>Theo Ngày</span>
+            </button>
             <button
               onClick={() => handleSelectTimeFrame('week')}
               className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
@@ -329,7 +339,17 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
           {/* Period Selector */}
           <div className="flex items-center gap-1 bg-slate-800/80 p-0.5 rounded-xl border border-slate-700 text-xs">
-            {timeFrame === 'week' ? (
+            {timeFrame === 'day' ? (
+              <div className="flex items-center gap-2 px-2 py-1">
+                <span className="text-slate-300 font-semibold">Chọn Ngày:</span>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-slate-900 text-white font-bold px-2 py-0.5 rounded border border-slate-600 cursor-pointer text-xs"
+                />
+              </div>
+            ) : timeFrame === 'week' ? (
               <>
                 <button
                   type="button"

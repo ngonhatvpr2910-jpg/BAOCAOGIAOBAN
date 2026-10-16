@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Slide2QualityData, Slide2QualityItem, QualityDailyRecord } from './types';
 import { X, Check, RotateCcw, Edit3, ShieldAlert, Sparkles, Plus, Trash2, Calendar, Layers, Activity, Lock } from 'lucide-react';
 import { INITIAL_SLIDE2_QUALITY } from './initialData';
-import { calculatePXLRQuality, rollupDailyToQualityCharts, getNextQualityDateInfo } from './qualityFormulas';
+import { calculatePXLRQuality, rollupDailyToQualityCharts, getNextQualityDateInfo, autoSyncDailyRecordWeeks } from './qualityFormulas';
 import { isDateLocked } from './ProductionContext';
 
 interface Slide2EditorModalProps {
@@ -23,7 +23,24 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
   onReset,
 }) => {
   const dataToUse = initialData || currentData || INITIAL_SLIDE2_QUALITY;
-  const [formData, setFormData] = useState<Slide2QualityData>(() => JSON.parse(JSON.stringify(dataToUse)));
+  const [formData, setFormData] = useState<Slide2QualityData>(() => {
+    const cloned = JSON.parse(JSON.stringify(dataToUse)) as Slide2QualityData;
+    if (cloned.dailyRecords) {
+      cloned.dailyRecords = autoSyncDailyRecordWeeks(cloned.dailyRecords);
+    }
+    return cloned;
+  });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      const base = initialData || currentData || INITIAL_SLIDE2_QUALITY;
+      const cloned = JSON.parse(JSON.stringify(base)) as Slide2QualityData;
+      if (cloned.dailyRecords) {
+        cloned.dailyRecords = autoSyncDailyRecordWeeks(cloned.dailyRecords);
+      }
+      setFormData(cloned);
+    }
+  }, [isOpen, initialData, currentData]);
   const [activeTab, setActiveTab] = useState<'daily_input' | 'monthly' | 'weekly' | 'text'>('daily_input');
 
   if (!isOpen) return null;
@@ -31,7 +48,7 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
   // Xử lý thay đổi dữ liệu hàng ngày (Daily Records)
   const handleDailyRecordChange = (
     recId: string,
-    fieldPath: 'date' | 'dayLabel' | 'week' | 'ro.dmVatTu' | 'ro.vatTu' | 'ro.totalLoi4M' | 'bg.dmVatTu' | 'bg.vatTu' | 'bg.totalLoi4M' | 'ro.sanLuong' | 'bg.sanLuong' | 'pxlr.dmVatTu',
+    fieldPath: 'date' | 'dayLabel' | 'week' | 'ro.vatTu' | 'ro.loiThaoTac' | 'ro.totalLoi4M' | 'bg.vatTu' | 'bg.loiThaoTac' | 'bg.totalLoi4M' | 'ro.sanLuong' | 'bg.sanLuong',
     val: string | number
   ) => {
     setFormData(prev => {
@@ -43,8 +60,39 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
       if (fieldPath === 'date') rec.date = String(val);
       else if (fieldPath === 'dayLabel') rec.dayLabel = String(val);
       else if (fieldPath === 'week') rec.week = String(val);
-      else if (fieldPath === 'pxlr.dmVatTu') {
-        rec.pxlr.dmVatTu = parseFloat(String(val)) || 0;
+      else if (fieldPath === 'ro.loiThaoTac') {
+        const num = parseFloat(String(val)) || 0;
+        rec.ro.loiThaoTac = num;
+        rec.ro.totalLoi4M = Number((rec.ro.vatTu + num).toFixed(2));
+      }
+      else if (fieldPath === 'bg.loiThaoTac') {
+        const num = parseFloat(String(val)) || 0;
+        rec.bg.loiThaoTac = num;
+        rec.bg.totalLoi4M = Number((rec.bg.vatTu + num).toFixed(2));
+      }
+      else if (fieldPath === 'ro.vatTu') {
+        const num = parseFloat(String(val)) || 0;
+        rec.ro.vatTu = num;
+        const loiTT = rec.ro.loiThaoTac !== undefined ? rec.ro.loiThaoTac : Math.max(0, Number((rec.ro.totalLoi4M - num).toFixed(2)));
+        rec.ro.loiThaoTac = loiTT;
+        rec.ro.totalLoi4M = Number((num + loiTT).toFixed(2));
+      }
+      else if (fieldPath === 'bg.vatTu') {
+        const num = parseFloat(String(val)) || 0;
+        rec.bg.vatTu = num;
+        const loiTT = rec.bg.loiThaoTac !== undefined ? rec.bg.loiThaoTac : Math.max(0, Number((rec.bg.totalLoi4M - num).toFixed(2)));
+        rec.bg.loiThaoTac = loiTT;
+        rec.bg.totalLoi4M = Number((num + loiTT).toFixed(2));
+      }
+      else if (fieldPath === 'ro.totalLoi4M') {
+        const num = parseFloat(String(val)) || 0;
+        rec.ro.totalLoi4M = num;
+        rec.ro.loiThaoTac = Math.max(0, Number((num - rec.ro.vatTu).toFixed(2)));
+      }
+      else if (fieldPath === 'bg.totalLoi4M') {
+        const num = parseFloat(String(val)) || 0;
+        rec.bg.totalLoi4M = num;
+        rec.bg.loiThaoTac = Math.max(0, Number((num - rec.bg.vatTu).toFixed(2)));
       }
       else {
         const num = parseFloat(String(val)) || 0;
@@ -56,11 +104,12 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
         }
       }
 
-      // Tự động tính toán PXLR cho bản ghi ngày này (ngoại trừ dmVatTu nếu vừa sửa pxlr.dmVatTu)
+      // Tự động tính toán PXLR cho bản ghi ngày này
       const pxlrCalc = calculatePXLRQuality(rec.ro, rec.bg);
       rec.pxlr = {
-        dmVatTu: fieldPath === 'pxlr.dmVatTu' ? rec.pxlr.dmVatTu : pxlrCalc.dmVatTu,
+        dmVatTu: 3.69,
         vatTu: pxlrCalc.vatTu,
+        loiThaoTac: pxlrCalc.loiThaoTac,
         totalLoi4M: pxlrCalc.totalLoi4M,
       };
 
@@ -105,13 +154,16 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
       
       // Mặc định lỗi là 0 cho Chủ Nhật theo yêu cầu, các ngày khác lấy theo ngày trước đó hoặc default
       const defaultRoVatTu = isSunday ? 0 : (lastRec ? lastRec.ro.vatTu : 0.8);
-      const defaultRoLoi4M = isSunday ? 0 : (lastRec ? lastRec.ro.totalLoi4M : 3.2);
+      const defaultRoLoiTT = isSunday ? 0 : (lastRec && lastRec.ro.loiThaoTac !== undefined ? lastRec.ro.loiThaoTac : 2.4);
+      const defaultRoLoi4M = isSunday ? 0 : (lastRec ? lastRec.ro.totalLoi4M : Number((defaultRoVatTu + defaultRoLoiTT).toFixed(2)));
+
       const defaultBgVatTu = isSunday ? 0 : (lastRec ? lastRec.bg.vatTu : 2.5);
-      const defaultBgLoi4M = isSunday ? 0 : (lastRec ? lastRec.bg.totalLoi4M : 6.5);
+      const defaultBgLoiTT = isSunday ? 0 : (lastRec && lastRec.bg.loiThaoTac !== undefined ? lastRec.bg.loiThaoTac : 4.0);
+      const defaultBgLoi4M = isSunday ? 0 : (lastRec ? lastRec.bg.totalLoi4M : Number((defaultBgVatTu + defaultBgLoiTT).toFixed(2)));
 
       const pxlrCalc = calculatePXLRQuality(
-        { dmVatTu: 2.4, vatTu: defaultRoVatTu, totalLoi4M: defaultRoLoi4M, sanLuong: 0 },
-        { dmVatTu: 4.03, vatTu: defaultBgVatTu, totalLoi4M: defaultBgLoi4M, sanLuong: 0 }
+        { dmVatTu: 2.4, vatTu: defaultRoVatTu, loiThaoTac: defaultRoLoiTT, totalLoi4M: defaultRoLoi4M, sanLuong: 0 },
+        { dmVatTu: 4.03, vatTu: defaultBgVatTu, loiThaoTac: defaultBgLoiTT, totalLoi4M: defaultBgLoi4M, sanLuong: 0 }
       );
 
       const newRec: QualityDailyRecord = {
@@ -120,9 +172,9 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
         dayLabel: nextDateInfo.dayLabel,
         week: nextDateInfo.week,
         month: nextDateInfo.month,
-        ro: { dmVatTu: 2.4, vatTu: defaultRoVatTu, totalLoi4M: defaultRoLoi4M, sanLuong: 750 },
-        bg: { dmVatTu: 4.03, vatTu: defaultBgVatTu, totalLoi4M: defaultBgLoi4M, sanLuong: 60 },
-        pxlr: { dmVatTu: pxlrCalc.dmVatTu, vatTu: pxlrCalc.vatTu, totalLoi4M: pxlrCalc.totalLoi4M },
+        ro: { dmVatTu: 2.4, vatTu: defaultRoVatTu, loiThaoTac: defaultRoLoiTT, totalLoi4M: defaultRoLoi4M, sanLuong: 750 },
+        bg: { dmVatTu: 4.03, vatTu: defaultBgVatTu, loiThaoTac: defaultBgLoiTT, totalLoi4M: defaultBgLoi4M, sanLuong: 60 },
+        pxlr: { dmVatTu: pxlrCalc.dmVatTu, vatTu: pxlrCalc.vatTu, loiThaoTac: pxlrCalc.loiThaoTac, totalLoi4M: pxlrCalc.totalLoi4M },
       };
       records.push(newRec);
       next.dailyRecords = records;
@@ -380,34 +432,35 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                     <tr>
                       <th rowSpan={2} className="p-2 border-r border-slate-700">Ngày</th>
                       <th rowSpan={2} className="p-2 border-r border-slate-700">Tuần</th>
-                      <th colSpan={3} className="p-2 bg-rose-900/90 border-r border-slate-700">LINE RO</th>
-                      <th colSpan={3} className="p-2 bg-blue-900/90 border-r border-slate-700">LINE BG</th>
-                      <th colSpan={3} className="p-2 bg-emerald-900/90 border-r border-slate-700">PXLR</th>
+                      <th colSpan={4} className="p-2 bg-rose-900/90 border-r border-slate-700">LINE RO</th>
+                      <th colSpan={4} className="p-2 bg-blue-900/90 border-r border-slate-700">LINE BG</th>
+                      <th colSpan={4} className="p-2 bg-emerald-900/90 border-r border-slate-700">PXLR (TỔNG XƯỞNG)</th>
                       <th rowSpan={2} className="p-2">Xóa</th>
                     </tr>
                     <tr className="bg-slate-700 text-[11px]">
-                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600 text-rose-300">
-                        ĐM VT (%)
-                      </th>
+                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600 text-rose-300">ĐM VT (%)</th>
                       <th className="p-1.5 bg-rose-950/70 border-r border-slate-600">VT (%)</th>
-                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
+                      <th className="p-1.5 bg-amber-900/90 text-amber-200 border-r border-slate-600 font-black">Lỗi Thao Tác (%)</th>
+                      <th className="p-1.5 bg-rose-950/70 border-r border-slate-600 font-black">Total 4M (%)</th>
                       
-                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600 text-rose-300">
-                        ĐM VT (%)
-                      </th>
+                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600 text-rose-300">ĐM VT (%)</th>
                       <th className="p-1.5 bg-blue-950/70 border-r border-slate-600">VT (%)</th>
-                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
+                      <th className="p-1.5 bg-amber-900/90 text-amber-200 border-r border-slate-600 font-black">Lỗi Thao Tác (%)</th>
+                      <th className="p-1.5 bg-blue-950/70 border-r border-slate-600 font-black">Total 4M (%)</th>
                       
-                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600 text-rose-300">
-                        ĐM VT (%)
-                      </th>
+                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600 text-rose-300">ĐM VT (%)</th>
                       <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600">VT (%)</th>
-                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600">Lỗi 4M (%)</th>
+                      <th className="p-1.5 bg-amber-900/90 text-amber-200 border-r border-slate-600 font-black">Lỗi Thao Tác (%)</th>
+                      <th className="p-1.5 bg-emerald-950/70 border-r border-slate-600 font-black">Total 4M (%)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 font-mono">
                     {(formData.dailyRecords || []).map((rec, idx) => {
                       const isSunday = rec.date ? new Date(rec.date).getDay() === 0 : false;
+                      const roLoiTT = rec.ro.loiThaoTac !== undefined ? rec.ro.loiThaoTac : Math.max(0, Number((rec.ro.totalLoi4M - rec.ro.vatTu).toFixed(2)));
+                      const bgLoiTT = rec.bg.loiThaoTac !== undefined ? rec.bg.loiThaoTac : Math.max(0, Number((rec.bg.totalLoi4M - rec.bg.vatTu).toFixed(2)));
+                      const pxlrLoiTT = rec.pxlr.loiThaoTac !== undefined ? rec.pxlr.loiThaoTac : Math.max(0, Number((rec.pxlr.totalLoi4M - rec.pxlr.vatTu).toFixed(2)));
+
                       return (
                         <tr key={rec.id || idx} className={`hover:bg-slate-50 ${isSunday ? 'bg-amber-50/70' : ''}`}>
                           {/* Ngày */}
@@ -435,15 +488,11 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           </select>
                         </td>
 
-                        {/* RO Fields: ĐM VT is UNLOCKED */}
-                        <td className="p-1.5 text-center bg-rose-50/40">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={rec.ro.dmVatTu}
-                            onChange={e => handleDailyRecordChange(rec.id, 'ro.dmVatTu', e.target.value)}
-                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
-                          />
+                        {/* RO Fields */}
+                        <td className="p-1.5 text-center bg-rose-50/40 select-none">
+                          <span className="inline-block w-16 px-1.5 py-1 text-right text-xs font-bold text-rose-700 bg-slate-100 rounded border border-slate-200 cursor-not-allowed" title="Định mức cố định không đổi">
+                            2.4%
+                          </span>
                         </td>
                         <td className="p-1.5 text-center">
                           <input
@@ -452,6 +501,16 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             value={rec.ro.vatTu}
                             onChange={e => handleDailyRecordChange(rec.id, 'ro.vatTu', e.target.value)}
                             className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-blue-700"
+                          />
+                        </td>
+                        <td className="p-1.5 text-center bg-amber-50/60">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={roLoiTT}
+                            onChange={e => handleDailyRecordChange(rec.id, 'ro.loiThaoTac', e.target.value)}
+                            title="Lỗi thao tác con người Line RO (%)"
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-black bg-amber-50 border-amber-300 text-amber-900 focus:ring-2 focus:ring-amber-500"
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -464,15 +523,11 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           />
                         </td>
 
-                        {/* BG Fields: ĐM VT is UNLOCKED */}
-                        <td className="p-1.5 text-center bg-blue-50/40">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={rec.bg.dmVatTu}
-                            onChange={e => handleDailyRecordChange(rec.id, 'bg.dmVatTu', e.target.value)}
-                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
-                          />
+                        {/* BG Fields */}
+                        <td className="p-1.5 text-center bg-blue-50/40 select-none">
+                          <span className="inline-block w-16 px-1.5 py-1 text-right text-xs font-bold text-rose-700 bg-slate-100 rounded border border-slate-200 cursor-not-allowed" title="Định mức cố định không đổi">
+                            4.03%
+                          </span>
                         </td>
                         <td className="p-1.5 text-center">
                           <input
@@ -481,6 +536,16 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                             value={rec.bg.vatTu}
                             onChange={e => handleDailyRecordChange(rec.id, 'bg.vatTu', e.target.value)}
                             className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-blue-700"
+                          />
+                        </td>
+                        <td className="p-1.5 text-center bg-amber-50/60">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={bgLoiTT}
+                            onChange={e => handleDailyRecordChange(rec.id, 'bg.loiThaoTac', e.target.value)}
+                            title="Lỗi thao tác con người Line BG (%)"
+                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-black bg-amber-50 border-amber-300 text-amber-900 focus:ring-2 focus:ring-amber-500"
                           />
                         </td>
                         <td className="p-1.5 text-center">
@@ -493,18 +558,17 @@ export const Slide2EditorModal: React.FC<Slide2EditorModalProps> = ({
                           />
                         </td>
 
-                        {/* PXLR (Auto Calculated & UNLOCKED Benchmark) */}
-                        <td className="p-2 text-right font-bold text-rose-700 bg-emerald-50/50">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={rec.pxlr.dmVatTu}
-                            onChange={e => handleDailyRecordChange(rec.id, 'pxlr.dmVatTu', e.target.value)}
-                            className="w-16 border rounded px-1.5 py-1 text-right text-xs font-bold bg-white border-slate-300 text-rose-700"
-                          />
+                        {/* PXLR (Fixed Benchmark & Auto Calculated) */}
+                        <td className="p-2 text-right font-bold text-rose-700 bg-emerald-50/50 select-none">
+                          <span className="inline-block w-16 px-1.5 py-1 text-right text-xs font-bold text-rose-700 bg-slate-100 rounded border border-slate-200 cursor-not-allowed" title="Định mức cố định 3.69%">
+                            3.69%
+                          </span>
                         </td>
                         <td className="p-2 text-right font-bold text-blue-700 bg-emerald-50/50">
                           {rec.pxlr.vatTu}%
+                        </td>
+                        <td className="p-2 text-right font-black text-amber-900 bg-amber-100/60 border-x border-amber-200">
+                          {pxlrLoiTT}%
                         </td>
                         <td className="p-2 text-right font-black text-emerald-800 bg-emerald-50/50">
                           {rec.pxlr.totalLoi4M}%

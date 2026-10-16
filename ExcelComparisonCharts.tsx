@@ -19,6 +19,8 @@ import { exportDefectCostTemplate } from './excelDefectService';
 import { SlideDefectCostData } from './types';
 import { StorageService } from './storage';
 
+import { LRRODetailView } from './LRRODetailView';
+
 export const ExcelComparisonCharts: React.FC = () => {
   const { 
     monthlyHistory, 
@@ -74,6 +76,9 @@ export const ExcelComparisonCharts: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 0. Báo cáo Chi Tiết & Đồ Thị LRRO (Chuẩn Excel Hình 3 của Người Dùng) */}
+      <LRRODetailView />
+
       {/* 1. Exact "Biểu đồ So sánh NSLĐ" requested by user */}
       <NSLDComparisonChart />
 

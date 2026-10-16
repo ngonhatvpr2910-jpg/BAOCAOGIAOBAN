@@ -36,6 +36,8 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
   const [dayStartIndex, setDayStartIndex] = useState<number>(0);
   // Slider state for Week view
   const [weekStartIndex, setWeekStartIndex] = useState<number>(0);
+  // Error type filter state
+  const [errorTypeFilter, setErrorTypeFilter] = useState<'all' | 'loiThaoTac' | 'vatTu'>('all');
 
   // Synchronize internal timeFrame with propTimeFrame
   useEffect(() => {
@@ -203,6 +205,37 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
               </button>
             )}
 
+            {/* Error Type Filter */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-300 font-sans shadow-2xs">
+              <button
+                onClick={() => setErrorTypeFilter('all')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  errorTypeFilter === 'all' ? 'bg-blue-700 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-200'
+                }`}
+                title="Xem tổng hợp tất cả lỗi (4M)"
+              >
+                Tất cả (4M)
+              </button>
+              <button
+                onClick={() => setErrorTypeFilter('loiThaoTac')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  errorTypeFilter === 'loiThaoTac' ? 'bg-amber-700 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-200'
+                }`}
+                title="Xem riêng Lỗi Thao Tác (Con Người)"
+              >
+                Lỗi Thao Tác
+              </button>
+              <button
+                onClick={() => setErrorTypeFilter('vatTu')}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  errorTypeFilter === 'vatTu' ? 'bg-orange-700 text-white shadow-xs' : 'text-slate-700 hover:bg-slate-200'
+                }`}
+                title="Xem riêng Lỗi Vật Tư"
+              >
+                Lỗi Vật Tư
+              </button>
+            </div>
+
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-300 font-sans shadow-2xs">
               <button
                 onClick={() => handleToggleFrame('month')}
@@ -344,6 +377,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 lineColor={currentCharts.pxlr.lineColor || 'blue'}
                 height={180}
                 highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                errorTypeFilter={errorTypeFilter}
                 onSelectPeriod={handleSelectPeriod}
               />
             </div>
@@ -358,6 +392,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 lineColor={currentCharts.ro.lineColor || 'red'}
                 height={180}
                 highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                errorTypeFilter={errorTypeFilter}
                 onSelectPeriod={handleSelectPeriod}
               />
             </div>
@@ -372,6 +407,7 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
                 lineColor={currentCharts.bg.lineColor || 'blue'}
                 height={180}
                 highlightKey={activeFrame === 'week' ? selectedWeek : selectedMonth}
+                errorTypeFilter={errorTypeFilter}
                 onSelectPeriod={handleSelectPeriod}
               />
             </div>

@@ -6,6 +6,8 @@ import {
   calculateRecurringCutoffs, 
   getCutoffsByDayOfWeek,
   getWeekOfYear,
+  getMonthBaseWeek,
+  getCutoffDaysFromMatrix,
   WeekLabelMode,
 } from './matrixGenerator';
 import { StorageService } from './storage';
@@ -16,9 +18,9 @@ interface WeekCutoffModalProps {
   year: number;
   monthIndex0: number;
   currentCutoffs: number[];
-  onApplyCutoffs: (newCutoffs: number[], weekLabelMode: WeekLabelMode) => void;
+  onApplyCutoffs: (newCutoffs: number[], weekLabelMode: WeekLabelMode, activeYear?: number, activeMonth0?: number) => void;
   lineName?: string;
-  themeColor?: 'blue' | 'purple';
+  themeColor?: 'blue' | 'purple' | 'amber';
 }
 
 const DAY_NAMES_VN = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -27,36 +29,60 @@ const FULL_DAY_NAMES_VN = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư',
 export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
   isOpen,
   onClose,
-  year,
-  monthIndex0,
+  year: initialYear,
+  monthIndex0: initialMonthIndex0,
   currentCutoffs,
   onApplyCutoffs,
-  lineName = 'ĐC Bếp Ga',
-  themeColor = 'blue',
+  lineName = 'Tất cả ứng dụng (All App)',
+  themeColor = 'amber',
 }) => {
+  const [activeYear, setActiveYear] = useState<number>(initialYear || 2026);
+  const [activeMonthIndex0, setActiveMonthIndex0] = useState<number>(initialMonthIndex0 ?? 8); // Default Month 9
   const [selectedCutoffs, setSelectedCutoffs] = useState<number[]>([]);
   const [cutoffMode, setCutoffMode] = useState<'recurring' | 'manual'>('recurring');
   const [weekLabelMode, setWeekLabelMode] = useState<WeekLabelMode>(() => StorageService.getWeekLabelMode());
   const [anchorDay, setAnchorDay] = useState<number | null>(null);
+
+  const year = activeYear;
+  const monthIndex0 = activeMonthIndex0;
 
   const totalDays = useMemo(() => getDaysInMonth(year, monthIndex0), [year, monthIndex0]);
   const monthFormatted = String(monthIndex0 + 1).padStart(2, '0');
 
   useEffect(() => {
     if (isOpen) {
+      setActiveYear(initialYear || 2026);
+      setActiveMonthIndex0(initialMonthIndex0 ?? 8);
       const savedMode = StorageService.getWeekLabelMode();
       setWeekLabelMode(savedMode);
 
-      if (currentCutoffs && currentCutoffs.length > 0) {
+      const customSaved = StorageService.getCustomWeekCutoffs(initialYear || 2026, initialMonthIndex0 ?? 8);
+      if (customSaved && customSaved.length > 0) {
+        setSelectedCutoffs([...customSaved].sort((a, b) => a - b));
+        setAnchorDay(customSaved[0] || null);
+      } else if (currentCutoffs && currentCutoffs.length > 0) {
         setSelectedCutoffs([...currentCutoffs].sort((a, b) => a - b));
         setAnchorDay(currentCutoffs[0] || null);
       } else {
-        // Default to Sundays for most months
-        setSelectedCutoffs(getDefaultSundayCutoffs(year, monthIndex0));
+        setSelectedCutoffs(getDefaultSundayCutoffs(initialYear || 2026, initialMonthIndex0 ?? 8));
         setAnchorDay(null);
       }
     }
-  }, [isOpen, currentCutoffs, year, monthIndex0]);
+  }, [isOpen, currentCutoffs, initialYear, initialMonthIndex0]);
+
+  // When user switches month/year inside modal
+  const handleMonthYearChange = (newYear: number, newMonth0: number) => {
+    setActiveYear(newYear);
+    setActiveMonthIndex0(newMonth0);
+    const customSaved = StorageService.getCustomWeekCutoffs(newYear, newMonth0);
+    if (customSaved && customSaved.length > 0) {
+      setSelectedCutoffs([...customSaved].sort((a, b) => a - b));
+      setAnchorDay(customSaved[0] || null);
+    } else {
+      setSelectedCutoffs(getDefaultSundayCutoffs(newYear, newMonth0));
+      setAnchorDay(null);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -145,6 +171,7 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
     isCurrentWeek: boolean;
   }[] = [];
 
+  const baseWeek = getMonthBaseWeek(year, monthIndex0);
   const now = new Date();
   const isCurrentMonth = year === now.getFullYear() && monthIndex0 === now.getMonth();
   const currentDay = now.getDate();
@@ -155,7 +182,7 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
       const fromDay = prevDay + 1;
       const toDay = cutoff;
       const cutoffDate = new Date(year, monthIndex0, toDay);
-      const yearWeek = getWeekOfYear(cutoffDate);
+      const yearWeek = baseWeek + idx;
       
       let weekLabel = `W${yearWeek}`;
       if (weekLabelMode === 'month') {
@@ -185,8 +212,8 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
     const fromDay = prevDay + 1;
     const toDay = totalDays;
     const cutoffDate = new Date(year, monthIndex0, toDay);
-    const yearWeek = getWeekOfYear(cutoffDate);
     const idx = sortedCutoffs.length;
+    const yearWeek = baseWeek + idx;
 
     let weekLabel = `W${yearWeek}`;
     if (weekLabelMode === 'month') {
@@ -211,22 +238,24 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
 
   const handleApply = () => {
     StorageService.saveWeekLabelMode(weekLabelMode);
-    onApplyCutoffs(sortedCutoffs, weekLabelMode);
+    StorageService.saveCustomWeekCutoffs(activeYear, activeMonthIndex0, sortedCutoffs);
+    onApplyCutoffs(sortedCutoffs, weekLabelMode, activeYear, activeMonthIndex0);
     onClose();
   };
 
   const isBlue = themeColor === 'blue';
-  const primaryBg = isBlue ? 'bg-blue-600' : 'bg-purple-600';
-  const primaryHover = isBlue ? 'hover:bg-blue-700' : 'hover:bg-purple-700';
-  const primaryText = isBlue ? 'text-blue-700' : 'text-purple-700';
-  const primaryBorder = isBlue ? 'border-blue-500' : 'border-purple-500';
-  const primaryLightBg = isBlue ? 'bg-blue-50' : 'bg-purple-50';
+  const isPurple = themeColor === 'purple';
+  const primaryBg = isBlue ? 'bg-blue-600' : isPurple ? 'bg-purple-600' : 'bg-amber-600';
+  const primaryHover = isBlue ? 'hover:bg-blue-700' : isPurple ? 'hover:bg-purple-700' : 'hover:bg-amber-700';
+  const primaryText = isBlue ? 'text-blue-700' : isPurple ? 'text-purple-700' : 'text-amber-700';
+  const primaryBorder = isBlue ? 'border-blue-500' : isPurple ? 'border-purple-500' : 'border-amber-500';
+  const primaryLightBg = isBlue ? 'bg-blue-50' : isPurple ? 'bg-purple-50' : 'bg-amber-50';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden my-6 max-h-[92vh] flex flex-col">
         {/* Modal Header */}
-        <div className={`p-4 sm:p-5 text-white ${primaryBg} flex items-center justify-between shrink-0`}>
+        <div className={`p-4 sm:p-5 text-white ${primaryBg} flex items-center justify-between shrink-0 flex-wrap gap-2`}>
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-white/15">
               <Calendar className="w-6 h-6 text-white" />
@@ -234,22 +263,62 @@ export const WeekCutoffModal: React.FC<WeekCutoffModalProps> = ({
             <div>
               <h2 className="text-lg sm:text-xl font-black flex items-center gap-2">
                 Chốt Ngày Dữ Liệu Tuần (Cutoff Date)
-                <span className="text-xs px-2 py-0.5 rounded-full bg-white/20 font-medium">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-white/20 font-bold uppercase tracking-wider">
                   {lineName}
                 </span>
               </h2>
-              <p className="text-xs text-white/80">
-                Tháng {monthFormatted}/{year} • Chỉ cần chốt 1 ngày mốc, các tuần tiếp theo tự động cách đều 6 ngày (mỗi 7 ngày)
+              <p className="text-xs text-white/90">
+                Tháng {monthFormatted}/{year} • Áp dụng đồng bộ cho tất cả ứng dụng & báo cáo
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer"
-            aria-label="Đóng cửa sổ"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          {/* Month & Year Selectors inside Modal Header */}
+          <div className="flex items-center gap-2 bg-black/20 p-1.5 rounded-xl border border-white/20 ml-auto">
+            <label className="text-xs font-bold text-white/90 hidden sm:inline pl-1">Chọn Tháng:</label>
+            <select
+              value={activeMonthIndex0}
+              onChange={(e) => handleMonthYearChange(activeYear, parseInt(e.target.value, 10))}
+              className="bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-lg border-0 focus:ring-2 focus:ring-white cursor-pointer"
+            >
+              {[
+                { idx: 8, name: 'Tháng 9/2026 (W36-W40)' },
+                { idx: 9, name: 'Tháng 10/2026 (W41-W44)' },
+                { idx: 10, name: 'Tháng 11/2026 (W45-W48)' },
+                { idx: 11, name: 'Tháng 12/2026 (W49-W53)' },
+                { idx: 0, name: 'Tháng 1' },
+                { idx: 1, name: 'Tháng 2' },
+                { idx: 2, name: 'Tháng 3' },
+                { idx: 3, name: 'Tháng 4' },
+                { idx: 4, name: 'Tháng 5' },
+                { idx: 5, name: 'Tháng 6' },
+                { idx: 6, name: 'Tháng 7' },
+                { idx: 7, name: 'Tháng 8' },
+              ].map(m => (
+                <option key={m.idx} value={m.idx}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={activeYear}
+              onChange={(e) => handleMonthYearChange(parseInt(e.target.value, 10), activeMonthIndex0)}
+              className="bg-white text-slate-900 text-xs font-bold px-2 py-1 rounded-lg border-0 focus:ring-2 focus:ring-white cursor-pointer"
+            >
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+              <option value={2027}>2027</option>
+            </select>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/20 text-white transition-colors cursor-pointer ml-1"
+              aria-label="Đóng cửa sổ"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">

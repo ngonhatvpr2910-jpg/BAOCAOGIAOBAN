@@ -32,7 +32,7 @@ import {
 import { ExecutiveSummaryCard } from './ExecutiveSummaryCard';
 import { ExcelComparisonCharts } from './ExcelComparisonCharts';
 
-import { findWeekColumnInMatrices } from './executiveSummaryService';
+import { findWeekColumnInMatrices, getWeeksForMonth } from './executiveSummaryService';
 
 interface TabOverviewProps {
   onOpenReportModal: () => void;
@@ -43,7 +43,7 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
   onOpenReportModal,
   onNavigateToForecast,
 }) => {
-  const { consolidatedPXLR, monthlyHistory, weeklyHistory, selectedDate, dataVersion, qualityMetrics } = useProduction();
+  const { consolidatedPXLR, monthlyHistory, weeklyHistory, selectedDate, dataVersion, qualityMetrics, dashboardMonthIndex0 } = useProduction();
   const [chartViewMode, setChartViewMode] = useState<'output' | 'labor' | 'attendance' | 'defect'>('output');
   const [selectedWeek, setSelectedWeek] = useState<string>('W41');
   const [overviewScope, setOverviewScope] = useState<'day' | 'week'>('day');
@@ -380,8 +380,8 @@ export const TabOverviewPXLR: React.FC<TabOverviewProps> = ({
                 aria-label="Chọn tuần đối chiếu"
                 className="bg-white text-slate-800 text-xs font-bold px-2.5 py-1.5 rounded-xl border border-slate-300 shadow-xs cursor-pointer outline-hidden"
               >
-                {['W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'].map(w => (
-                  <option key={w} value={w}>{w} {w === 'W42' ? '(Hiện tại)' : ''}</option>
+                {getWeeksForMonth(String((dashboardMonthIndex0 ?? 9) + 1)).map(w => (
+                  <option key={w} value={w}>{w}</option>
                 ))}
               </select>
             )}

@@ -20,6 +20,7 @@ interface HeaderProps {
   onOpenSettingsModal: () => void;
   onOpenAuthModal: () => void;
   onOpenDataBackupModal?: () => void;
+  onOpenWeekCutoffModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettingsModal,
   onOpenAuthModal,
   onOpenDataBackupModal,
+  onOpenWeekCutoffModal,
 }) => {
   const { selectedDate, setSelectedDate, unreadAlertCount } = useProduction();
   const { currentUser } = useAuth();
@@ -70,6 +72,20 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Chọn ngày giao ban"
               />
             </div>
+
+            {/* Global Week Cutoff Button */}
+            {onOpenWeekCutoffModal && (
+              <button
+                onClick={onOpenWeekCutoffModal}
+                id="btn-open-global-week-cutoff"
+                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-bold text-xs sm:text-sm px-2.5 sm:px-3 py-1.5 rounded-lg shadow-xs transition-all cursor-pointer"
+                title="Cài đặt điều chỉnh thủ công ngày chốt tuần áp dụng cho All App"
+              >
+                <Calendar className="w-4 h-4 text-amber-200" />
+                <span className="hidden sm:inline">Chốt Ngày Tuần</span>
+                <span className="sm:hidden">Chốt Tuần</span>
+              </button>
+            )}
 
             {/* System Data Export / Import Button */}
             {onOpenDataBackupModal && (
