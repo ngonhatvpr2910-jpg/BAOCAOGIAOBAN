@@ -485,31 +485,63 @@ export const StorageService = {
   },
 
   exportFullBackup() {
-    return {
-      dcbg: this.getDCBGRecords(),
-      dcro: this.getDCRORecords(),
-      thresholds: this.getThresholds(),
-      norms: this.getGlobalNorms(),
+    const payload: Record<string, any> = {
       exportDate: new Date().toISOString(),
-      version: '1.1.0',
+      version: '2.0.0',
     };
+    try {
+      Object.entries(STORAGE_KEYS).forEach(([name, key]) => {
+        const val = localStorage.getItem(key);
+        if (val !== null) {
+          try {
+            payload[name] = JSON.parse(val);
+          } catch {
+            payload[name] = val;
+          }
+        }
+      });
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('pxlr_') && !Object.values(STORAGE_KEYS).includes(k)) {
+          const val = localStorage.getItem(k);
+          if (val !== null) {
+            try {
+              payload[k] = JSON.parse(val);
+            } catch {
+              payload[k] = val;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to export full backup', e);
+    }
+    return payload;
   },
 
   importBackup(backupData: any): boolean {
     try {
-      if (backupData && Array.isArray(backupData.dcbg) && Array.isArray(backupData.dcro)) {
-        this.saveDCBGRecords(backupData.dcbg);
-        this.saveDCRORecords(backupData.dcro);
-        if (backupData.thresholds) {
-          this.saveThresholds(backupData.thresholds);
+      if (!backupData || typeof backupData !== 'object') return false;
+
+      Object.entries(STORAGE_KEYS).forEach(([name, key]) => {
+        if (backupData[name] !== undefined) {
+          localStorage.setItem(key, typeof backupData[name] === 'string' ? backupData[name] : JSON.stringify(backupData[name]));
         }
-        if (backupData.norms) {
-          this.saveGlobalNorms(backupData.norms);
+      });
+
+      Object.entries(backupData).forEach(([k, val]) => {
+        if (k.startsWith('pxlr_')) {
+          localStorage.setItem(k, typeof val === 'string' ? val : JSON.stringify(val));
         }
-        return true;
+      });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'full-backup-imported' } }));
       }
-      return false;
-    } catch {
+      return true;
+    } catch (e) {
+      console.error('Failed to import full backup', e);
       return false;
     }
   },
