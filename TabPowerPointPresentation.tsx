@@ -97,6 +97,9 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [slide4Data, setSlide4Data] = useState<Slide4ProductionTargetData>(() => StorageService.getSlide4ProductionTarget());
   const [slide5Data, setSlide5Data] = useState<Slide5ProductionPlanData>(() => StorageService.getSlide5ProductionPlan());
   const [slide6Data, setSlide6Data] = useState<Slide6TaskPlanData>(() => StorageService.getSlide6TaskPlan());
+
+
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showFullscreenToolbar, setShowFullscreenToolbar] = useState(true);
   const toolbarTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -346,6 +349,13 @@ export const TabPowerPointPresentation: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    setSlide3Data(StorageService.getSlide3DefectCost());
+    setSlide4Data(StorageService.getSlide4ProductionTarget());
+    setSlide5Data(StorageService.getSlide5ProductionPlan());
+    setSlide6Data(StorageService.getSlide6TaskPlan());
+  }, [syncVersion]);
+
   // TỰ ĐỘNG CHẠY SỐ LIỆU CHO MỌI THÁNG & TUẦN TỪ KẾT QUẢ NHẬP LIỆU:
   useEffect(() => {
     if (!isAutoSyncActive) return;
@@ -491,6 +501,9 @@ export const TabPowerPointPresentation: React.FC = () => {
     setSlide6Data(newData);
     setIsSlide6EditorOpen(false);
     showToast('Đã lưu thành công kế hoạch công việc Slide 6!');
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'slide6' } }));
+    }
   };
 
   const handleResetSlide6 = () => {
@@ -498,6 +511,9 @@ export const TabPowerPointPresentation: React.FC = () => {
       const reset = StorageService.resetSlide6TaskPlan();
       setSlide6Data(reset);
       showToast('Đã khôi phục số liệu gốc Slide 6!');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'slide6' } }));
+      }
     }
   };
 
