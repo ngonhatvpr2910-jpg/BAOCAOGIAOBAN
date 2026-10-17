@@ -104,6 +104,30 @@ export async function exportSystemExcel(): Promise<void> {
   }
   wsMatrices.getColumn(4).width = 100;
 
+  // 9. Sheet: Slide 1 (NSLD)
+  const wsSlide1 = workbook.addWorksheet('Slide1_NSLD');
+  const slide1 = StorageService.getSlide1NSLD();
+  wsSlide1.addRow(['KEY', 'JSON_DATA']);
+  wsSlide1.addRow(['slide1_nsld', JSON.stringify(slide1)]);
+
+  // 10. Sheet: Slide 4 (Production Target)
+  const wsSlide4 = workbook.addWorksheet('Slide4_Target');
+  const slide4 = StorageService.getSlide4ProductionTarget();
+  wsSlide4.addRow(['KEY', 'JSON_DATA']);
+  wsSlide4.addRow(['slide4_target', JSON.stringify(slide4)]);
+
+  // 11. Sheet: Slide 5 (Production Plan)
+  const wsSlide5 = workbook.addWorksheet('Slide5_Plan');
+  const slide5 = StorageService.getSlide5ProductionPlan();
+  wsSlide5.addRow(['KEY', 'JSON_DATA']);
+  wsSlide5.addRow(['slide5_plan', JSON.stringify(slide5)]);
+
+  // 12. Sheet: Slide 6 (Task Plan)
+  const wsSlide6 = workbook.addWorksheet('Slide6_TaskPlan');
+  const slide6 = StorageService.getSlide6TaskPlan();
+  wsSlide6.addRow(['KEY', 'JSON_DATA']);
+  wsSlide6.addRow(['slide6_taskplan', JSON.stringify(slide6)]);
+
   // Ghi file
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -206,6 +230,54 @@ export async function importSystemExcel(file: File): Promise<{ success: boolean;
               localStorage.setItem(key, jsonData);
             }
           });
+        }
+
+        // 9. Phục hồi Slide 1
+        const wsSlide1 = workbook.Sheets['Slide1_NSLD'];
+        if (wsSlide1) {
+          const rows: any[] = XLSX.utils.sheet_to_json(wsSlide1);
+          rows.forEach(r => {
+            if (r['KEY'] === 'slide1_nsld' && r['JSON_DATA']) {
+              try { StorageService.saveSlide1NSLD(JSON.parse(r['JSON_DATA'])); } catch {}
+            }
+          });
+        }
+
+        // 10. Phục hồi Slide 4
+        const wsSlide4 = workbook.Sheets['Slide4_Target'];
+        if (wsSlide4) {
+          const rows: any[] = XLSX.utils.sheet_to_json(wsSlide4);
+          rows.forEach(r => {
+            if (r['KEY'] === 'slide4_target' && r['JSON_DATA']) {
+              try { StorageService.saveSlide4ProductionTarget(JSON.parse(r['JSON_DATA'])); } catch {}
+            }
+          });
+        }
+
+        // 11. Phục hồi Slide 5
+        const wsSlide5 = workbook.Sheets['Slide5_Plan'];
+        if (wsSlide5) {
+          const rows: any[] = XLSX.utils.sheet_to_json(wsSlide5);
+          rows.forEach(r => {
+            if (r['KEY'] === 'slide5_plan' && r['JSON_DATA']) {
+              try { StorageService.saveSlide5ProductionPlan(JSON.parse(r['JSON_DATA'])); } catch {}
+            }
+          });
+        }
+
+        // 12. Phục hồi Slide 6
+        const wsSlide6 = workbook.Sheets['Slide6_TaskPlan'];
+        if (wsSlide6) {
+          const rows: any[] = XLSX.utils.sheet_to_json(wsSlide6);
+          rows.forEach(r => {
+            if (r['KEY'] === 'slide6_taskplan' && r['JSON_DATA']) {
+              try { StorageService.saveSlide6TaskPlan(JSON.parse(r['JSON_DATA'])); } catch {}
+            }
+          });
+        }
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'system-excel-imported' } }));
         }
 
         resolve({ success: true, message: 'Đã phục hồi toàn bộ dữ liệu hệ thống thành công!' });
