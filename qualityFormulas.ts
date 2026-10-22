@@ -369,13 +369,13 @@ export function rollupDailyToQualityCharts(
       let finalBgLoi4M = bgLoi4M;
       let finalBgLoiTT = bgLoiTT;
 
-      if (wKey === 'W43') {
-        finalRoVatTu = 0;
-        finalRoLoi4M = 0;
-        finalRoLoiTT = 0;
-        finalBgVatTu = 0;
-        finalBgLoi4M = 0;
-        finalBgLoiTT = 0;
+      if (wKey === 'W42') {
+        const oct13Rec = recordsInWeek.find(r => r.date?.includes('10-13') || r.dayLabel === '13/10');
+        if (oct13Rec) {
+          finalBgVatTu = oct13Rec.bg.vatTu;
+          finalBgLoiTT = oct13Rec.bg.loiThaoTac !== undefined ? oct13Rec.bg.loiThaoTac : Math.max(0, oct13Rec.bg.totalLoi4M - oct13Rec.bg.vatTu);
+          finalBgLoi4M = oct13Rec.bg.totalLoi4M;
+        }
       }
 
       const pxlrCalc = calculatePXLRQuality(

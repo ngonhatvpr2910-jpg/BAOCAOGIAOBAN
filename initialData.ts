@@ -419,7 +419,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.90, totalLoi4M: 2.90, sanLuong: 741 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.40, vatTu: 0.90, totalLoi4M: 2.90 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.90, totalLoi4M: 2.90 },
   },
   {
     id: 'q-d-02',
@@ -429,7 +429,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.90, totalLoi4M: 2.60, sanLuong: 701 },
     bg: { dmVatTu: 4.03, vatTu: 3.75, totalLoi4M: 8.01, sanLuong: 111 },
-    pxlr: { dmVatTu: 2.62, vatTu: 1.29, totalLoi4M: 3.34 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.29, totalLoi4M: 3.34 },
   },
   {
     id: 'q-d-03',
@@ -439,7 +439,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 2.00, totalLoi4M: 3.00, sanLuong: 657 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.40, vatTu: 2.00, totalLoi4M: 3.00 },
+    pxlr: { dmVatTu: 3.69, vatTu: 2.00, totalLoi4M: 3.00 },
   },
   {
     id: 'q-d-sun-01',
@@ -449,7 +449,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.49, vatTu: 0.00, totalLoi4M: 0.00 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.00, totalLoi4M: 0.00 },
   },
   {
     id: 'q-d-04',
@@ -459,7 +459,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.30, totalLoi4M: 3.10, sanLuong: 800 },
     bg: { dmVatTu: 4.03, vatTu: 1.60, totalLoi4M: 5.80, sanLuong: 60 },
-    pxlr: { dmVatTu: 2.51, vatTu: 0.39, totalLoi4M: 3.29 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.39, totalLoi4M: 3.29 },
   },
   {
     id: 'q-d-05',
@@ -469,7 +469,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 1.20, totalLoi4M: 3.50, sanLuong: 868 },
     bg: { dmVatTu: 4.03, vatTu: 1.43, totalLoi4M: 10.71, sanLuong: 63 },
-    pxlr: { dmVatTu: 2.51, vatTu: 1.22, totalLoi4M: 3.99 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.22, totalLoi4M: 3.99 },
   },
   {
     id: 'q-d-06',
@@ -479,7 +479,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.80, totalLoi4M: 3.30, sanLuong: 820 },
     bg: { dmVatTu: 4.03, vatTu: 3.61, totalLoi4M: 8.33, sanLuong: 38 },
-    pxlr: { dmVatTu: 2.47, vatTu: 0.92, totalLoi4M: 3.52 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.92, totalLoi4M: 3.52 },
   },
   {
     id: 'q-d-07',
@@ -489,7 +489,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.90, totalLoi4M: 2.10, sanLuong: 780 },
     bg: { dmVatTu: 4.03, vatTu: 1.39, totalLoi4M: 6.39, sanLuong: 72 },
-    pxlr: { dmVatTu: 2.54, vatTu: 0.94, totalLoi4M: 2.46 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.94, totalLoi4M: 2.46 },
   },
   {
     id: 'q-d-08',
@@ -499,7 +499,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 1.90, totalLoi4M: 3.50, sanLuong: 810 },
     bg: { dmVatTu: 4.03, vatTu: 2.78, totalLoi4M: 8.52, sanLuong: 54 },
-    pxlr: { dmVatTu: 2.50, vatTu: 1.95, totalLoi4M: 3.81 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.95, totalLoi4M: 3.81 },
   },
   {
     id: 'q-d-09',
@@ -509,7 +509,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.50, totalLoi4M: 1.80, sanLuong: 750 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 6.82, sanLuong: 44 },
-    pxlr: { dmVatTu: 2.49, vatTu: 0.47, totalLoi4M: 2.08 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.47, totalLoi4M: 2.08 },
   },
   {
     id: 'q-d-sun-02',
@@ -519,7 +519,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.49, vatTu: 0.00, totalLoi4M: 0.00 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.00, totalLoi4M: 0.00 },
   },
   {
     id: 'q-d-10',
@@ -529,7 +529,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.90, totalLoi4M: 2.20, sanLuong: 820 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 1.36, sanLuong: 74 },
-    pxlr: { dmVatTu: 2.53, vatTu: 0.83, totalLoi4M: 2.13 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.83, totalLoi4M: 2.13 },
   },
   {
     id: 'q-d-11',
@@ -539,7 +539,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.90, totalLoi4M: 3.30, sanLuong: 850 },
     bg: { dmVatTu: 4.03, vatTu: 6.19, totalLoi4M: 7.62, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.49, vatTu: 1.19, totalLoi4M: 3.54 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.19, totalLoi4M: 3.54 },
   },
   {
     id: 'q-d-12',
@@ -549,7 +549,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 2.30, totalLoi4M: 4.10, sanLuong: 830 },
     bg: { dmVatTu: 4.03, vatTu: 0.30, totalLoi4M: 4.52, sanLuong: 45 },
-    pxlr: { dmVatTu: 2.48, vatTu: 2.20, totalLoi4M: 4.12 },
+    pxlr: { dmVatTu: 3.69, vatTu: 2.20, totalLoi4M: 4.12 },
   },
   {
     id: 'q-d-13',
@@ -559,7 +559,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 1.00, totalLoi4M: 5.40, sanLuong: 840 },
     bg: { dmVatTu: 4.03, vatTu: 3.53, totalLoi4M: 4.81, sanLuong: 48 },
-    pxlr: { dmVatTu: 2.49, vatTu: 1.14, totalLoi4M: 5.37 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.14, totalLoi4M: 5.37 },
   },
   {
     id: 'q-d-14',
@@ -569,7 +569,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 1.20, totalLoi4M: 4.20, sanLuong: 800 },
     bg: { dmVatTu: 4.03, vatTu: 2.10, totalLoi4M: 5.10, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.50, vatTu: 1.25, totalLoi4M: 4.25 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.25, totalLoi4M: 4.25 },
   },
   {
     id: 'q-d-15',
@@ -579,7 +579,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.80, totalLoi4M: 3.80, sanLuong: 780 },
     bg: { dmVatTu: 4.03, vatTu: 1.50, totalLoi4M: 6.20, sanLuong: 40 },
-    pxlr: { dmVatTu: 2.48, vatTu: 0.84, totalLoi4M: 3.92 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.84, totalLoi4M: 3.92 },
   },
   {
     id: 'q-d-sun-03',
@@ -589,7 +589,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, totalLoi4M: 0.00, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.49, vatTu: 0.00, totalLoi4M: 0.00 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.00, totalLoi4M: 0.00 },
   },
   {
     id: 'q-d-16',
@@ -599,7 +599,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.70, totalLoi4M: 2.50, sanLuong: 850 },
     bg: { dmVatTu: 4.03, vatTu: 1.20, totalLoi4M: 4.80, sanLuong: 55 },
-    pxlr: { dmVatTu: 2.50, vatTu: 0.73, totalLoi4M: 2.64 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.73, totalLoi4M: 2.64 },
   },
   {
     id: 'q-d-17',
@@ -609,7 +609,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 0.95, totalLoi4M: 3.10, sanLuong: 820 },
     bg: { dmVatTu: 4.03, vatTu: 2.40, totalLoi4M: 7.20, sanLuong: 52 },
-    pxlr: { dmVatTu: 2.50, vatTu: 1.04, totalLoi4M: 3.35 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.04, totalLoi4M: 3.35 },
   },
   {
     id: 'q-d-18',
@@ -619,7 +619,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T9',
     ro: { dmVatTu: 2.4, vatTu: 1.05, totalLoi4M: 3.40, sanLuong: 830 },
     bg: { dmVatTu: 4.03, vatTu: 2.80, totalLoi4M: 8.10, sanLuong: 48 },
-    pxlr: { dmVatTu: 2.49, vatTu: 1.15, totalLoi4M: 3.66 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.15, totalLoi4M: 3.66 },
   },
   // THÁNG 10 (01/10 đến 15/10) - Dữ liệu chuẩn theo báo cáo Excel LRRO & LRBG
   {
@@ -630,7 +630,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.4, loiThaoTac: 0.7, totalLoi4M: 2.1, sanLuong: 426 },
     bg: { dmVatTu: 4.03, vatTu: 0.50, loiThaoTac: 3.75, totalLoi4M: 4.25, sanLuong: 400 },
-    pxlr: { dmVatTu: 3.19, vatTu: 0.96, loiThaoTac: 2.18, totalLoi4M: 3.14 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.96, loiThaoTac: 2.18, totalLoi4M: 3.14 },
   },
   {
     id: 'q-d-oct-02',
@@ -640,7 +640,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 1.4, totalLoi4M: 2.2, sanLuong: 498 },
     bg: { dmVatTu: 4.03, vatTu: 0.63, loiThaoTac: 1.11, totalLoi4M: 1.75, sanLuong: 630 },
-    pxlr: { dmVatTu: 3.31, vatTu: 0.71, loiThaoTac: 1.24, totalLoi4M: 1.95 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.71, loiThaoTac: 1.24, totalLoi4M: 1.95 },
   },
   {
     id: 'q-d-oct-03',
@@ -650,7 +650,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 2.2, totalLoi4M: 3.0, sanLuong: 502 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.55, vatTu: 0.95, loiThaoTac: 2.36, totalLoi4M: 3.31 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.95, loiThaoTac: 2.36, totalLoi4M: 3.31 },
   },
   {
     id: 'q-d-oct-04',
@@ -660,7 +660,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.6, loiThaoTac: 1.4, totalLoi4M: 3.0, sanLuong: 440 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.57, vatTu: 1.68, loiThaoTac: 1.67, totalLoi4M: 3.35 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.68, loiThaoTac: 1.67, totalLoi4M: 3.35 },
   },
   {
     id: 'q-d-oct-05',
@@ -670,7 +670,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.5, loiThaoTac: 1.9, totalLoi4M: 2.4, sanLuong: 422 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, loiThaoTac: 3.00, totalLoi4M: 3.00, sanLuong: 400 },
-    pxlr: { dmVatTu: 3.19, vatTu: 0.26, loiThaoTac: 2.44, totalLoi4M: 2.69 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.26, loiThaoTac: 2.44, totalLoi4M: 2.69 },
   },
   {
     id: 'q-d-oct-06',
@@ -680,7 +680,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.8, loiThaoTac: 1.8, totalLoi4M: 3.6, sanLuong: 443 },
     bg: { dmVatTu: 4.03, vatTu: 0.67, loiThaoTac: 3.67, totalLoi4M: 4.33, sanLuong: 300 },
-    pxlr: { dmVatTu: 3.06, vatTu: 1.34, loiThaoTac: 2.56, totalLoi4M: 3.89 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.34, loiThaoTac: 2.56, totalLoi4M: 3.89 },
   },
   {
     id: 'q-d-oct-07',
@@ -690,7 +690,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.1, loiThaoTac: 3.1, totalLoi4M: 4.2, sanLuong: 355 },
     bg: { dmVatTu: 4.03, vatTu: 2.00, loiThaoTac: 2.67, totalLoi4M: 4.67, sanLuong: 150 },
-    pxlr: { dmVatTu: 2.88, vatTu: 1.37, loiThaoTac: 2.97, totalLoi4M: 4.34 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.37, loiThaoTac: 2.97, totalLoi4M: 4.34 },
   },
   {
     id: 'q-d-oct-08',
@@ -700,7 +700,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.8, loiThaoTac: 1.9, totalLoi4M: 2.7, sanLuong: 517 },
     bg: { dmVatTu: 4.03, vatTu: 0.00, loiThaoTac: 3.00, totalLoi4M: 3.00, sanLuong: 300 },
-    pxlr: { dmVatTu: 3.00, vatTu: 0.51, loiThaoTac: 2.30, totalLoi4M: 2.81 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.51, loiThaoTac: 2.30, totalLoi4M: 2.81 },
   },
   {
     id: 'q-d-oct-09',
@@ -710,7 +710,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.4, loiThaoTac: 2.0, totalLoi4M: 3.4, sanLuong: 500 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.55, vatTu: 1.49, loiThaoTac: 2.18, totalLoi4M: 3.67 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.49, loiThaoTac: 2.18, totalLoi4M: 3.67 },
   },
   {
     id: 'q-d-oct-10',
@@ -720,7 +720,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 2.1, loiThaoTac: 1.3, totalLoi4M: 3.5, sanLuong: 520 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.54, vatTu: 2.13, loiThaoTac: 1.54, totalLoi4M: 3.75 },
+    pxlr: { dmVatTu: 3.69, vatTu: 2.13, loiThaoTac: 1.54, totalLoi4M: 3.75 },
   },
   {
     id: 'q-d-oct-11',
@@ -730,7 +730,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.3, loiThaoTac: 2.7, totalLoi4M: 3.0, sanLuong: 330 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.61, vatTu: 0.58, loiThaoTac: 2.87, totalLoi4M: 3.45 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.58, loiThaoTac: 2.87, totalLoi4M: 3.45 },
   },
   {
     id: 'q-d-oct-12',
@@ -740,7 +740,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 1.5, loiThaoTac: 2.8, totalLoi4M: 4.3, sanLuong: 325 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.62, vatTu: 1.62, loiThaoTac: 2.96, totalLoi4M: 4.58 },
+    pxlr: { dmVatTu: 3.69, vatTu: 1.62, loiThaoTac: 2.96, totalLoi4M: 4.58 },
   },
   {
     id: 'q-d-oct-13',
@@ -750,7 +750,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 2.5, loiThaoTac: 1.7, totalLoi4M: 4.2, sanLuong: 401 },
     bg: { dmVatTu: 4.03, vatTu: 1.47, loiThaoTac: 2.94, totalLoi4M: 4.41, sanLuong: 136 },
-    pxlr: { dmVatTu: 2.81, vatTu: 2.24, loiThaoTac: 2.01, totalLoi4M: 4.25 },
+    pxlr: { dmVatTu: 3.69, vatTu: 2.24, loiThaoTac: 2.01, totalLoi4M: 4.25 },
   },
   {
     id: 'q-d-oct-14',
@@ -760,7 +760,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.4, loiThaoTac: 2.7, totalLoi4M: 3.1, sanLuong: 448 },
     bg: { dmVatTu: 4.03, vatTu: 2.4, loiThaoTac: 4.0, totalLoi4M: 6.4, sanLuong: 50 },
-    pxlr: { dmVatTu: 2.56, vatTu: 0.60, loiThaoTac: 2.83, totalLoi4M: 3.43 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.60, loiThaoTac: 2.83, totalLoi4M: 3.43 },
   },
   {
     id: 'q-d-oct-15',
@@ -770,7 +770,7 @@ export const INITIAL_QUALITY_DAILY_RECORDS: QualityDailyRecord[] = [
     month: 'T10',
     ro: { dmVatTu: 2.4, vatTu: 0.0, loiThaoTac: 0.0, totalLoi4M: 0.0, sanLuong: 0 },
     bg: { dmVatTu: 4.03, vatTu: 0.0, loiThaoTac: 0.0, totalLoi4M: 0.0, sanLuong: 0 },
-    pxlr: { dmVatTu: 2.50, vatTu: 0.0, loiThaoTac: 0.0, totalLoi4M: 0.0 },
+    pxlr: { dmVatTu: 3.69, vatTu: 0.0, loiThaoTac: 0.0, totalLoi4M: 0.0 },
   },
 ];
 
