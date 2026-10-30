@@ -19,6 +19,7 @@ import {
   GlobalNormsConfig,
   LockedMonthInfo,
   QualityGroupCharts,
+  SlideBarItem,
 } from './types';
 import { rollupDailyToQualityCharts } from './qualityFormulas';
 import { 
@@ -622,62 +623,117 @@ export const StorageService = {
         };
 
         const standardValuesPXLR: Record<string, number> = {
-          'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8
+          'w32': 122.1, 'w33': 118.5, 'w34': 125.0, 'w35': 100.8,
+          'w41': 114.8, 'w42': 116.6, 'w43': 100.2, 'w44': 114.8
         };
         const standardValuesRO: Record<string, number> = {
-          'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2
+          'w32': 115.2, 'w33': 110.0, 'w34': 118.4, 'w35': 104.2,
+          'w41': 117.6, 'w42': 126.5, 'w43': 105.7, 'w44': 114.8
         };
         const standardValuesBG: Record<string, number> = {
-          'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7
+          'w32': 95.5, 'w33': 102.1, 'w34': 108.0, 'w35': 111.7,
+          'w41': 89.2, 'w42': 12.9, 'w43': 68.9
         };
 
-        parsed.pxlr.weekly = fixValues(parsed.pxlr.weekly, 'pxlr', standardValuesPXLR);
-        parsed.ro.weekly = fixValues(parsed.ro.weekly, 'ro', standardValuesRO);
-        parsed.bg.weekly = fixValues(parsed.bg.weekly, 'bg', standardValuesBG);
+        const fixValuesGeneral = (items: any[], prefix: string, values: Record<string, number>) => {
+          return items.map(w => {
+            const weekId = w.id.replace(`${prefix}-`, '');
+            if (values[weekId] !== undefined) {
+              if (w.value === undefined || w.value === null || w.value <= 0 || w.value === 119.6 || w.value === 120.9 || w.value === 119.7) {
+                return { ...w, value: values[weekId] };
+              }
+            }
+            return w;
+          });
+        };
+
+        parsed.pxlr.weekly = fixValuesGeneral(parsed.pxlr.weekly, 'pxlr', standardValuesPXLR);
+        parsed.ro.weekly = fixValuesGeneral(parsed.ro.weekly, 'ro', standardValuesRO);
+        parsed.bg.weekly = fixValuesGeneral(parsed.bg.weekly, 'bg', standardValuesBG);
 
         // Tự động đồng bộ số liệu tuần thực tế từ ma trận của Tab Nhóm RO và Tab Nhóm BG
         try {
           const matrixMonths = [5, 6, 7, 8, 9, 10, 11]; // All months
+          const weekAgg = new Map<number, {
+            slRO: number;
+            dmRO: number;
+            valRO: number;
+            slBG: number;
+            dmBG: number;
+            valBG: number;
+            hasRO: boolean;
+            hasBG: boolean;
+          }>();
+
           matrixMonths.forEach(mIdx => {
             const mRO = this.getMatrixROForMonth(2026, mIdx) || [];
             const mBG = this.getMatrixBGForMonth(2026, mIdx) || [];
-            const allWeekNums = new Set<number>();
+
             mRO.filter(c => c.isWeeklyTotal).forEach(c => {
-              const m = c.label.match(/W(\d+)/i);
-              if (m) allWeekNums.add(parseInt(m[1], 10));
+              const m = c.label.match(/W(\d+)/i) || c.id.match(/w(\d+)/i);
+              if (m) {
+                const wNum = parseInt(m[1], 10);
+                const sl = Number(c.sanLuongLineChinh) || 0;
+                const dm = Number(c.dinhMucSlTheoNs) || 0;
+                const val = Number(c.nsldTheoNgay) || 0;
+                const cur = weekAgg.get(wNum) || { slRO: 0, dmRO: 0, valRO: 0, slBG: 0, dmBG: 0, valBG: 0, hasRO: false, hasBG: false };
+                cur.slRO += sl;
+                cur.dmRO += dm;
+                if (val > 0) cur.valRO = val;
+                if (dm > 0 || sl > 0 || val > 0) cur.hasRO = true;
+                weekAgg.set(wNum, cur);
+              }
             });
+
             mBG.filter(c => c.isWeeklyTotal).forEach(c => {
-              const m = c.label.match(/W(\d+)/i);
-              if (m) allWeekNums.add(parseInt(m[1], 10));
-            });
-
-            allWeekNums.forEach(wNum => {
-              const weekId = `w${wNum}`;
-              const cRO = mRO.find(r => r.isWeeklyTotal && (r.label.includes(`W${wNum}`) || (r.id && r.id.includes(`w${wNum}`))));
-              const cBG = mBG.find(b => b.isWeeklyTotal && (b.label.includes(`W${wNum}`) || (b.id && b.id.includes(`w${wNum}`))));
-              const valRO = cRO ? (Number(cRO.nsldTheoNgay) || 0) : 0;
-              const valBG = cBG ? (Number(cBG.nsldTheoNgay) || 0) : 0;
-              const slRO = Number(cRO?.sanLuongLineChinh) || 0;
-              const dmRO = Number(cRO?.dinhMucSlTheoNs) || 0;
-              const slBG = cBG ? ((Number(cBG.sanLuongBepGa) || 0) + (Number(cBG.sanLuongRma) || 0)) : 0;
-              const dmBG = cBG ? (Number(cBG.dinhMucSlTheoNs) || 0) : 0;
-              const totalSL = slRO + slBG;
-              const totalDM = dmRO + dmBG;
-              const valPXLR = totalDM > 0 ? Number(((totalSL / totalDM) * 100).toFixed(1)) : 0;
-
-              if (cRO) {
-                const it = parsed.ro.weekly.find((i: any) => i.id === `ro-${weekId}` || i.label === `Tuần ${wNum}`);
-                if (it && !isHistoricalItem(it.id)) it.value = valRO;
-              }
-              if (cBG) {
-                const it = parsed.bg.weekly.find((i: any) => i.id === `bg-${weekId}` || i.label === `Tuần ${wNum}`);
-                if (it && !isHistoricalItem(it.id)) it.value = valBG;
-              }
-              if (cRO || cBG) {
-                const it = parsed.pxlr.weekly.find((i: any) => i.id === `pxlr-${weekId}` || i.id === `pxlr-w${wNum}` || i.label === `Tuần ${wNum}`);
-                if (it && !isHistoricalItem(it.id)) it.value = valPXLR;
+              const m = c.label.match(/W(\d+)/i) || c.id.match(/w(\d+)/i);
+              if (m) {
+                const wNum = parseInt(m[1], 10);
+                const sl = (Number(c.sanLuongBepGa) || 0) + (Number(c.sanLuongRma) || 0);
+                const dm = Number(c.dinhMucSlTheoNs) || 0;
+                const val = Number(c.nsldTheoNgay) || 0;
+                const cur = weekAgg.get(wNum) || { slRO: 0, dmRO: 0, valRO: 0, slBG: 0, dmBG: 0, valBG: 0, hasRO: false, hasBG: false };
+                cur.slBG += sl;
+                cur.dmBG += dm;
+                if (val > 0) cur.valBG = val;
+                if (dm > 0 || sl > 0 || val > 0) cur.hasBG = true;
+                weekAgg.set(wNum, cur);
               }
             });
+          });
+
+          const updateItem = (items: SlideBarItem[], val: number, wNum: number, type: string) => {
+            const finalLabel = `Tuần ${wNum}`;
+            const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
+            if (idx !== -1) {
+              if (!isHistoricalItem(items[idx].id)) {
+                items[idx].value = val;
+              }
+            } else {
+              items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
+            }
+          };
+
+          weekAgg.forEach((data, wNum) => {
+            const nsRO = data.dmRO > 0 ? Number(((data.slRO / data.dmRO) * 100).toFixed(1)) : data.valRO;
+            const nsBG = data.dmBG > 0 ? Number(((data.slBG / data.dmBG) * 100).toFixed(1)) : data.valBG;
+            const totalSL = data.slRO + data.slBG;
+            const totalDM = data.dmRO + data.dmBG;
+            const nsPXLR = totalDM > 0 
+              ? Number(((totalSL / totalDM) * 100).toFixed(1)) 
+              : (nsRO > 0 && nsBG > 0 
+                  ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) 
+                  : (nsRO || nsBG || 0));
+
+            if (data.hasRO && nsRO > 0) {
+              updateItem(parsed.ro.weekly, nsRO, wNum, 'ro');
+            }
+            if (data.hasBG && nsBG > 0) {
+              updateItem(parsed.bg.weekly, nsBG, wNum, 'bg');
+            }
+            if ((data.hasRO || data.hasBG) && nsPXLR > 0) {
+              updateItem(parsed.pxlr.weekly, nsPXLR, wNum, 'pxlr');
+            }
           });
         } catch {}
 
@@ -686,21 +742,21 @@ export const StorageService = {
           if (m.id === 'pxlr-m07') return { ...m, value: 135.5 };
           if (m.id === 'pxlr-m08') return { ...m, value: 133.6 };
           if (m.id === 'pxlr-m09' || m.label === 'Tháng 9') return { ...m, value: 116.8 };
-          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8 || m.value === 118.7 || m.value === 121.1)) return { ...m, value: 120.6 };
+          if ((m.id === 'pxlr-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 118.5 || m.value === 117.8 || m.value === 118.7 || m.value === 121.1 || m.value === 120.6)) return { ...m, value: 110.6 };
           return m;
         });
         parsed.ro.monthly = parsed.ro.monthly.map(m => {
           if (m.id === 'ro-m07') return { ...m, value: 117.1 };
           if (m.id === 'ro-m08') return { ...m, value: 111.2 };
           if ((m.id === 'ro-m09' || m.label === 'Tháng 9') && (!m.value || m.value <= 0 || m.value === 117.0)) return { ...m, value: 118.9 };
-          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 120.0 || m.value === 121.1 || m.value === 121.5)) return { ...m, value: 121.7 };
+          if ((m.id === 'ro-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 120.0 || m.value === 121.1 || m.value === 121.5 || m.value === 121.7)) return { ...m, value: 116.3 };
           return m;
         });
         parsed.bg.monthly = parsed.bg.monthly.map(m => {
           if (m.id === 'bg-m07') return { ...m, value: 87.1 };
           if (m.id === 'bg-m08') return { ...m, value: 108.2 };
           if ((m.id === 'bg-m09' || m.label === 'Tháng 9') && (!m.value || m.value <= 0 || m.value === 97.0 || m.value === 103.5)) return { ...m, value: 92.6 };
-          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 108.5 || m.value === 102.7 || m.value === 113.1)) return { ...m, value: 113.3 };
+          if ((m.id === 'bg-m10' || m.label === 'Tháng 10') && (!m.value || m.value <= 0 || m.value === 108.5 || m.value === 102.7 || m.value === 113.1 || m.value === 113.3)) return { ...m, value: 72.5 };
           return m;
         });
 

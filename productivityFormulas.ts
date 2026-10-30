@@ -182,62 +182,86 @@ export function autoComputeSlideDataFromInputs(
   // Tự động đồng bộ các tuần tiếp theo (W40..W52) từ Ma Trận Tháng 9, 10, 11, 12 nếu có dữ liệu
   try {
     const monthsToCheck = [5, 6, 7, 8, 9, 10, 11]; // T6..T12
+    const weekAgg = new Map<number, {
+      slRO: number;
+      dmRO: number;
+      valRO: number;
+      slBG: number;
+      dmBG: number;
+      valBG: number;
+      hasRO: boolean;
+      hasBG: boolean;
+    }>();
+
     monthsToCheck.forEach(mIdx => {
-      const matRO = StorageService.getMatrixROForMonth(2026, mIdx);
-      const matBG = StorageService.getMatrixBGForMonth(2026, mIdx);
-      
-      const allWeeklyWeeks = new Set<number>();
+      const matRO = StorageService.getMatrixROForMonth(2026, mIdx) || [];
+      const matBG = StorageService.getMatrixBGForMonth(2026, mIdx) || [];
+
       matRO.filter(c => c.isWeeklyTotal).forEach(c => {
-        const m = c.label.match(/W(\d+)/i);
-        if (m) allWeeklyWeeks.add(parseInt(m[1], 10));
+        const m = c.label.match(/W(\d+)/i) || c.id.match(/w(\d+)/i);
+        if (m) {
+          const wNum = parseInt(m[1], 10);
+          const sl = Number(c.sanLuongLineChinh) || 0;
+          const dm = Number(c.dinhMucSlTheoNs) || 0;
+          const val = Number(c.nsldTheoNgay) || 0;
+          const cur = weekAgg.get(wNum) || { slRO: 0, dmRO: 0, valRO: 0, slBG: 0, dmBG: 0, valBG: 0, hasRO: false, hasBG: false };
+          cur.slRO += sl;
+          cur.dmRO += dm;
+          if (val > 0) cur.valRO = val;
+          if (dm > 0 || sl > 0 || val > 0) cur.hasRO = true;
+          weekAgg.set(wNum, cur);
+        }
       });
+
       matBG.filter(c => c.isWeeklyTotal).forEach(c => {
-        const m = c.label.match(/W(\d+)/i);
-        if (m) allWeeklyWeeks.add(parseInt(m[1], 10));
-      });
-
-      allWeeklyWeeks.forEach(wNum => {
-        const wCode = `W${wNum}`;
-        const finalLabel = `Tuần ${wNum}`;
-        const wColRO = matRO.find(c => c.isWeeklyTotal && (c.label.includes(wCode) || (c.id && c.id.includes(`w${wNum}`))));
-        const wColBG = matBG.find(c => c.isWeeklyTotal && (c.label.includes(wCode) || (c.id && c.id.includes(`w${wNum}`))));
-
-        const nsRO = wColRO ? (Number(wColRO.nsldTheoNgay) || 0) : 0;
-        const nsBG = wColBG ? (Number(wColBG.nsldTheoNgay) || 0) : 0;
-
-        const updateItem = (items: SlideBarItem[], val: number, type: string) => {
-          const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
-          if (idx !== -1) {
-            if (!isHistoricalItem(items[idx].id)) {
-              items[idx].value = val;
-            }
-          } else {
-            items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
-          }
-        };
-
-        if (wColRO) {
-          updateItem(result.ro.weekly, nsRO, 'ro');
-        }
-        if (wColBG) {
-          updateItem(result.bg.weekly, nsBG, 'bg');
-        }
-
-        if (wColRO || wColBG) {
-          const slRO = Number(wColRO?.sanLuongLineChinh) || 0;
-          const dmRO = Number(wColRO?.dinhMucSlTheoNs) || 0;
-          const slBG = wColBG ? ((Number(wColBG.sanLuongBepGa) || 0) + (Number(wColBG.sanLuongRma) || 0)) : 0;
-          const dmBG = wColBG ? (Number(wColBG.dinhMucSlTheoNs) || 0) : 0;
-          const totalSL = slRO + slBG;
-          const totalDM = dmRO + dmBG;
-          const nsPXLR = totalDM > 0 
-            ? Number(((totalSL / totalDM) * 100).toFixed(1)) 
-            : (nsRO > 0 && nsBG > 0 
-                ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) 
-                : (nsRO || nsBG || 0));
-          updateItem(result.pxlr.weekly, nsPXLR, 'pxlr');
+        const m = c.label.match(/W(\d+)/i) || c.id.match(/w(\d+)/i);
+        if (m) {
+          const wNum = parseInt(m[1], 10);
+          const sl = (Number(c.sanLuongBepGa) || 0) + (Number(c.sanLuongRma) || 0);
+          const dm = Number(c.dinhMucSlTheoNs) || 0;
+          const val = Number(c.nsldTheoNgay) || 0;
+          const cur = weekAgg.get(wNum) || { slRO: 0, dmRO: 0, valRO: 0, slBG: 0, dmBG: 0, valBG: 0, hasRO: false, hasBG: false };
+          cur.slBG += sl;
+          cur.dmBG += dm;
+          if (val > 0) cur.valBG = val;
+          if (dm > 0 || sl > 0 || val > 0) cur.hasBG = true;
+          weekAgg.set(wNum, cur);
         }
       });
+    });
+
+    const updateItem = (items: SlideBarItem[], val: number, wNum: number, type: string) => {
+      const finalLabel = `Tuần ${wNum}`;
+      const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
+      if (idx !== -1) {
+        if (!isHistoricalItem(items[idx].id)) {
+          items[idx].value = val;
+        }
+      } else {
+        items.push({ id: `${type}-w${wNum}`, label: finalLabel, value: val });
+      }
+    };
+
+    weekAgg.forEach((data, wNum) => {
+      const nsRO = data.dmRO > 0 ? Number(((data.slRO / data.dmRO) * 100).toFixed(1)) : data.valRO;
+      const nsBG = data.dmBG > 0 ? Number(((data.slBG / data.dmBG) * 100).toFixed(1)) : data.valBG;
+      const totalSL = data.slRO + data.slBG;
+      const totalDM = data.dmRO + data.dmBG;
+      const nsPXLR = totalDM > 0 
+        ? Number(((totalSL / totalDM) * 100).toFixed(1)) 
+        : (nsRO > 0 && nsBG > 0 
+            ? Number(((nsRO * 0.865) + (nsBG * 0.135)).toFixed(1)) 
+            : (nsRO || nsBG || 0));
+
+      if (data.hasRO && nsRO > 0) {
+        updateItem(result.ro.weekly, nsRO, wNum, 'ro');
+      }
+      if (data.hasBG && nsBG > 0) {
+        updateItem(result.bg.weekly, nsBG, wNum, 'bg');
+      }
+      if ((data.hasRO || data.hasBG) && nsPXLR > 0) {
+        updateItem(result.pxlr.weekly, nsPXLR, wNum, 'pxlr');
+      }
     });
   } catch {
     // Continue if storage lookup fails

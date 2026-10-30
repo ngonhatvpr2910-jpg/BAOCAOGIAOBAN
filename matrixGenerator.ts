@@ -199,17 +199,17 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
   };
-  const month10Cutoffs = [11, 18, 25];
+  const month10Cutoffs = [8, 15, 22, 29];
   const month10Labels: Record<number, string> = {
-    11: 'W41 01 - 11/Oct',
-    18: 'W42 12 - 18/Oct',
-    25: 'W43 19 - 25/Oct',
-    31: 'W44 26 - 31/Oct',
+    8: 'W41 01 - 08/Oct',
+    15: 'W42 09 - 15/Oct',
+    22: 'W43 16 - 22/Oct',
+    29: 'W44 23 - 29/Oct',
+    31: 'W45 30 - 31/Oct',
   };
-  const month11Cutoffs = [1, 8, 15, 22, 29];
+  const month11Cutoffs = [8, 15, 22, 29];
   const month11Labels: Record<number, string> = {
-    1: 'W44 01/Nov',
-    8: 'W45 02 - 08/Nov',
+    8: 'W45 01 - 08/Nov',
     15: 'W46 09 - 15/Nov',
     22: 'W47 16 - 22/Nov',
     29: 'W48 23 - 29/Nov',
@@ -559,17 +559,17 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     24: 'W39 18 - 24/Sep',
     30: 'W40 25 - 30/Sep',
   };
-  const month10Cutoffs = [11, 18, 25];
+  const month10Cutoffs = [8, 15, 22, 29];
   const month10Labels: Record<number, string> = {
-    11: 'W41 01 - 11/Oct',
-    18: 'W42 12 - 18/Oct',
-    25: 'W43 19 - 25/Oct',
-    31: 'W44 26 - 31/Oct',
+    8: 'W41 01 - 08/Oct',
+    15: 'W42 09 - 15/Oct',
+    22: 'W43 16 - 22/Oct',
+    29: 'W44 23 - 29/Oct',
+    31: 'W45 30 - 31/Oct',
   };
-  const month11Cutoffs = [1, 8, 15, 22, 29];
+  const month11Cutoffs = [8, 15, 22, 29];
   const month11Labels: Record<number, string> = {
-    1: 'W44 01/Nov',
-    8: 'W45 02 - 08/Nov',
+    8: 'W45 01 - 08/Nov',
     15: 'W46 09 - 15/Nov',
     22: 'W47 16 - 22/Nov',
     29: 'W48 23 - 29/Nov',
@@ -603,13 +603,49 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
 
     if (!isSunday) {
       if (isMonth10) {
-        // Đồng bộ dữ liệu Tháng 10 Line RO: Tháng 10 bắt đầu từ Tuần 41 (W41: 01 - 11/Oct), Tổng T10 đạt đúng 121.1%
-        baseCt = 55 + (day % 3);
-        baseTv = 14 + (day % 2) * 2;
-        const totalCong = baseCt + baseTv;
-        const dm = Number((totalCong * 9.03).toFixed(1));
-        sl = day <= 11 ? Math.round(dm * 1.218 + (day % 4) * 6) : Math.round(dm * 1.209);
-        khsx = 720;
+        // Dữ liệu chuẩn Tháng 10 Line RO theo báo cáo thực tế
+        if (day === 23) {
+          baseCt = 66.5; baseTv = 20; sl = 938; khsx = 1128; nsLine = 51; nsNghi = 4; tiLe = 92.2;
+        } else if (day === 24) {
+          baseCt = 65.5; baseTv = 16.75; sl = 761; khsx = 900; nsLine = 51; nsNghi = 3; tiLe = 94.1;
+        } else if (day === 26) {
+          baseCt = 68.5; baseTv = 24.625; sl = 928; khsx = 867; nsLine = 51; nsNghi = 2; tiLe = 96.1;
+        } else if (day === 27) {
+          baseCt = 78.625; baseTv = 25.375; sl = 949; khsx = 1128; nsLine = 51; nsNghi = 0; tiLe = 100;
+        } else if (day === 28) {
+          baseCt = 80.75; baseTv = 26; sl = 1168; khsx = 1128; nsLine = 51; nsNghi = 3; tiLe = 94.1;
+        } else if (day === 29) {
+          baseCt = 84; baseTv = 26.875; sl = 1303; khsx = 998; nsLine = 51; nsNghi = 1; tiLe = 98;
+        } else if (day >= 16 && day <= 22) {
+          // Tuần 43 (16 - 22/Oct) đạt đúng 105.7% theo báo cáo Hình 2
+          const w43Map: Record<number, { ct: number; tv: number; sl: number; khsx: number }> = {
+            16: { ct: 75.0, tv: 20.0, sl: 880, khsx: 950 },
+            17: { ct: 72.0, tv: 18.0, sl: 850, khsx: 900 },
+            19: { ct: 76.0, tv: 20.0, sl: 910, khsx: 950 },
+            20: { ct: 76.0, tv: 19.3, sl: 920, khsx: 950 },
+            21: { ct: 77.0, tv: 20.0, sl: 937, khsx: 952 },
+            22: { ct: 77.4, tv: 20.0, sl: 950, khsx: 1000 },
+          };
+          const cur = w43Map[day] || { ct: 75, tv: 20, sl: 900, khsx: 950 };
+          baseCt = cur.ct; baseTv = cur.tv; sl = cur.sl; khsx = cur.khsx;
+          nsLine = 51; nsNghi = 2; tiLe = 96.1;
+        } else if (day >= 9 && day <= 15) {
+          // Tuần 42 (09 - 15/Oct) đạt đúng 126.5%
+          baseCt = 58 + (day % 3);
+          baseTv = 15 + (day % 2) * 2;
+          const totalCong = baseCt + baseTv;
+          const dm = Number((totalCong * 9.03).toFixed(1));
+          sl = Math.round(dm * 1.265);
+          khsx = 720;
+        } else {
+          // Tuần 41 (01 - 08/Oct) đạt đúng 117.6%
+          baseCt = 55 + (day % 3);
+          baseTv = 14 + (day % 2) * 2;
+          const totalCong = baseCt + baseTv;
+          const dm = Number((totalCong * 9.03).toFixed(1));
+          sl = Math.round(dm * 1.176);
+          khsx = 720;
+        }
       } else if (isMonth9) {
         baseCt = 54 + (day % 4);
         baseTv = 15 + (day % 3);

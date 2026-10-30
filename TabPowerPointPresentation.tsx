@@ -350,6 +350,7 @@ export const TabPowerPointPresentation: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    setSlideData(StorageService.getSlide1NSLD());
     setSlide3Data(StorageService.getSlide3DefectCost());
     setSlide4Data(StorageService.getSlide4ProductionTarget());
     setSlide5Data(StorageService.getSlide5ProductionPlan());
