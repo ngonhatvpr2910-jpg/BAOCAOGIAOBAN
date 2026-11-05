@@ -202,50 +202,7 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setGlobalNorms(newNorms);
   }, []);
 
-  const applyGlobalWeekCutoffs = useCallback((
-    year: number,
-    monthIndex0: number,
-    cutoffs: number[],
-    weekLabelMode: WeekLabelMode
-  ) => {
-    StorageService.saveCustomWeekCutoffs(year, monthIndex0, cutoffs);
-    StorageService.saveWeekLabelMode(weekLabelMode);
 
-    setMatrixRO(prevRO => {
-      const updatedRO = applyWeekCutoffsToROMatrix(prevRO, cutoffs, year, monthIndex0, weekLabelMode);
-      StorageService.saveMatrixRO(updatedRO);
-      return updatedRO;
-    });
-
-    setMatrixBG(prevBG => {
-      const updatedBG = applyWeekCutoffsToBGMatrix(prevBG, cutoffs, year, monthIndex0, weekLabelMode);
-      StorageService.saveMatrixBG(updatedBG);
-      return updatedBG;
-    });
-
-    setSlide2Quality(prevS2 => {
-      if (prevS2.dailyRecords) {
-        const syncedRecords = autoSyncDailyRecordWeeks(prevS2.dailyRecords);
-        const rolled = rollupDailyToQualityCharts(syncedRecords, prevS2.monthly, prevS2.weekly);
-        const updatedS2 = {
-          ...prevS2,
-          dailyRecords: syncedRecords,
-          daily: rolled.daily,
-          weekly: rolled.weekly,
-          monthly: rolled.monthly,
-        };
-        StorageService.saveSlide2Quality(updatedS2);
-        return updatedS2;
-      }
-      return prevS2;
-    });
-
-    setDataVersion(v => v + 1);
-
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('production-data-updated', { detail: { type: 'week-cutoffs', year, monthIndex0, cutoffs } }));
-    }
-  }, []);
 
   const qualityMetrics = useMemo(() => {
     return getSyncedQualityForPXLR(slide2Quality, selectedDate, qualityTimeFrame);
@@ -1003,6 +960,49 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setMatrixBG(INITIAL_MATRIX_BG);
     StorageService.saveMatrixBG(INITIAL_MATRIX_BG);
   }, []);
+
+  const applyGlobalWeekCutoffs = useCallback((
+    year: number,
+    monthIndex0: number,
+    cutoffs: number[],
+    weekLabelMode: WeekLabelMode
+  ) => {
+    StorageService.saveCustomWeekCutoffs(year, monthIndex0, cutoffs);
+    StorageService.saveWeekLabelMode(weekLabelMode);
+
+    const currentRO = StorageService.getMatrixROForMonth(year, monthIndex0);
+    const updatedRO = applyWeekCutoffsToROMatrix(currentRO, cutoffs, year, monthIndex0, weekLabelMode);
+    updateMatrixROForMonth(year, monthIndex0, updatedRO);
+
+    const currentBG = StorageService.getMatrixBGForMonth(year, monthIndex0);
+    const updatedBG = applyWeekCutoffsToBGMatrix(currentBG, cutoffs, year, monthIndex0, weekLabelMode);
+    updateMatrixBGForMonth(year, monthIndex0, updatedBG);
+
+    setSlide2Quality(prevS2 => {
+      if (prevS2.dailyRecords) {
+        const syncedRecords = autoSyncDailyRecordWeeks(prevS2.dailyRecords);
+        const rolled = rollupDailyToQualityCharts(syncedRecords, prevS2.monthly, prevS2.weekly);
+        const updatedS2 = {
+          ...prevS2,
+          dailyRecords: syncedRecords,
+          daily: rolled.daily,
+          weekly: rolled.weekly,
+          monthly: rolled.monthly,
+        };
+        StorageService.saveSlide2Quality(updatedS2);
+        return updatedS2;
+      }
+      return prevS2;
+    });
+
+    setDataVersion(v => v + 1);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('production-data-updated', { 
+        detail: { type: 'week-cutoffs', year, monthIndex0, cutoffs } 
+      }));
+    }
+  }, [updateMatrixROForMonth, updateMatrixBGForMonth]);
 
   const unreadAlertCount = useMemo(() => alerts.filter(a => !a.isRead).length, [alerts]);
 
