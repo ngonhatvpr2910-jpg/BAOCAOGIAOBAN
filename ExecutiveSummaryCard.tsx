@@ -124,9 +124,11 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     });
   }, [slide1Data]);
 
-  // Mặc định chọn Tuần 42 (W42) - Tuần hiện tại của hệ thống điều hành sản xuất
-  const [internalSelectedWeek, setInternalSelectedWeek] = useState<string>('W42');
-  const [internalSelectedMonth, setInternalSelectedMonth] = useState<string>('Tháng 10');
+  // Tuần 45 (W45) thuộc Tháng 11 là Tuần hiện tại của hệ thống điều hành sản xuất
+  const CURRENT_OPERATIONAL_WEEK = 'W45';
+  const CURRENT_OPERATIONAL_MONTH = 'Tháng 11';
+  const [internalSelectedWeek, setInternalSelectedWeek] = useState<string>(CURRENT_OPERATIONAL_WEEK);
+  const [internalSelectedMonth, setInternalSelectedMonth] = useState<string>(CURRENT_OPERATIONAL_MONTH);
 
   // Luôn đồng bộ internal state với props khi được điều khiển từ bên ngoài (PowerPoint slides hoặc tab khác)
   useEffect(() => {
@@ -165,7 +167,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
     setInternalSelectedMonth(m);
     const weeksInMonth = getWeeksForMonth(m);
     if (!weeksInMonth.includes(selectedWeek)) {
-      const repWeek = weeksInMonth[0] || 'W42';
+      const repWeek = weeksInMonth[0] || CURRENT_OPERATIONAL_WEEK;
       setInternalSelectedWeek(repWeek);
       onWeekChange?.(repWeek);
     }
@@ -314,26 +316,26 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
             </button>
           </div>
 
-          {/* Quick jump to Current W42 or Current Month */}
-          {timeFrame === 'week' && selectedWeek !== 'W42' && (
+          {/* Quick jump to Current W45 or Current Month */}
+          {timeFrame === 'week' && selectedWeek !== CURRENT_OPERATIONAL_WEEK && (
             <button
-              onClick={() => handleSelectWeek('W42')}
+              onClick={() => handleSelectWeek(CURRENT_OPERATIONAL_WEEK)}
               className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
-              title="Chuyển ngay đến Tuần 42 (Hiện tại)"
+              title={`Chuyển ngay đến Tuần ${CURRENT_OPERATIONAL_WEEK.replace(/\D/g, '')} (Hiện tại)`}
             >
               <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-              <span>Xem W42 (Hiện tại)</span>
+              <span>Xem {CURRENT_OPERATIONAL_WEEK} (Hiện tại)</span>
             </button>
           )}
 
-          {timeFrame === 'month' && selectedMonth !== 'Tháng 10' && (
+          {timeFrame === 'month' && selectedMonth !== CURRENT_OPERATIONAL_MONTH && (
             <button
-              onClick={() => handleSelectMonth('Tháng 10')}
+              onClick={() => handleSelectMonth(CURRENT_OPERATIONAL_MONTH)}
               className="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition animate-pulse"
-              title="Chuyển ngay đến Tháng 10 (Hiện tại)"
+              title={`Chuyển ngay đến ${CURRENT_OPERATIONAL_MONTH} (Hiện tại)`}
             >
               <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-              <span>Xem Tháng 10</span>
+              <span>Xem {CURRENT_OPERATIONAL_MONTH} (Hiện tại)</span>
             </button>
           )}
 
@@ -379,7 +381,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 <div className="flex items-center gap-1 max-w-[420px] overflow-x-auto scrollbar-none py-0.5">
                   {visibleWeeks.map(w => {
                     const isSelected = selectedWeek === w;
-                    const isCurrent = w === 'W42';
+                    const isCurrent = w === CURRENT_OPERATIONAL_WEEK;
                     return (
                       <button
                         key={`btn-week-${w}`}
@@ -427,7 +429,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 >
                   {dynamicAvailableWeeks.map(w => (
                     <option key={`opt-w-${w}`} value={w}>
-                      {w} {w === 'W42' ? '(Tuần hiện tại)' : ''}
+                      {w} {w === CURRENT_OPERATIONAL_WEEK ? '(Tuần hiện tại)' : ''}
                     </option>
                   ))}
                 </select>

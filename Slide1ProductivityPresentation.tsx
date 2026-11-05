@@ -40,10 +40,10 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
   timeFrame: propTimeFrame,
   onTimeFrameChange,
 }) => {
-  // Operational current week of the manufacturing plant is Tuần 42 (W42 - Tháng 10/2026)
-  const OPERATIONAL_CURRENT_WEEK = 42;
+  // Operational current week of the manufacturing plant is Tuần 45 (W45 - Tháng 11/2026)
+  const OPERATIONAL_CURRENT_WEEK = 45;
 
-  // Selected week for highlighting and focus (defaults to Tuần 42)
+  // Selected week for highlighting and focus (defaults to Tuần 45)
   const [internalSelectedWeekNum, setInternalSelectedWeekNum] = useState<number>(
     propSelectedWeekNum || OPERATIONAL_CURRENT_WEEK
   );
@@ -57,16 +57,16 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
   const totalWeeks = data.pxlr.weekly.length;
   const maxStartIndex = Math.max(0, totalWeeks - weeksToShow);
 
-  // Detect current ISO week (fall back to 42 if outside the active factory season [32..44])
+  // Detect current ISO week (fall back to 45 if outside the active factory season [32..52])
   const currentWeekNum = useMemo(() => {
     const detected = getWeekNumber(new Date());
-    if (detected < 32 || detected > 44) {
+    if (detected < 32 || detected > 52) {
       return OPERATIONAL_CURRENT_WEEK;
     }
     return detected;
   }, []);
 
-  // Find index of the active week or nearest (prioritizes selectedWeekNum, then currentWeekNum, then W42)
+  // Find index of the active week or nearest (prioritizes selectedWeekNum, then currentWeekNum, then W45)
   const currentWeekIndex = useMemo(() => {
     const target = selectedWeekNum || currentWeekNum || OPERATIONAL_CURRENT_WEEK;
     const idx = data.pxlr.weekly.findIndex(w => {
@@ -74,8 +74,8 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
       return match && parseInt(match[0], 10) === target;
     });
     if (idx >= 0) return idx;
-    const idx42 = data.pxlr.weekly.findIndex(w => w.label.includes('42'));
-    return idx42 >= 0 ? idx42 : 0;
+    const idx45 = data.pxlr.weekly.findIndex(w => w.label.includes('45'));
+    return idx45 >= 0 ? idx45 : 0;
   }, [data.pxlr.weekly, selectedWeekNum, currentWeekNum]);
 
   // Synchronize internal state when propSelectedWeekNum changes
@@ -227,27 +227,27 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                 Chuyển nhanh:
               </span>
 
-              {/* Prominent dedicated Tuần 41 (Hiện Tại) button */}
+              {/* Prominent dedicated Tuần 45 (Hiện Tại) button */}
               <button
                 type="button"
-                onClick={() => jumpToWeekNum(41)}
+                onClick={() => jumpToWeekNum(45)}
                 className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 shadow-xs ${
-                  selectedWeekNum === 41
+                  selectedWeekNum === 45
                     ? 'bg-emerald-600 text-white ring-2 ring-emerald-300'
                     : 'bg-emerald-50 border border-emerald-400 text-emerald-800 hover:bg-emerald-100'
                 }`}
-                title="Xem ngay Tuần 41 (Tuần hiện tại)"
+                title="Xem ngay Tuần 45 (Tuần hiện tại)"
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                <span>Tuần 41 (Hiện Tại)</span>
+                <span>Tuần 45 (Hiện Tại)</span>
               </button>
 
-              {/* Direct week pills for individual weeks W36..W44 */}
+              {/* Direct week pills for individual weeks W36..W45 */}
               <div className="flex items-center gap-0.5 bg-white border border-slate-300 rounded-lg p-0.5">
                 <span className="text-[10px] font-bold text-slate-400 px-1 hidden xl:inline">Tuần:</span>
-                {[36, 37, 38, 39, 40, 41, 42, 43, 44].map(wNum => {
+                {[36, 37, 38, 39, 40, 41, 42, 43, 44, 45].map(wNum => {
                   const isSelected = selectedWeekNum === wNum;
-                  const isCurrent = wNum === 41;
+                  const isCurrent = wNum === 45;
                   return (
                     <button
                       key={`w-pill-${wNum}`}
@@ -407,9 +407,9 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                     <span className="text-[11px] font-black text-white uppercase tracking-wider">
                       ĐANG XEM {startWeekLabel} ➜ {endWeekLabel}
                     </span>
-                    {(weekStartIndex <= 9 && 9 < weekStartIndex + weeksToShow) && (
+                    {data.pxlr.weekly.slice(weekStartIndex, weekStartIndex + weeksToShow).some(w => w.label.includes('45')) && (
                       <span className="ml-1 px-1.5 py-0.2 bg-emerald-300 text-emerald-950 text-[10px] font-black rounded-full shadow-2xs">
-                        Có Tuần 41 (Hiện tại)
+                        Có Tuần 45 (Hiện tại)
                       </span>
                     )}
                   </div>
@@ -443,7 +443,7 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
                     if (idx > maxStartIndex) return null;
                     return (
                       <option key={w.id} value={idx}>
-                        {w.label} {w.label.includes('41') ? '(Hiện tại)' : ''}
+                        {w.label} {w.label.includes('45') ? '(Hiện tại)' : ''}
                       </option>
                     );
                   })}

@@ -146,8 +146,8 @@ export const TabPowerPointPresentation: React.FC = () => {
   const [summaryView, setSummaryView] = useState<'auto' | 'slide1' | 'slide2' | 'both'>('auto');
 
   // Shared Period State for PowerPoint Slides (especially Slide 1 Báo Cáo Tổng Thể & Slide 2 Năng Suất)
-  const [selectedWeek, setSelectedWeek] = useState<string>('W42');
-  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 10');
+  const [selectedWeek, setSelectedWeek] = useState<string>('W45');
+  const [selectedMonth, setSelectedMonth] = useState<string>('Tháng 11');
   const [presentationTimeFrame, setPresentationTimeFrame] = useState<'day' | 'week' | 'month'>('week');
   
   // Tự động suy luận tháng tương ứng từ tuần đã chọn và cập nhật toàn bộ các slide

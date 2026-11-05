@@ -925,6 +925,92 @@ export const BASE_WEEKLY_SUMMARY: Record<string, ExecutiveSummaryPeriodResult> =
       },
     ],
   },
+  'W45': {
+    periodLabel: 'W45',
+    timeFrame: 'week',
+    actionItemTitle: 'Việc cần làm - Đối sách tuần W45 (Hiện tại)',
+    actionItemContent: 'Tuần 45 (Hiện tại - Tháng 11): Tuần mới bắt đầu, theo dõi kế hoạch giao và các chỉ tiêu sản xuất, năng suất lao động, đi làm và kiểm soát lỗi.',
+    isUrgentAction: false,
+    units: [
+      {
+        id: 'exec-pxlr-w45',
+        unitKey: 'PXLR',
+        unitName: 'PXLR Toàn Xưởng (W45)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo dõi KHSX Tuần 45',
+        nsldActual: 0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Chưa có sản lượng',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        errorRateActual: 0,
+        errorRateQuota: 7.38,
+        defectCostActual: 0,
+        defectCostTarget: 7000000,
+        actionItem: 'Tuần 45 (Hiện tại): Theo dõi số liệu sản xuất thực tế khi phát sinh nhập liệu.',
+      },
+      {
+        id: 'exec-ro-w45',
+        unitKey: 'RO',
+        unitName: 'Line Máy Lọc Nước RO (W45)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo dõi KHSX RO',
+        nsldActual: 0,
+        nsldTarget: 120.0,
+        nsldDeltaNote: 'Chưa có sản lượng',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        errorRateActual: 0,
+        errorRateQuota: 5.20,
+        defectCostActual: 0,
+        defectCostTarget: 5000000,
+        actionItem: 'Line RO Tuần 45: Sẵn sàng dây chuyền sản xuất.',
+      },
+      {
+        id: 'exec-bg-w45',
+        unitKey: 'BG',
+        unitName: 'Line DC Bếp Gas (W45)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo dõi KHSX BG',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Chưa có sản lượng',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        errorRateActual: 0,
+        errorRateQuota: 7.74,
+        defectCostActual: 0,
+        defectCostTarget: 2000000,
+        actionItem: 'Line BG Tuần 45: Sẵn sàng dây chuyền sản xuất.',
+      },
+      {
+        id: 'exec-rma-w45',
+        unitKey: 'RMA',
+        unitName: 'Tổ Sửa Chữa / Bảo Hành RMA (W45)',
+        khsxLabel: '0 SP',
+        actualOutputLabel: '0 SP',
+        actualOutput: 0,
+        completionRate: 0,
+        completionNote: 'Theo dõi RMA',
+        nsldActual: 0,
+        nsldTarget: 100.0,
+        nsldDeltaNote: 'Không phát sinh sản xuất (0%)',
+        attendanceActual: 0,
+        attendanceTarget: 95.0,
+        bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+        actionItem: 'Theo dõi tiếp nhận sản phẩm bảo hành.',
+      },
+    ],
+  },
 };
 
 // Helper: Parse Vietnamese formatted numbers safely (e.g. "17.420,4 SP" -> 17420.4, "1.853,6" -> 1853.6, "1.553" -> 1553)
@@ -2071,15 +2157,16 @@ export function getWeeklyExecutiveSummaryData(
     result.units = result.units.map(u => {
       if (u.unitKey === 'PXLR') {
         const isPass = pxlrNsld >= u.nsldTarget;
+        const hasMatrices = !!(weekColRO || weekColBG);
         return {
           ...u,
-          khsxLabel: totalKh > 0 ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
-          actualOutputLabel: totalAct > 0 ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
+          khsxLabel: (totalKh > 0 || hasMatrices) ? `${formatVNNumber(totalKh)} SP` : u.khsxLabel,
+          actualOutputLabel: (totalAct > 0 || hasMatrices) ? `${formatVNNumber(totalAct)} SP` : u.actualOutputLabel,
           actualOutput: totalAct,
           completionRate: totalRate,
-          completionNote: `Đạt ${totalRate.toFixed(1)}% KHSX`,
-          nsldActual: pxlrNsld > 0 ? pxlrNsld : u.nsldActual,
-          nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : `Tiệm cận mục tiêu ${u.nsldTarget}%`,
+          completionNote: totalKh > 0 ? `Đạt ${totalRate.toFixed(1)}% KHSX` : (totalAct > 0 ? `Thực hiện ${formatVNNumber(totalAct)} SP` : 'Chưa có KHSX'),
+          nsldActual: pxlrNsld,
+          nsldDeltaNote: isPass ? `Vượt mục tiêu ${u.nsldTarget}%` : (pxlrNsld > 0 ? `Chưa đạt mục tiêu ${u.nsldTarget}%` : 'Chưa có dữ liệu sản xuất'),
           attendanceActual: pxlrDiLam,
         };
       }
@@ -2091,7 +2178,11 @@ export function getWeeklyExecutiveSummaryData(
   const pxlrFinal = result.units.find(u => u.unitKey === 'PXLR');
   if (pxlrFinal) {
     const costText = pxlrFinal.defectCostActual === 0 ? '0 đ (Zero Defect)' : `${formatVNNumber(pxlrFinal.defectCostActual)} đ`;
-    result.actionItemContent = `Tuần ${weekKey}: Toàn xưởng hoàn thành ${pxlrFinal.actualOutputLabel || `${formatVNNumber(pxlrFinal.actualOutput || 0)} SP`} (${pxlrFinal.completionRate}% KHSX), NSLĐ đạt ${pxlrFinal.nsldActual}% (mục tiêu ≥ ${pxlrFinal.nsldTarget}%), tỷ lệ lỗi ${pxlrFinal.errorRateActual}% (định mức ≤ ${pxlrFinal.errorRateQuota}%), chi phí hư hỏng vật tư ${costText}.`;
+    if (pxlrFinal.actualOutput === 0 && pxlrFinal.completionRate === 0) {
+      result.actionItemContent = `Tuần ${weekKey} (${getMonthForWeek(weekKey)}): Sẵn sàng kế hoạch sản xuất các dây chuyền, kiểm soát năng suất lao động và linh kiện vật tư.`;
+    } else {
+      result.actionItemContent = `Tuần ${weekKey}: Toàn xưởng hoàn thành ${pxlrFinal.actualOutputLabel || `${formatVNNumber(pxlrFinal.actualOutput || 0)} SP`} (${pxlrFinal.completionRate}% KHSX), NSLĐ đạt ${pxlrFinal.nsldActual}% (mục tiêu ≥ ${pxlrFinal.nsldTarget}%), tỷ lệ lỗi ${pxlrFinal.errorRateActual}% (định mức ≤ ${pxlrFinal.errorRateQuota}%), chi phí hư hỏng vật tư ${costText}.`;
+    }
   }
 
   return result;

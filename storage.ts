@@ -273,6 +273,22 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
+        // Tháng mới (Tháng 11/2026 trở đi): nếu chứa dữ liệu mẫu giả định cũ, reset về 0 chuẩn tháng mới
+        if ((year === 2026 && monthIndex0 >= 10) || year > 2026) {
+          const hasLegacyDummy = parsed.some(c => 
+            !c.isWeeklyTotal && !c.isMonthlyTotal && (
+              (c.khsxNgay === 720 && c.congChinhThuc >= 55 && c.congChinhThuc <= 58) ||
+              c.tongNhanSuLine === 56 ||
+              (c.congChinhThuc === 55 && c.congThoiVu === 14)
+            )
+          );
+          if (hasLegacyDummy) {
+            parsed = generateMonthROMatrix(year, monthIndex0);
+            localStorage.setItem(key, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+
         // Only run legacy isOff migration for historical June (monthIndex0 === 5)
         if (monthIndex0 === 5 && year === 2026) {
           parsed = parsed.map((col) => {
@@ -349,8 +365,9 @@ export const StorageService = {
           }
         }
 
+
+        parsed = recalculateROMatrix(parsed);
         if (changed) {
-          parsed = recalculateROMatrix(parsed);
           localStorage.setItem(key, JSON.stringify(parsed));
         }
         return parsed;
@@ -398,6 +415,24 @@ export const StorageService = {
 
 
 
+        // Tháng mới (Tháng 11/2026 trở đi): nếu chứa dữ liệu mẫu giả định cũ, reset về 0 chuẩn tháng mới
+        if ((year === 2026 && monthIndex0 >= 10) || year > 2026) {
+          const hasLegacyDummy = parsed.some(c => 
+            !c.isWeeklyTotal && !c.isMonthlyTotal && (
+              c.congThoiVu === 3.8000000000000003 ||
+              (c.khsxNgay === 720 && c.congBepGa >= 4.8 && c.congBepGa <= 5.4) ||
+              (c.tongNhanSuLine === 8 && c.sanLuongBepGa >= 70) ||
+              (c.congBepGa === 5.2 && c.sanLuongBepGa === 75) ||
+              (c.congRma === 3 && c.sanLuongRma === 35)
+            )
+          );
+          if (hasLegacyDummy) {
+            parsed = generateMonthBGMatrix(year, monthIndex0);
+            localStorage.setItem(key, JSON.stringify(parsed));
+            return parsed;
+          }
+        }
+
         parsed = parsed.map((col) => {
           let updatedCol = { ...col };
           if (updatedCol.khsxNgay === undefined || updatedCol.tiLeHoanThanhKhsx === undefined) {
@@ -407,8 +442,9 @@ export const StorageService = {
               updatedCol.khsxNgay = initMatch.khsxNgay;
               updatedCol.tiLeHoanThanhKhsx = initMatch.tiLeHoanThanhKhsx;
             } else {
-              updatedCol.khsxNgay = col.isWeeklyTotal || col.isMonthlyTotal ? 0 : 720;
-              updatedCol.tiLeHoanThanhKhsx = 100.0;
+              const isFuture = (year === 2026 && monthIndex0 >= 10) || year > 2026;
+              updatedCol.khsxNgay = col.isWeeklyTotal || col.isMonthlyTotal || isFuture ? 0 : 720;
+              updatedCol.tiLeHoanThanhKhsx = isFuture ? 0 : 100.0;
             }
           }
           if (year === 2026 && monthIndex0 === 9) {
@@ -459,8 +495,8 @@ export const StorageService = {
           return updatedCol;
         });
 
+        parsed = recalculateBGMatrix(parsed);
         if (changed) {
-          parsed = recalculateBGMatrix(parsed);
           localStorage.setItem(key, JSON.stringify(parsed));
         }
         return parsed;

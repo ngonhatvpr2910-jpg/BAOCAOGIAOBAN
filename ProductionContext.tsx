@@ -356,14 +356,15 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const congRma = Number(r.congRma) || 0;
     const sanLuongBepGa = Number(r.sanLuongBepGa) || 0;
     const sanLuongRma = Number(r.sanLuongRma) || 0;
-    const dinhMucSlTheoNs = Number(r.dinhMucSlTheoNs) || 0;
+    const tongCong = congBepGa + congThoiVu + congRma;
+    const tongSanLuongQuyDoi = sanLuongBepGa + sanLuongRma;
+    const dinhMucSlTheoNs = Number(r.dinhMucSlTheoNs) > 0 
+      ? Number(r.dinhMucSlTheoNs) 
+      : (tongCong > 0 ? Number((tongCong * 9.03).toFixed(1)) : 0);
     const tongNhanSuLine = Number(r.tongNhanSuLine) || 0;
     const nhanSuNghi = Number(r.nhanSuNghi) || 0;
     const chiPhiHangHong = Number(r.chiPhiHangHong) || 0;
     const tiLeLoiThaoTac = Number(r.tiLeLoiThaoTac) || 0;
-
-    const tongCong = congBepGa + congThoiVu + congRma;
-    const tongSanLuongQuyDoi = sanLuongBepGa + sanLuongRma;
     const nsldTheoNgay = dinhMucSlTheoNs > 0 ? Number(((tongSanLuongQuyDoi / dinhMucSlTheoNs) * 100).toFixed(2)) : 0;
     const tiLeDiLam = tongNhanSuLine > 0 ? Number((((tongNhanSuLine - nhanSuNghi) / tongNhanSuLine) * 100).toFixed(2)) : 0;
     
@@ -614,34 +615,35 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const dayStr = String(day).padStart(2, '0');
     const targetId = `bg-${year}-${month}-${dayStr}`;
     const matrixCol = currentMatrix.find(c => c.id === targetId || c.dateStr === selectedDate);
+    const isHistorical = (year === 2026 && (monthIndex0 === 5 || monthIndex0 === 8 || monthIndex0 === 9));
 
     if (matrixCol && !matrixCol.isWeeklyTotal && !matrixCol.isMonthlyTotal) {
       return {
         id: matrixCol.id,
         date: selectedDate,
-        congBepGa: matrixCol.congBepGa || 0,
-        congThoiVu: matrixCol.congThoiVu || 0,
-        congRma: matrixCol.congRma || 0,
-        sanLuongBepGa: matrixCol.sanLuongBepGa || 0,
-        sanLuongRma: matrixCol.sanLuongRma || 0,
-        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs || 480,
-        tongNhanSuLine: matrixCol.tongNhanSuLine || 55,
-        nhanSuNghi: matrixCol.nhanSuNghi || 0,
+        congBepGa: matrixCol.congBepGa ?? 0,
+        congThoiVu: matrixCol.congThoiVu ?? 0,
+        congRma: matrixCol.congRma ?? 0,
+        sanLuongBepGa: matrixCol.sanLuongBepGa ?? 0,
+        sanLuongRma: matrixCol.sanLuongRma ?? 0,
+        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs ?? 0,
+        tongNhanSuLine: matrixCol.tongNhanSuLine ?? 0,
+        nhanSuNghi: matrixCol.nhanSuNghi ?? 0,
         chiPhiHangHong: 0, // Not in matrix
-        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac || 0,
+        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac ?? 0,
         ghiChu: '',
         tongCong: (matrixCol.congBepGa || 0) + (matrixCol.congThoiVu || 0) + (matrixCol.congRma || 0),
         tongSanLuongQuyDoi: (matrixCol.sanLuongBepGa || 0) + (matrixCol.sanLuongRma || 0),
-        nsldTheoNgay: matrixCol.nsldTheoNgay || 0,
-        tiLeDiLam: matrixCol.tiLeDiLam || 100,
-        khsxNgay: matrixCol.khsxNgay || 720,
-        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx || 0,
+        nsldTheoNgay: matrixCol.nsldTheoNgay ?? 0,
+        tiLeDiLam: matrixCol.tiLeDiLam ?? 0,
+        khsxNgay: matrixCol.khsxNgay ?? 0,
+        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx ?? 0,
       };
     }
 
     const found = dcbgRecords.find(r => r.date === selectedDate);
     if (found) return found;
-    return computeDCBG({ date: selectedDate, tongNhanSuLine: 55, dinhMucSlTheoNs: 480 });
+    return computeDCBG({ date: selectedDate, tongNhanSuLine: isHistorical ? 55 : 0, dinhMucSlTheoNs: isHistorical ? 480 : 0 });
   }, [dcbgRecords, selectedDate, matrixBG]);
 
   const activeDCRORecord: DailyDCRORecord = useMemo(() => {
@@ -651,32 +653,33 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const dayStr = String(day).padStart(2, '0');
     const targetId = `ro-${year}-${month}-${dayStr}`;
     const matrixCol = currentMatrix.find(c => c.id === targetId || c.dateStr === selectedDate);
+    const isHistorical = (year === 2026 && (monthIndex0 === 5 || monthIndex0 === 8 || monthIndex0 === 9));
 
     if (matrixCol && !matrixCol.isWeeklyTotal && !matrixCol.isMonthlyTotal) {
       return {
         id: matrixCol.id,
         date: selectedDate,
-        congChinhThuc: matrixCol.congChinhThuc || 0,
-        congThoiVu: matrixCol.congThoiVu || 0,
-        sanLuongLineChinh: matrixCol.sanLuongLineChinh || 0,
-        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs || 540,
-        tongNhanSuLine: matrixCol.tongNhanSuLine || 62,
-        nhanSuNghi: matrixCol.nhanSuNghi || 0,
+        congChinhThuc: matrixCol.congChinhThuc ?? 0,
+        congThoiVu: matrixCol.congThoiVu ?? 0,
+        sanLuongLineChinh: matrixCol.sanLuongLineChinh ?? 0,
+        dinhMucSlTheoNs: matrixCol.dinhMucSlTheoNs ?? 0,
+        tongNhanSuLine: matrixCol.tongNhanSuLine ?? 0,
+        nhanSuNghi: matrixCol.nhanSuNghi ?? 0,
         chiPhiHangHong: 0,
-        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac || 0,
+        tiLeLoiThaoTac: matrixCol.tiLeLoiThaoTac ?? 0,
         ghiChu: '',
         tongCong: (matrixCol.congChinhThuc || 0) + (matrixCol.congThoiVu || 0),
         tongSanLuongQuyDoi: matrixCol.sanLuongLineChinh || 0,
-        nsldTheoNgay: matrixCol.nsldTheoNgay || 0,
-        tiLeDiLam: matrixCol.tiLeDiLam || 100,
-        khsxNgay: matrixCol.khsxNgay || 0,
-        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx || 0,
+        nsldTheoNgay: matrixCol.nsldTheoNgay ?? 0,
+        tiLeDiLam: matrixCol.tiLeDiLam ?? 0,
+        khsxNgay: matrixCol.khsxNgay ?? 0,
+        tiLeHoanThanhKhsx: matrixCol.tiLeHoanThanhKhsx ?? 0,
       };
     }
 
     const found = dcroRecords.find(r => r.date === selectedDate);
     if (found) return found;
-    return computeDCRO({ date: selectedDate, tongNhanSuLine: 62, dinhMucSlTheoNs: 540 });
+    return computeDCRO({ date: selectedDate, tongNhanSuLine: isHistorical ? 62 : 0, dinhMucSlTheoNs: isHistorical ? 540 : 0 });
   }, [dcroRecords, selectedDate, matrixRO]);
 
   // Consolidated PXLR Data (Automatically synchronized)

@@ -31,19 +31,39 @@ function sanitizePercentage(val: number): number {
 export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGColumn[] {
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
-      const nsld = Number(c.nsldTheoNgay) || 0;
+      const cGa = Number(c.congBepGa) || 0;
+      const cTv = Number(c.congThoiVu) || 0;
+      const cRma = Number(c.congRma) || 0;
+      const tongCong = Number((cGa + cTv + cRma).toFixed(1));
+
       const slGa = Number(c.sanLuongBepGa) || 0;
       const slRma = Number(c.sanLuongRma) || 0;
       const totalSl = slGa + slRma;
+
+      // CÔNG THỨC CHUẨN BG:
+      // 1. Định Mức SL Theo NS = (Công Bếp Gas + Công Thời Vụ + Công RMA) * 9.03
+      const dm = tongCong > 0 ? Number((tongCong * 9.03).toFixed(1)) : (c.isOff ? 0 : (Number(c.dinhMucSlTheoNs) || 0));
+
+      // 2. NSLĐ Theo Ngày = (Tổng Sản Lượng Quy Đổi / Định Mức SL Theo NS) * 100
+      const nsld = dm > 0 ? Number(((totalSl / dm) * 100).toFixed(1)) : 0;
+
+      // 3. Tỉ Lệ Hoàn Thành KHSX = (Tổng Sản Lượng Quy Đổi / KHSX Ngày) * 100
       const khsx = Number(c.khsxNgay) || 0;
-      // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
       const khsxRate = khsx > 0 ? Number(((totalSl / khsx) * 100).toFixed(1)) : 0;
-      const attendance = Number(c.tiLeDiLam) || 0;
+
+      // 4. Tỉ Lệ Đi Làm = ((Tổng Nhân Sự Line - Nhân Sự Nghỉ) / Tổng Nhân Sự Line) * 100
+      const tongNS = Number(c.tongNhanSuLine) || 0;
+      const nghi = Number(c.nhanSuNghi) || 0;
+      const attendance = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : (c.isOff ? 100 : 0);
+
       return {
         ...c,
+        tongCong,
+        tongSanLuongQuyDoi: totalSl,
+        dinhMucSlTheoNs: dm,
         nsldTheoNgay: sanitizePercentage(nsld),
         tiLeHoanThanhKhsx: sanitizePercentage(khsxRate),
-        tiLeDiLam: attendance < 2 ? sanitizePercentage(attendance) : Number(attendance.toFixed(1))
+        tiLeDiLam: attendance
       };
     }
     return { ...c };
@@ -68,15 +88,18 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
       const cRma = Number(currentWeekDays.reduce((s, d) => s + (Number(d.congRma) || 0), 0).toFixed(1));
       const slGa = currentWeekDays.reduce((s, d) => s + (Number(d.sanLuongBepGa) || 0), 0);
       const slRma = currentWeekDays.reduce((s, d) => s + (Number(d.sanLuongRma) || 0), 0);
-      const dm = Number(currentWeekDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
+      const totalCong = Number((cGa + cTv + cRma).toFixed(1));
+      const dm = totalCong > 0 ? Number((totalCong * 9.03).toFixed(1)) : Number(currentWeekDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
       const totalSL = slGa + slRma;
-      const nsld = dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0;
+      const nsld = totalCong > 0 
+        ? Number(((totalSL / (totalCong * 9.03)) * 100).toFixed(1)) 
+        : (dm > 0 ? Number(((totalSL / dm) * 100).toFixed(1)) : 0);
       const khsx = currentWeekDays.reduce((s, d) => s + (Number(d.khsxNgay) || 0), 0);
       // CÔNG THỨC CHUẨN: (Sản lượng quy đổi bếp gas + Sản lượng quy đổi RMA) / KHSX Ngày
       const tiLeKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
       const nsLine = currentWeekDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
       const nsNghi = currentWeekDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
-      const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
+      const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 0;
 
       let rangeStr = col.weekRange;
       if (currentWeekDays.length > 0) {
@@ -129,7 +152,7 @@ export function recalculateBGMatrix(cols: ExcelMatrixBGColumn[]): ExcelMatrixBGC
     const tiLeKhsx = khsx > 0 ? Number(((totalSL / khsx) * 100).toFixed(1)) : 0;
     const nsLine = allWorkingDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
     const nsNghi = allWorkingDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
-    const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
+    const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 0;
 
     result[monthlyIdx] = {
       ...result[monthlyIdx],
@@ -239,9 +262,9 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
     let slGa = 0;
     let slRma = 0;
     let baseKhsx = 0;
-    let nsLine = 8;
+    let nsLine = (isMonth9 || isMonth10) ? 8 : 0;
     let nsNghi = 0;
-    let tiLe = 100;
+    let tiLe = (isMonth9 || isMonth10) ? 100 : 0;
 
     if (!isSunday) {
       if (isMonth10) {
@@ -272,12 +295,16 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
         slRma = baseRma > 0 ? 35 : 0;
         baseKhsx = 720;
       } else {
-        baseGa = 4.8 + ((day % 4) * 0.2);
-        baseTv = 3.2 + ((day % 3) * 0.3);
-        baseRma = day % 2 === 0 ? 3.0 : 0;
-        slGa = Math.round(baseGa * 14.5);
-        slRma = baseRma > 0 ? 35 : 0;
-        baseKhsx = 720;
+        // Tháng mới (Tháng 11/2026 trở đi): tất cả các trường dữ liệu mặc định bằng 0
+        baseGa = 0;
+        baseTv = 0;
+        baseRma = 0;
+        slGa = 0;
+        slRma = 0;
+        baseKhsx = 0;
+        nsLine = 0;
+        nsNghi = 0;
+        tiLe = 0;
       }
     }
     const totalCong = baseGa + baseTv + baseRma;
@@ -416,16 +443,33 @@ export function generateMonthBGMatrix(year: number, monthIndex0: number): ExcelM
 export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROColumn[] {
   const result = cols.map(c => {
     if (!c.isWeeklyTotal && !c.isMonthlyTotal) {
-      const nsld = Number(c.nsldTheoNgay) || 0;
+      const cCt = Number(c.congChinhThuc) || 0;
+      const cTv = Number(c.congThoiVu) || 0;
+      const tongCong = Number((cCt + cTv).toFixed(1));
       const sl = Number(c.sanLuongLineChinh) || 0;
+
+      // CÔNG THỨC CHUẨN RO:
+      // 1. Định Mức SL Theo NS = (Công CT + Công TV) * 9.03
+      const dm = tongCong > 0 ? Number((tongCong * 9.03).toFixed(1)) : (c.isOff ? 0 : (Number(c.dinhMucSlTheoNs) || 0));
+
+      // 2. NSLĐ Theo Ngày = (SL Quy Đổi Line Chính / Định Mức SL Theo NS) * 100
+      const nsld = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
+
+      // 3. Tỉ Lệ Hoàn Thành KHSX = (SL Line Chính / KHSX Ngày) * 100
       const khsx = Number(c.khsxNgay) || 0;
-      const khsxRate = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : (Number(c.tiLeHoanThanhKhsx) || 0);
-      const attendance = Number(c.tiLeDiLam) || 0;
+      const khsxRate = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : 0;
+
+      // 4. Tỉ Lệ Đi Làm = ((Tổng Nhân Sự Line - Nhân Sự Nghỉ) / Tổng Nhân Sự Line) * 100
+      const tongNS = Number(c.tongNhanSuLine) || 0;
+      const nghi = Number(c.nhanSuNghi) || 0;
+      const attendance = tongNS > 0 ? Number((((tongNS - nghi) / tongNS) * 100).toFixed(1)) : (c.isOff ? 100 : 0);
+
       return {
         ...c,
+        dinhMucSlTheoNs: dm,
         nsldTheoNgay: sanitizePercentage(nsld),
         tiLeHoanThanhKhsx: sanitizePercentage(khsxRate),
-        tiLeDiLam: attendance < 2 ? sanitizePercentage(attendance) : Number(attendance.toFixed(1))
+        tiLeDiLam: attendance
       };
     }
     return { ...c };
@@ -444,13 +488,16 @@ export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROC
       const cCt = Number(currentWeekDays.reduce((s, d) => s + (Number(d.congChinhThuc) || 0), 0).toFixed(1));
       const cTv = Number(currentWeekDays.reduce((s, d) => s + (Number(d.congThoiVu) || 0), 0).toFixed(1));
       const sl = currentWeekDays.reduce((s, d) => s + (Number(d.sanLuongLineChinh) || 0), 0);
-      const dm = Number(currentWeekDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
-      const nsld = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
+      const sumCong = Number((cCt + cTv).toFixed(1));
+      const dm = sumCong > 0 ? Number((sumCong * 9.03).toFixed(1)) : Number(currentWeekDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
+      const nsld = sumCong > 0 
+        ? Number(((sl / (sumCong * 9.03)) * 100).toFixed(1)) 
+        : (dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0);
       const khsx = currentWeekDays.reduce((s, d) => s + (Number(d.khsxNgay) || 0), 0);
       const tiLeKhsx = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : 0;
       const nsLine = currentWeekDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
       const nsNghi = currentWeekDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
-      const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
+      const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 0;
 
       let rangeStr = col.weekRange;
       if (currentWeekDays.length > 0) {
@@ -488,13 +535,16 @@ export function recalculateROMatrix(cols: ExcelMatrixROColumn[]): ExcelMatrixROC
     const cCt = Number(allWorkingDays.reduce((s, d) => s + (Number(d.congChinhThuc) || 0), 0).toFixed(1));
     const cTv = Number(allWorkingDays.reduce((s, d) => s + (Number(d.congThoiVu) || 0), 0).toFixed(1));
     const sl = allWorkingDays.reduce((s, d) => s + (Number(d.sanLuongLineChinh) || 0), 0);
-    const dm = Number(allWorkingDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
-    const nsld = dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0;
+    const sumCong = Number((cCt + cTv).toFixed(1));
+    const dm = sumCong > 0 ? Number((sumCong * 9.03).toFixed(1)) : Number(allWorkingDays.reduce((s, d) => s + (Number(d.dinhMucSlTheoNs) || 0), 0).toFixed(1));
+    const nsld = sumCong > 0 
+      ? Number(((sl / (sumCong * 9.03)) * 100).toFixed(1)) 
+      : (dm > 0 ? Number(((sl / dm) * 100).toFixed(1)) : 0);
     const khsx = allWorkingDays.reduce((s, d) => s + (Number(d.khsxNgay) || 0), 0);
     const tiLeKhsx = khsx > 0 ? Number(((sl / khsx) * 100).toFixed(1)) : 0;
     const nsLine = allWorkingDays.reduce((s, d) => s + (Number(d.tongNhanSuLine) || 0), 0);
     const nsNghi = allWorkingDays.reduce((s, d) => s + (Number(d.nhanSuNghi) || 0), 0);
-    const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 100;
+    const tiLe = nsLine > 0 ? Number((((nsLine - nsNghi) / nsLine) * 100).toFixed(1)) : 0;
 
     result[monthlyIdx] = {
       ...result[monthlyIdx],
@@ -597,9 +647,9 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
     let baseTv = 0;
     let sl = 0;
     let khsx = 0;
-    let nsLine = 56;
-    let nsNghi = 1;
-    let tiLe = 98.2;
+    let nsLine = (isMonth9 || isMonth10) ? 56 : 0;
+    let nsNghi = 0;
+    let tiLe = (isMonth9 || isMonth10) ? 100 : 0;
 
     if (!isSunday) {
       if (isMonth10) {
@@ -654,12 +704,14 @@ export function generateMonthROMatrix(year: number, monthIndex0: number): ExcelM
         sl = Math.round(dm * 1.17 + (day % 5) * 6);
         khsx = 700 + (day % 5) * 20;
       } else {
-        baseCt = 55 + (day % 3);
-        baseTv = 14 + (day % 2) * 2;
-        const totalCong = baseCt + baseTv;
-        const dm = Number((totalCong * 9.03).toFixed(1));
-        sl = Math.round(dm * 1.20);
-        khsx = 720;
+        // Tháng mới (Tháng 11/2026 trở đi): tất cả các trường dữ liệu mặc định bằng 0
+        baseCt = 0;
+        baseTv = 0;
+        sl = 0;
+        khsx = 0;
+        nsLine = 0;
+        nsNghi = 0;
+        tiLe = 0;
       }
     }
 

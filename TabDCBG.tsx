@@ -20,6 +20,7 @@ export const TabDCBG: React.FC = () => {
     sanLuongBepGa: activeDCBGRecord.sanLuongBepGa,
     sanLuongRma: activeDCBGRecord.sanLuongRma,
     dinhMucSlTheoNs: activeDCBGRecord.dinhMucSlTheoNs,
+    khsxNgay: activeDCBGRecord.khsxNgay || 0,
     tongNhanSuLine: activeDCBGRecord.tongNhanSuLine,
     nhanSuNghi: activeDCBGRecord.nhanSuNghi,
     chiPhiHangHong: activeDCBGRecord.chiPhiHangHong,
@@ -38,6 +39,7 @@ export const TabDCBG: React.FC = () => {
       sanLuongBepGa: activeDCBGRecord.sanLuongBepGa,
       sanLuongRma: activeDCBGRecord.sanLuongRma,
       dinhMucSlTheoNs: activeDCBGRecord.dinhMucSlTheoNs,
+      khsxNgay: activeDCBGRecord.khsxNgay || 0,
       tongNhanSuLine: activeDCBGRecord.tongNhanSuLine,
       nhanSuNghi: activeDCBGRecord.nhanSuNghi,
       chiPhiHangHong: activeDCBGRecord.chiPhiHangHong,
@@ -47,10 +49,21 @@ export const TabDCBG: React.FC = () => {
   }, [activeDCBGRecord]);
 
   const handleChange = (field: string, value: string | number) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: typeof value === 'string' && field !== 'ghiChu' ? (parseFloat(value) || 0) : value,
-    }));
+    setFormData(prev => {
+      const numVal = typeof value === 'string' && field !== 'ghiChu' ? (parseFloat(value) || 0) : value;
+      const next = {
+        ...prev,
+        [field]: numVal,
+      };
+
+      // Tự động tính Định mức SL theo NS nhóm BG: = (Công Bếp Ga + Công Thời Vụ + Công RMA) * 9.03
+      if (field === 'congBepGa' || field === 'congThoiVu' || field === 'congRma') {
+        const sumCong = (Number(next.congBepGa) || 0) + (Number(next.congThoiVu) || 0) + (Number(next.congRma) || 0);
+        next.dinhMucSlTheoNs = Number((sumCong * 9.03).toFixed(1));
+      }
+
+      return next;
+    });
   };
 
   const handleSave = (e: React.FormEvent) => {
