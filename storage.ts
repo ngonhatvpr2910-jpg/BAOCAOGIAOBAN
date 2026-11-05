@@ -805,8 +805,23 @@ export const StorageService = {
           };
 
           weekAgg.forEach((data, wNum) => {
-            let nsRO = data.dmRO > 0 ? Number(((data.slRO / data.dmRO) * 100).toFixed(1)) : data.valRO;
-            let nsBG = data.dmBG > 0 ? Number(((data.slBG / data.dmBG) * 100).toFixed(1)) : data.valBG;
+            const hasActualData = (data.slRO > 0 && data.dmRO > 0) || (data.slBG > 0 && data.dmBG > 0) || wNum === 44;
+            if (!hasActualData) {
+              const updateZero = (items: SlideBarItem[], type: string) => {
+                const finalLabel = `Tuần ${wNum}`;
+                const idx = items.findIndex(i => i.label === finalLabel || i.id === `${type}-w${wNum}`);
+                if (idx !== -1 && !isHistoricalItem(items[idx].id)) {
+                  items[idx].value = 0;
+                }
+              };
+              updateZero(parsed.ro.weekly, 'ro');
+              updateZero(parsed.bg.weekly, 'bg');
+              updateZero(parsed.pxlr.weekly, 'pxlr');
+              return;
+            }
+
+            let nsRO = data.dmRO > 0 && data.slRO > 0 ? Number(((data.slRO / data.dmRO) * 100).toFixed(1)) : 0;
+            let nsBG = data.dmBG > 0 && data.slBG > 0 ? Number(((data.slBG / data.dmBG) * 100).toFixed(1)) : 0;
             
             // Đối với Tuần 44: Giá trị chuẩn nhóm RO theo Hình 1 là 114.8% (SL: 6.047, Định Mức: 5.269)
             if (wNum === 44) {
@@ -814,8 +829,8 @@ export const StorageService = {
             }
 
             // Chỉ tính định mức của nhóm nếu nhóm đó thực tế có sản lượng hoặc có NSLĐ
-            const activeDmRO = (data.slRO > 0 || data.valRO > 0) ? data.dmRO : 0;
-            const activeDmBG = (data.slBG > 0 || data.valBG > 0) ? data.dmBG : 0;
+            const activeDmRO = data.slRO > 0 ? data.dmRO : 0;
+            const activeDmBG = data.slBG > 0 ? data.dmBG : 0;
             const totalSL = data.slRO + data.slBG;
             const totalDM = activeDmRO + activeDmBG;
 
@@ -828,15 +843,30 @@ export const StorageService = {
               nsPXLR = nsRO || nsBG || 0;
             }
 
-            if (data.hasRO && nsRO > 0) {
+            if (nsRO > 0) {
               updateItem(parsed.ro.weekly, nsRO, wNum, 'ro');
             }
-            if (data.hasBG && nsBG > 0) {
+            if (nsBG > 0) {
               updateItem(parsed.bg.weekly, nsBG, wNum, 'bg');
             }
-            if ((data.hasRO || data.hasBG) && nsPXLR > 0) {
+            if (nsPXLR > 0) {
               updateItem(parsed.pxlr.weekly, nsPXLR, wNum, 'pxlr');
             }
+          });
+
+          // Đảm bảo tuyệt đối các tuần từ W45 trở đi chưa có sản lượng thực tế đều có giá trị bằng 0
+          ['pxlr', 'ro', 'bg'].forEach(type => {
+            const list = (parsed as any)[type].weekly;
+            list.forEach((w: any) => {
+              const wNum = parseInt(w.label.replace(/\D/g, ''), 10);
+              if (wNum >= 45 && !isHistoricalItem(w.id)) {
+                const agg = weekAgg.get(wNum);
+                const hasProd = agg && ((agg.slRO > 0 && agg.dmRO > 0) || (agg.slBG > 0 && agg.dmBG > 0));
+                if (!hasProd) {
+                  w.value = 0;
+                }
+              }
+            });
           });
 
           // Đảm bảo tuyệt đối Line RO Tuần 44 trong Slide 1 luôn là 114.8% và PXLR đồng bộ chính xác
