@@ -550,7 +550,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
               // Pass / Fail evaluations against target benchmarks
               const isCompletionPass = (item.completionRate || 0) >= 100;
-              const isRmaNoPlan = isRMA && (item.khsxLabel === '0 SP' || item.khsxLabel === '0' || !item.actualOutput || item.actualOutput === 0 || item.actualOutputLabel === '0 SP');
+              const isRmaNoPlan = isRMA && (!item.actualOutput || item.actualOutput === 0 || item.actualOutputLabel === '0 SP' || item.actualOutputLabel === '0');
 
               const isNsldPass = isRMA && item.nsldActual === 0 
                 ? true 

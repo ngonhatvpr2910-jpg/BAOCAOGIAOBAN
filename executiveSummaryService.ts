@@ -2027,7 +2027,7 @@ export function getWeeklyExecutiveSummaryData(
         let sl = (u.actualOutput !== undefined && u.actualOutput > 0) ? u.actualOutput : parseVNNumber(u.actualOutputLabel);
 
         if (weekColBG) {
-          // CÔNG THỨC CHUẨN: KHSX ngày là kế hoạch; sản phẩm quy đổi Line (Bếp Ga) là thực hiện kế hoạch
+          // CÔNG THỨC CHUẨN: KHSX ngày là kế hoạch; sản phẩm quy đổi Bếp Ga là thực hiện kế hoạch
           kh = Number(weekColBG.khsxNgay) || 0;
           sl = Number(weekColBG.sanLuongBepGa) || 0;
         } else if (!hasBase) {
@@ -2040,9 +2040,26 @@ export function getWeeklyExecutiveSummaryData(
         }
 
         const rate = kh > 0 ? Number(((sl / kh) * 100).toFixed(1)) : (sl > 0 ? 100 : 0);
-        const nsld = (weekColBG && weekColBG.nsldTheoNgay !== undefined)
-          ? Number(weekColBG.nsldTheoNgay.toFixed(1))
-          : ((s2ItemBG && s2ItemBG.value > 0) ? Number(s2ItemBG.value.toFixed(1)) : u.nsldActual);
+
+        // Năng suất lao động Bếp Ga riêng lẻ: Công BG = congBepGa + congThoiVu
+        const cGa = weekColBG ? (Number(weekColBG.congBepGa) || 0) : 0;
+        const cTv = weekColBG ? (Number(weekColBG.congThoiVu) || 0) : 0;
+        const congBG = cGa + cTv;
+        const dmBG = congBG > 0 ? Number((congBG * 9.03).toFixed(1)) : 0;
+
+        let nsld = 0;
+        if (dmBG > 0) {
+          nsld = Number(((sl / dmBG) * 100).toFixed(1));
+        } else if (weekColBG && weekColBG.dinhMucSlTheoNs > 0 && sl > 0) {
+          nsld = Number(((sl / weekColBG.dinhMucSlTheoNs) * 100).toFixed(1));
+        } else if (weekColBG && weekColBG.nsldTheoNgay !== undefined && weekColBG.nsldTheoNgay > 0) {
+          nsld = Number(weekColBG.nsldTheoNgay.toFixed(1));
+        } else if (s2ItemBG && s2ItemBG.value > 0) {
+          nsld = Number(s2ItemBG.value.toFixed(1));
+        } else {
+          nsld = u.nsldActual;
+        }
+
         const diLam = (weekColBG && weekColBG.tiLeDiLam > 0) ? Number(weekColBG.tiLeDiLam.toFixed(1)) : u.attendanceActual;
         const delta = nsld - u.nsldTarget;
 
@@ -2060,39 +2077,34 @@ export function getWeeklyExecutiveSummaryData(
       }
 
       if (u.unitKey === 'RMA') {
-        const rmaSl = weekColBG ? (Number(weekColBG.sanLuongRma) || 0) : 0;
-        if (weekColBG) {
-          if (rmaSl > 0) {
-            return {
-              ...u,
-              khsxLabel: '0 SP',
-              actualOutputLabel: `${formatVNNumber(rmaSl)} SP`,
-              actualOutput: rmaSl,
-              completionRate: 100,
-              completionNote: `Sản lượng RMA: ${formatVNNumber(rmaSl)} SP`,
-              nsldActual: 100,
-              attendanceActual: (weekColBG.tiLeDiLam > 0 ? Number(weekColBG.tiLeDiLam.toFixed(1)) : 95.0),
-              bomNote: 'Không phát sinh linh kiện ngoài BOM',
-              actionItem: `Hoàn thành sản lượng RMA ${formatVNNumber(rmaSl)} SP theo tiến độ.`,
-            };
-          } else {
-            return {
-              ...u,
-              khsxLabel: '0 SP',
-              actualOutputLabel: '0 SP',
-              actualOutput: 0,
-              completionRate: 0,
-              completionNote: 'Không có KHSX RMA',
-              nsldActual: 0,
-              attendanceActual: 0,
-              bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
-              actionItem: 'Không phát sinh bảo hành ngoài kế hoạch.',
-            };
-          }
+        let rmaSl = weekColBG ? (Number(weekColBG.sanLuongRma) || 0) : (u.actualOutput || parseVNNumber(u.actualOutputLabel));
+        const cRma = weekColBG ? (Number(weekColBG.congRma) || 0) : 0;
+        const dmRMA = cRma > 0 ? Number((cRma * 9.03).toFixed(1)) : 0;
+        const rmaKh = parseVNNumber(u.khsxLabel);
+
+        let nsldRMA = 0;
+        if (dmRMA > 0 && rmaSl > 0) {
+          nsldRMA = Number(((rmaSl / dmRMA) * 100).toFixed(1));
+        } else if (rmaSl > 0) {
+          nsldRMA = 100.0;
         }
 
-        const isRmaNoPlan = (u.khsxLabel === '0 SP' || u.khsxLabel === '0' || !u.actualOutput || u.actualOutput === 0 || u.actualOutputLabel === '0 SP');
-        if (isRmaNoPlan) {
+        if (rmaSl > 0 || cRma > 0) {
+          const completionRate = rmaKh > 0 ? Number(((rmaSl / rmaKh) * 100).toFixed(1)) : 100;
+          return {
+            ...u,
+            khsxLabel: rmaKh > 0 ? `${formatVNNumber(rmaKh)} SP` : '0 SP',
+            actualOutputLabel: `${formatVNNumber(rmaSl)} SP`,
+            actualOutput: rmaSl,
+            completionRate,
+            completionNote: rmaKh > 0 ? `Đạt ${completionRate}% KHSX RMA` : `Sản lượng RMA: ${formatVNNumber(rmaSl)} SP`,
+            nsldActual: nsldRMA,
+            nsldDeltaNote: nsldRMA >= 100 ? (nsldRMA > 100 ? `Vượt mục tiêu 100% (${nsldRMA}%)` : 'Đạt mục tiêu 100%') : `Chưa đạt mục tiêu 100% (${nsldRMA}%)`,
+            attendanceActual: (weekColBG && weekColBG.tiLeDiLam > 0 ? Number(weekColBG.tiLeDiLam.toFixed(1)) : (u.attendanceActual || 95.0)),
+            bomNote: 'Không phát sinh linh kiện ngoài BOM',
+            actionItem: `Hoàn thành sản lượng RMA ${formatVNNumber(rmaSl)} SP (NSLĐ RMA: ${nsldRMA}%).`,
+          };
+        } else {
           return {
             ...u,
             khsxLabel: '0 SP',
@@ -2101,16 +2113,12 @@ export function getWeeklyExecutiveSummaryData(
             completionRate: 0,
             completionNote: 'Không có KHSX RMA',
             nsldActual: 0,
+            nsldDeltaNote: 'Không phát sinh sản xuất',
             attendanceActual: 0,
             bomNote: 'Không phát sinh sản xuất & không có dữ liệu báo cáo',
+            actionItem: 'Không phát sinh bảo hành ngoài kế hoạch.',
           };
         }
-        const sl = u.actualOutput || parseVNNumber(u.actualOutputLabel);
-        return {
-          ...u,
-          actualOutput: sl,
-          actualOutputLabel: `${formatVNNumber(sl)} SP`,
-        };
       }
       return u;
     });
