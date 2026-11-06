@@ -450,7 +450,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
 
                 {dynamicAvailableMonths.map(m => {
                   const isSelected = selectedMonth === m;
-                  const isCurrent = m === 'Tháng 10';
+                  const isCurrent = m === CURRENT_OPERATIONAL_MONTH;
                   return (
                     <button
                       key={`btn-month-${m}`}
@@ -497,7 +497,7 @@ export const ExecutiveSummaryCard: React.FC<ExecutiveSummaryCardProps> = ({
                 >
                   {dynamicAvailableMonths.map(m => (
                     <option key={`opt-m-${m}`} value={m}>
-                      {m} {m === 'Tháng 10' ? '(Tháng hiện tại)' : ''}
+                      {m} {m === CURRENT_OPERATIONAL_MONTH ? '(Tháng hiện tại)' : ''}
                     </option>
                   ))}
                 </select>

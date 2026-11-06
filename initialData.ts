@@ -1031,8 +1031,10 @@ export const INITIAL_SLIDE3_DEFECT_COST: SlideDefectCostData = {
     { id: 'm-06', label: 'Tháng 6', value: 10.8, displayLabel: '10.8M' },
     { id: 'm-07', label: 'Tháng 7', value: 7.1, displayLabel: '7.1M' },
     { id: 'm-08', label: 'Tháng 8', value: 5.9, displayLabel: '5.9M' },
-    { id: 'm-09', label: 'Tháng 9', value: 5.2, displayLabel: '5.2M' },
-    { id: 'm-10', label: 'Tháng 10', value: 0, displayLabel: '' },
+    { id: 'm-09', label: 'Tháng 9', value: 6.14, displayLabel: '6.14M' },
+    { id: 'm-10', label: 'Tháng 10', value: 8.65, displayLabel: '8.65M' },
+    { id: 'm-11', label: 'Tháng 11', value: 0, displayLabel: '0' },
+    { id: 'm-12', label: 'Tháng 12', value: 0, displayLabel: '0' },
   ],
   itemsRO: [
     // Tuần 37

@@ -206,7 +206,7 @@ export function computeWeeklyAggregations(
   const weeklyTotals: Record<string, { ro: number; bg: number; total: number }> = {};
   const allWeeksSet = new Set<string>();
 
-  ['W32', 'W33', 'W34', 'W35', 'W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44'].forEach(w => allWeeksSet.add(w));
+  ['W32', 'W33', 'W34', 'W35', 'W36', 'W37', 'W38', 'W39', 'W40', 'W41', 'W42', 'W43', 'W44', 'W45', 'W46', 'W47', 'W48', 'W49', 'W50', 'W51', 'W52'].forEach(w => allWeeksSet.add(w));
 
   if (baseWeeklyData) {
     baseWeeklyData.forEach(w => { if (w.label) allWeeksSet.add(w.label.toUpperCase()); });
@@ -304,12 +304,6 @@ export function computeMonthlyAggregations(
 
   sortedMonths.forEach(month => {
     const mNum = extractWeekNumber(month);
-
-    // Tinh gọn: Tháng 11 và Tháng 12 chưa đến thì không có số liệu
-    if (mNum === 11 || mNum === 12) {
-      monthlyTotals[month] = { ro: 0, bg: 0, total: 0 };
-      return;
-    }
 
     const weeksInThisMonth = getWeeksInMonth(month);
     const roItemsInMonth = (itemsRO || []).filter(i => isItemInMonth(i.week, month));

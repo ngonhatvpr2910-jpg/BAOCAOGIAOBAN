@@ -117,23 +117,22 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return computeMonthlyAggregations(weeklyData, weeklyTotals, data.itemsRO || [], data.itemsBG || [], data.monthlyData);
   }, [weeklyData, weeklyTotals, data.itemsRO, data.itemsBG, data.monthlyData]);
 
-  // Tinh gọn dữ liệu tháng: Tháng 11 và Tháng 12 chưa đến thì không có số liệu (chỉ hiển thị các tháng có dữ liệu thực tế)
+  // Hiển thị 5 tháng gần nhất (5 most recent months) để biểu đồ chuẩn đẹp, không đè chữ
   const activeMonthlyData = useMemo(() => {
-    return monthlyData.filter(m => {
+    const list = monthlyData.filter(m => {
       const num = parseInt(m.label.replace(/\D/g, ''), 10);
-      if (num === 11 || num === 12) {
-        return (Number(m.value) || 0) > 0;
-      }
+      if (num > 11 && (Number(m.value) || 0) <= 0) return false;
       return true;
     }).map(m => {
       if (m.label === 'Tháng 10') {
         const hasOctItems = [...(data.itemsRO || []), ...(data.itemsBG || [])].some(i => ['W41', 'W42', 'W43', 'W44'].includes(i.week || ''));
         if (!hasOctItems) {
-          return { ...m, value: 0, displayLabel: '0' };
+          return { ...m, value: m.value || 0, displayLabel: m.value ? `${m.value}M` : '0' };
         }
       }
       return m;
     });
+    return list.slice(-5);
   }, [monthlyData]);
 
   const totalWeeks = weeklyData.length;
@@ -177,10 +176,12 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
     return idx >= 0 ? idx : Math.max(0, weeklyData.length - 1);
   }, [weeklyData, latestWeekWithData]);
 
-  // Khởi tạo weekStartIndex trỏ ngay đến tuần hiện tại/mới nhất (W39) để biểu đồ luôn xem được W39
+  // Khởi tạo weekStartIndex trỏ ngay đến tuần hiện tại/mới nhất (W45)
   const [weekStartIndex, setWeekStartIndex] = useState<number>(() => {
-    const allCount = (data.weeklyData || []).length || 9;
-    return Math.max(0, allCount - 4);
+    const allCount = (data.weeklyData || []).length || 10;
+    const idx45 = (data.weeklyData || []).findIndex(w => isSameWeek(w.label, 'W45') || isSameWeek(w.label, 'Tuần 45'));
+    const targetIdx = idx45 >= 0 ? idx45 : allCount - 1;
+    return Math.max(0, Math.min(Math.max(0, allCount - 4), targetIdx - 3));
   });
 
   // Set default selected week to the latest week with data (e.g. W41)
@@ -1309,7 +1310,7 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                     );
                   })
                 ) : (
-                  ['Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10'].map(m => {
+                  ['Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'].map(m => {
                     const isSelected = filterByPeriod && selectedMonthLabel === m;
                     return (
                       <button
@@ -1331,6 +1332,16 @@ export const Slide3DefectCostPresentation: React.FC<Slide3DefectCostPresentation
                         {m === 'Tháng 10' && (
                           <span className="text-[8.5px] px-1 py-0 bg-blue-600 text-white rounded font-sans font-black">
                             W41-44
+                          </span>
+                        )}
+                        {m === 'Tháng 11' && (
+                          <span className="text-[8.5px] px-1 py-0 bg-emerald-600 text-white rounded font-sans font-black">
+                            W45-48
+                          </span>
+                        )}
+                        {m === 'Tháng 12' && (
+                          <span className="text-[8.5px] px-1 py-0 bg-purple-600 text-white rounded font-sans font-black">
+                            W49-52
                           </span>
                         )}
                       </button>

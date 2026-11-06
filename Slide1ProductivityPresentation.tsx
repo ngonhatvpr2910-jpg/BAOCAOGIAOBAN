@@ -52,10 +52,14 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
 
   // Slider state for Week view - configurable window
   const [weeksToShow, setWeeksToShow] = useState<number>(4);
-  const [weekStartIndex, setWeekStartIndex] = useState<number>(0);
-
   const totalWeeks = data.pxlr.weekly.length;
   const maxStartIndex = Math.max(0, totalWeeks - weeksToShow);
+
+  const [weekStartIndex, setWeekStartIndex] = useState<number>(() => {
+    const idx45 = data.pxlr.weekly.findIndex(w => w.label.includes('45'));
+    const targetIdx = idx45 >= 0 ? idx45 : totalWeeks - 1;
+    return Math.max(0, Math.min(maxStartIndex, targetIdx - 3));
+  });
 
   // Detect current ISO week (fall back to 45 if outside the active factory season [32..52])
   const currentWeekNum = useMemo(() => {
@@ -154,12 +158,14 @@ export const Slide1ProductivityPresentation: React.FC<Slide1ProductivityPresenta
     });
   };
 
-  // Filter monthly items to display months up to Tháng 10 (or later months if they have data)
+  // Display only 5 most recent months (5 tháng gần nhất) to keep chart bars and labels spacious and clear
   const filterActiveMonthly = (items: SlideBarItem[]) => {
-    return items.filter(m => {
+    const active = items.filter(m => {
       const num = parseInt(m.label.replace(/\D/g, ''), 10) || 0;
-      return num <= 10 || m.value > 0;
+      if (num > 11 && (Number(m.value) || 0) <= 0) return false;
+      return true;
     });
+    return active.slice(-5);
   };
 
   // Week range labels for display

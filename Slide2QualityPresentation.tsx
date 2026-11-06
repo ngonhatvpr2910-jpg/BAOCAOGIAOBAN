@@ -33,9 +33,25 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
   const activeFrame = propTimeFrame || data.activeTimeFrame || internalTimeFrame;
 
   // Slider state for Day view
-  const [dayStartIndex, setDayStartIndex] = useState<number>(0);
-  // Slider state for Week view
-  const [weekStartIndex, setWeekStartIndex] = useState<number>(0);
+  const [dayStartIndex, setDayStartIndex] = useState<number>(() => {
+    if (data.daily?.pxlr?.items) {
+      const totalDays = data.daily.pxlr.items.length;
+      return Math.max(0, totalDays - 7);
+    }
+    return 0;
+  });
+
+  // Slider state for Week view - Khởi tạo tự động trỏ ngay đến khung 4 tuần kết thúc ở Tuần 45 (Hiện tại)
+  const [weekStartIndex, setWeekStartIndex] = useState<number>(() => {
+    if (data.weekly?.pxlr?.items) {
+      const totalWeeks = data.weekly.pxlr.items.length;
+      const idx45 = data.weekly.pxlr.items.findIndex(i => i.month.includes('45'));
+      const targetIdx = idx45 >= 0 ? idx45 : totalWeeks - 1;
+      return Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 3));
+    }
+    return 0;
+  });
+
   // Error type filter state
   const [errorTypeFilter, setErrorTypeFilter] = useState<'all' | 'loiThaoTac' | 'vatTu'>('all');
 
@@ -46,23 +62,26 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
     }
   }, [propTimeFrame]);
 
-  // Tự động căn chỉnh slider Tuần khi selectedWeek thay đổi
+  // Tự động căn chỉnh slider Tuần khi selectedWeek thay đổi hoặc khởi tạo
   useEffect(() => {
-    if (activeFrame === 'week' && data.weekly && selectedWeek) {
+    if (activeFrame === 'week' && data.weekly) {
       const totalWeeks = data.weekly.pxlr.items.length;
+      const targetWeekStr = selectedWeek || 'W45';
       const targetIdx = data.weekly.pxlr.items.findIndex(i => {
         const numA = (i.month.match(/\d+/) || [])[0];
-        const numB = (selectedWeek.match(/\d+/) || [])[0];
-        return numA && numB ? numA === numB : i.month.toLowerCase() === selectedWeek.toLowerCase();
+        const numB = (targetWeekStr.match(/\d+/) || [])[0];
+        return numA && numB ? numA === numB : i.month.toLowerCase() === targetWeekStr.toLowerCase();
       });
       if (targetIdx >= 0) {
-        const newStart = Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 2));
+        const newStart = Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 3));
         setWeekStartIndex(newStart);
+      } else if (totalWeeks > 4) {
+        setWeekStartIndex(totalWeeks - 4);
       }
     }
   }, [activeFrame, selectedWeek, data.weekly]);
 
-  // Initialize slider to show the most recent 7 days / 4 weeks
+  // Initialize slider to show the most recent 7 days
   useEffect(() => {
     if (activeFrame === 'day' && data.daily) {
       const totalDays = data.daily.pxlr.items.length;
@@ -71,29 +90,31 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
       } else {
         setDayStartIndex(0);
       }
-    } else if (activeFrame === 'week' && data.weekly && !selectedWeek) {
-      const totalWeeks = data.weekly.pxlr.items.length;
-      if (totalWeeks > 4) {
-        setWeekStartIndex(totalWeeks - 4);
-      } else {
-        setWeekStartIndex(0);
-      }
     }
-  }, [activeFrame, data.daily?.pxlr.items.length, data.weekly?.pxlr.items.length, selectedWeek]);
+  }, [activeFrame, data.daily?.pxlr.items.length]);
 
   const handleToggleFrame = (frame: 'month' | 'week' | 'day') => {
     setInternalTimeFrame(frame);
     if (onTimeFrameChange) {
       onTimeFrameChange(frame);
     }
+    if (frame === 'week' && data.weekly) {
+      const totalWeeks = data.weekly.pxlr.items.length;
+      const idx45 = data.weekly.pxlr.items.findIndex(i => i.month.includes('45'));
+      const targetIdx = idx45 >= 0 ? idx45 : totalWeeks - 1;
+      setWeekStartIndex(Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 3)));
+    } else if (frame === 'day' && data.daily) {
+      const totalDays = data.daily.pxlr.items.length;
+      setDayStartIndex(Math.max(0, totalDays - 7));
+    }
   };
 
   const handleSelectPeriod = (label: string) => {
     if (activeFrame === 'week') {
-      const num = (label.match(/\d+/) || ['41'])[0];
+      const num = (label.match(/\d+/) || ['45'])[0];
       onWeekChange?.(`W${num}`);
     } else if (activeFrame === 'month') {
-      const num = (label.match(/\d+/) || ['10'])[0];
+      const num = (label.match(/\d+/) || ['11'])[0];
       onMonthChange?.(`Tháng ${num}`);
     }
   };
@@ -104,7 +125,9 @@ export const Slide2QualityPresentation: React.FC<Slide2QualityPresentationProps>
       setDayStartIndex(Math.max(0, totalDays - 7));
     } else if (activeFrame === 'week' && data.weekly) {
       const totalWeeks = data.weekly.pxlr.items.length;
-      setWeekStartIndex(Math.max(0, totalWeeks - 4));
+      const idx45 = data.weekly.pxlr.items.findIndex(i => i.month.includes('45'));
+      const targetIdx = idx45 >= 0 ? idx45 : totalWeeks - 1;
+      setWeekStartIndex(Math.max(0, Math.min(Math.max(0, totalWeeks - 4), targetIdx - 3)));
     }
   };
 
