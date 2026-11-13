@@ -273,16 +273,17 @@ export const StorageService = {
       if (parsed && Array.isArray(parsed) && parsed.length > 0) {
         let changed = false;
 
-        // Tháng mới (Tháng 11/2026 trở đi): nếu chứa dữ liệu mẫu giả định cũ, reset về 0 chuẩn tháng mới
-        if ((year === 2026 && monthIndex0 >= 10) || year > 2026) {
-          const hasLegacyDummy = parsed.some(c => 
+        // Tháng mới (Tháng 11/2026 trở đi): chỉ kiểm tra dọn dữ liệu mẫu giả định cũ MỘT LẦN DUY NHẤT khi chưa từng được người dùng lưu
+        const migratedKey = `${key}_migrated_v2`;
+        if (((year === 2026 && monthIndex0 >= 10) || year > 2026) && !localStorage.getItem(migratedKey)) {
+          const dummyDayCount = parsed.filter(c =>
             !c.isWeeklyTotal && !c.isMonthlyTotal && (
-              (c.khsxNgay === 720 && c.congChinhThuc >= 55 && c.congChinhThuc <= 58) ||
-              c.tongNhanSuLine === 56 ||
-              (c.congChinhThuc === 55 && c.congThoiVu === 14)
+              (c.khsxNgay === 720 && c.congChinhThuc >= 55 && c.congChinhThuc <= 58 && c.tongNhanSuLine === 56) ||
+              (c.congChinhThuc === 55 && c.congThoiVu === 14 && c.tongNhanSuLine === 56)
             )
-          );
-          if (hasLegacyDummy) {
+          ).length;
+          localStorage.setItem(migratedKey, '1');
+          if (dummyDayCount >= 10) {
             parsed = generateMonthROMatrix(year, monthIndex0);
             localStorage.setItem(key, JSON.stringify(parsed));
             return parsed;
@@ -386,6 +387,7 @@ export const StorageService = {
     try {
       const key = `${STORAGE_KEYS.MATRIX_RO}_${year}_${monthIndex0 + 1}`;
       localStorage.setItem(key, JSON.stringify(cols));
+      localStorage.setItem(`${key}_migrated_v2`, '1');
       if (monthIndex0 === 5 && year === 2026) {
         localStorage.setItem(STORAGE_KEYS.MATRIX_RO, JSON.stringify(cols));
       }
@@ -415,18 +417,18 @@ export const StorageService = {
 
 
 
-        // Tháng mới (Tháng 11/2026 trở đi): nếu chứa dữ liệu mẫu giả định cũ, reset về 0 chuẩn tháng mới
-        if ((year === 2026 && monthIndex0 >= 10) || year > 2026) {
-          const hasLegacyDummy = parsed.some(c => 
+        // Tháng mới (Tháng 11/2026 trở đi): chỉ kiểm tra dọn dữ liệu mẫu giả định cũ MỘT LẦN DUY NHẤT khi chưa từng được người dùng lưu
+        const migratedKey = `${key}_migrated_v2`;
+        if (((year === 2026 && monthIndex0 >= 10) || year > 2026) && !localStorage.getItem(migratedKey)) {
+          const dummyDayCount = parsed.filter(c =>
             !c.isWeeklyTotal && !c.isMonthlyTotal && (
               c.congThoiVu === 3.8000000000000003 ||
-              (c.khsxNgay === 720 && c.congBepGa >= 4.8 && c.congBepGa <= 5.4) ||
-              (c.tongNhanSuLine === 8 && c.sanLuongBepGa >= 70) ||
-              (c.congBepGa === 5.2 && c.sanLuongBepGa === 75) ||
-              (c.congRma === 3 && c.sanLuongRma === 35)
+              (c.khsxNgay === 720 && c.congBepGa === 5.2 && c.sanLuongBepGa === 75 && c.tongNhanSuLine === 8) ||
+              (c.khsxNgay === 720 && c.congRma === 3 && c.sanLuongRma === 35 && c.tongNhanSuLine === 8)
             )
-          );
-          if (hasLegacyDummy) {
+          ).length;
+          localStorage.setItem(migratedKey, '1');
+          if (dummyDayCount >= 8) {
             parsed = generateMonthBGMatrix(year, monthIndex0);
             localStorage.setItem(key, JSON.stringify(parsed));
             return parsed;
@@ -515,6 +517,7 @@ export const StorageService = {
     try {
       const key = `${STORAGE_KEYS.MATRIX_BG}_${year}_${monthIndex0 + 1}`;
       localStorage.setItem(key, JSON.stringify(cols));
+      localStorage.setItem(`${key}_migrated_v2`, '1');
       if (monthIndex0 === 5 && year === 2026) {
         localStorage.setItem(STORAGE_KEYS.MATRIX_BG, JSON.stringify(cols));
       }

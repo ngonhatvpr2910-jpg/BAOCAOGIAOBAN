@@ -143,8 +143,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [weeklyDCBG, setWeeklyDCBG] = useState<WeeklyDCBGRecord[]>(() => StorageService.getWeeklyDCBG());
   const [monthlyNSLDDCBG, setMonthlyNSLDDCBG] = useState<MonthlyNSLDDCBGRecord[]>(() => StorageService.getMonthlyNSLDDCBG());
   const [dailyNSLDRMA, setDailyNSLDRMA] = useState<DailyNSLDRMARecord[]>(() => StorageService.getDailyNSLDRMA());
-  const [matrixRO, setMatrixRO] = useState<ExcelMatrixROColumn[]>(() => StorageService.getMatrixRO());
-  const [matrixBG, setMatrixBG] = useState<ExcelMatrixBGColumn[]>(() => StorageService.getMatrixBG());
+  const [matrixRO, setMatrixRO] = useState<ExcelMatrixROColumn[]>(() => StorageService.getMatrixROForMonth(2026, dashboardMonthIndex0));
+  const [matrixBG, setMatrixBG] = useState<ExcelMatrixBGColumn[]>(() => StorageService.getMatrixBGForMonth(2026, dashboardMonthIndex0));
   const [alerts, setAlerts] = useState<PushAlert[]>(() => StorageService.getAlerts());
   const [thresholds, setThresholds] = useState<ThresholdConfig>(() => StorageService.getThresholds());
   const [globalNorms, setGlobalNorms] = useState<GlobalNormsConfig>(() => StorageService.getGlobalNorms());
@@ -234,12 +234,9 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, [dailyNSLDRMA]);
 
   useEffect(() => {
-    StorageService.saveMatrixRO(matrixRO);
-  }, [matrixRO]);
-
-  useEffect(() => {
-    StorageService.saveMatrixBG(matrixBG);
-  }, [matrixBG]);
+    setMatrixRO(StorageService.getMatrixROForMonth(dashboardYear, dashboardMonthIndex0));
+    setMatrixBG(StorageService.getMatrixBGForMonth(dashboardYear, dashboardMonthIndex0));
+  }, [dashboardYear, dashboardMonthIndex0]);
 
   useEffect(() => {
     StorageService.saveAlerts(alerts);
@@ -833,7 +830,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateMatrixRO = useCallback((columns: ExcelMatrixROColumn[]) => {
     setMatrixRO(columns);
-  }, []);
+    StorageService.saveMatrixROForMonth(dashboardYear, dashboardMonthIndex0, columns);
+  }, [dashboardYear, dashboardMonthIndex0]);
 
   const updateMatrixROForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixROColumn[]) => {
     StorageService.saveMatrixROForMonth(year, monthIndex0, columns);
@@ -898,7 +896,8 @@ export const ProductionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateMatrixBG = useCallback((columns: ExcelMatrixBGColumn[]) => {
     setMatrixBG(columns);
-  }, []);
+    StorageService.saveMatrixBGForMonth(dashboardYear, dashboardMonthIndex0, columns);
+  }, [dashboardYear, dashboardMonthIndex0]);
 
   const updateMatrixBGForMonth = useCallback((year: number, monthIndex0: number, columns: ExcelMatrixBGColumn[]) => {
     StorageService.saveMatrixBGForMonth(year, monthIndex0, columns);
